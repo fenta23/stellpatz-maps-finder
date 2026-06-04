@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import rateLimit from 'express-rate-limit'
+import helmet from 'helmet'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -32,6 +33,32 @@ function snapBboxInQuery(query: string): string {
 export function createApp() {
   const app = express()
 
+  // Behind Firebase Hosting / GCP Load Balancer — req.ip is the LB IP without this.
+  app.set('trust proxy', 1)
+
+  // Security headers: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, …
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Leaflet needs inline styles
+        imgSrc: [
+          "'self'", 'data:', 'blob:',
+          'https://*.tile.openstreetmap.org',
+          'https://upload.wikimedia.org',
+          'https://commons.wikimedia.org',
+          'https://images.mapillary.com',
+          'https://graph.mapillary.com',
+        ],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  }))
+
   // Per-app cache so tests start clean; TTL 5 min, max 200 entries (LRU-evict oldest).
   const overpassCache = new Map<string, { data: unknown; expiresAt: number }>()
   const CACHE_TTL = 5 * 60 * 1000
@@ -54,7 +81,7 @@ export function createApp() {
   let overpassIdx = 0
   app.post(
     '/api/overpass',
-    express.text({ type: 'application/x-www-form-urlencoded' }),
+    express.text({ type: 'application/x-www-form-urlencoded', limit: '4kb' }),
     async (req, res) => {
       const rawBody = req.body as string
 
@@ -118,7 +145,13 @@ export function createApp() {
 
     const params = new URLSearchParams({ q, format: 'json', limit: '6', addressdetails: '0' })
     const viewbox = req.query['viewbox']
-    if (viewbox) params.set('viewbox', String(viewbox))
+    // Validate viewbox format: four finite decimal numbers separated by commas.
+    if (viewbox) {
+      const vb = String(viewbox)
+      if (/^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$/.test(vb)) {
+        params.set('viewbox', vb)
+      }
+    }
 
     try {
       const upstream = await fetch(
@@ -168,7 +201,14 @@ export function createApp() {
     const [fromLat, fromLon] = from.split(',')
     const [toLat, toLon] = to.split(',')
 
-    if (!fromLat || !fromLon || !toLat || !toLon) {
+    const fromLatN = Number(fromLat), fromLonN = Number(fromLon)
+    const toLatN = Number(toLat), toLonN = Number(toLon)
+    if (
+      !fromLat || !fromLon || !toLat || !toLon ||
+      [fromLatN, fromLonN, toLatN, toLonN].some(n => !isFinite(n)) ||
+      Math.abs(fromLatN) > 90 || Math.abs(fromLonN) > 180 ||
+      Math.abs(toLatN) > 90 || Math.abs(toLonN) > 180
+    ) {
       res.status(400).json({ error: 'from and to coordinates required (lat,lon)' })
       return
     }
@@ -299,11 +339,12 @@ export function createApp() {
 
     const r = 0.0005 // ~50 m radius
     const bbox = `${(lon - r).toFixed(6)},${(lat - r).toFixed(6)},${(lon + r).toFixed(6)},${(lat + r).toFixed(6)}`
-    const url = `https://graph.mapillary.com/images?access_token=${token}&bbox=${bbox}&fields=id,thumb_256_url,captured_at&limit=6`
+    // Token in Authorization header, not URL — avoids leaking it into access logs.
+    const url = `https://graph.mapillary.com/images?bbox=${bbox}&fields=id,thumb_256_url,captured_at&limit=6`
 
     try {
       const upstream = await fetch(url, {
-        headers: { 'User-Agent': UA },
+        headers: { 'User-Agent': UA, 'Authorization': `OAuth ${token}` },
         signal: AbortSignal.timeout(8000),
       })
       if (!upstream.ok) { res.status(upstream.status).json({ error: 'Mapillary error' }); return }

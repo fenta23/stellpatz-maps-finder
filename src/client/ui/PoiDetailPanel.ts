@@ -175,9 +175,9 @@ export class PoiDetailPanel {
     add('Kapazität', t.capacity)
 
     // ── Contact ────────────────────────────────────────────────────────────────
-    if (t.phone) addLink('Telefon', `tel:${t.phone}`, t.phone)
-    if (t.email) addLink('E-Mail', `mailto:${t.email}`, t.email)
-    if (t.website) addLink('Website', t.website, 'Öffnen')
+    if (t.phone) addLink('Telefon', safeUrl(`tel:${t.phone}`), t.phone)
+    if (t.email) addLink('E-Mail', safeUrl(`mailto:${t.email}`), t.email)
+    if (t.website) addLink('Website', safeUrl(t.website), 'Öffnen')
 
     // ── Address ────────────────────────────────────────────────────────────────
     const addrParts = [
@@ -236,7 +236,7 @@ function renderImages(images: PoiImage[]): string {
     const thumb = `<img src="${esc(img.src)}" alt="${esc(img.caption ?? '')}" loading="lazy" class="poi-img-thumb" />`
     const caption = img.caption ? `<div class="poi-img-caption">${esc(img.caption)}</div>` : ''
     return img.link
-      ? `<a href="${esc(img.link)}" target="_blank" rel="noopener" class="poi-img-item">${thumb}${caption}</a>`
+      ? `<a href="${esc(safeUrl(img.link))}" target="_blank" rel="noopener" class="poi-img-item">${thumb}${caption}</a>`
       : `<div class="poi-img-item">${thumb}${caption}</div>`
   }).join('')
   return `<div class="poi-img-strip">${items}</div>`
@@ -345,6 +345,18 @@ function hideLightbox(): void {
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/** Sanitize a URL so that only safe protocols can appear in href attributes.
+ *  OSM tags like `website` are user-provided and could contain `javascript:` URLs.
+ */
+function safeUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    return ['http:', 'https:', 'tel:', 'mailto:'].includes(u.protocol) ? url : '#'
+  } catch {
+    return '#'
+  }
 }
 
 function typeLabel(type: OsmPoi['type']): string {

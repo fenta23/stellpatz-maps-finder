@@ -204,8 +204,10 @@ describe('GET /api/mapillary', () => {
       link: expect.stringContaining('mapillary.com'),
     })
     const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    const calledInit = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit | undefined
     expect(calledUrl).toContain('graph.mapillary.com/images')
-    expect(calledUrl).toContain('test_token')
+    expect(calledUrl).not.toContain('test_token') // token must not appear in URL (log leakage)
+    expect(String(calledInit?.headers && (calledInit.headers as Record<string, string>)['Authorization'])).toContain('test_token')
   })
 
   it('returns 503 when Mapillary is unreachable', async () => {
