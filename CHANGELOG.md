@@ -10,17 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-06-05
 
 ### Added
-- **Firebase Deployment**: App läuft jetzt auf Firebase Hosting (Client) + Cloud Functions Gen 2 (Express-Server)
-- `src/server/functions.ts` — Cloud Function Entry Point, kapselt `createApp()` via `onRequest` (Region: `europe-west1`)
+- **Render.com Deployment**: `render.yaml` — ein einziger Web Service (Express) serviert `/api/**` + statischen Client-Build; Build/Start/Health-Check vorkonfiguriert
 - `tsconfig.server.json` — separates TS-Kompilierungsziel für den Server (`node16`-Auflösung, kein DOM, Ausgabe nach `dist/server/`)
-- `firebase.json` — Hosting-Config (`dist/client/`) mit `/api/**`-Rewrite auf Cloud Function; `predeploy`-Hooks bauen automatisch
-- `.firebaserc` — Projekt-Platzhalter (Projekt-ID vor erstem Deploy eintragen)
 - `npm run build:client` / `npm run build:server` — separate Build-Targets; `npm run build` führt beide aus
-- `npm run deploy` — Shortcut für `firebase deploy`
-- `firebase-functions@7` + `firebase-admin@13` als Dependencies
+- **Security Hardening** (vollständiger Codebase-Review):
+  - `safeUrl()` in PoiDetailPanel — blockt `javascript:`-Protokoll in OSM `website`/`phone`/`email`-Tags (XSS)
+  - `helmet` — CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
+  - `app.set('trust proxy', 1)` — korrektes `req.ip` hinter Load Balancer
+  - Overpass-Body-Limit 4 kb (DoS-Mitigation)
+  - Koordinatenvalidierung (`isFinite` + Bereichsprüfung) in `/api/route`
+  - Viewbox-Format-Validierung in `/api/geocode`
+  - Mapillary-Token aus URL-Query-Param → `Authorization`-Header (verhindert Log-Leakage)
 
 ### Changed
-- `.env.example` — `GOOGLE_MAPS_API_KEY` entfernt (nicht mehr benötigt), Firebase-Hinweise für Umgebungsvariablen ergänzt
+- `.env.example` — Firebase-Hinweise durch Render-Hinweise ersetzt
 
 ## [0.2.0] - 2026-06-04
 

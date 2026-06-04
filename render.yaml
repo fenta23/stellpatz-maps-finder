@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: stellpatz-finder
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/server/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MAPILLARY_ACCESS_TOKEN
+        sync: false   # In Render Dashboard manuell setzen

@@ -1,7 +1,7 @@
 # Stellpatz Maps Finder
 
 ## Project Overview
-Web app for route planning with automatic display of parking spots, camper pitches, and campsites in the current map viewport. Built with Leaflet + OSM tiles, Overpass API, Node.js/Express backend, Vite + TypeScript frontend. Deployable to Firebase Hosting + Cloud Functions.
+Web app for route planning with automatic display of parking spots, camper pitches, and campsites in the current map viewport. Built with Leaflet + OSM tiles, Overpass API, Node.js/Express backend, Vite + TypeScript frontend. Deployed as a single Express service on Render.com.
 
 ## Commands
 ```bash
@@ -11,17 +11,25 @@ npm test             # run all unit tests (Vitest)
 npm run test:watch   # watch mode
 npm run build        # production build → dist/client/ (Vite) + dist/server/ (tsc)
 npm run build:client # only Vite frontend build
-npm run build:server # only TypeScript server compilation (for Cloud Functions)
-npm run deploy       # firebase deploy (runs predeploy build hooks automatically)
+npm run build:server # only TypeScript server compilation
 ```
+
+## Deployment (Render.com)
+1. Repo auf GitHub pushen
+2. https://dashboard.render.com → New → Web Service → Repo verbinden
+3. Render liest `render.yaml` automatisch (Build + Start Command, Health Check)
+4. `MAPILLARY_ACCESS_TOKEN` im Render Dashboard unter Environment setzen
+
+Der Express-Server serviert in Production sowohl `/api/**` als auch die statischen
+Client-Dateien aus `dist/client/` — ein einziger Service für alles.
 
 ## Architecture
 
 ### Backend (`src/server/`)
-- `index.ts` — Express server, `createApp()` exported for testing + Cloud Functions
-- `functions.ts` — Firebase Cloud Functions entry point (wraps Express via `onRequest`)
+- `index.ts` — Express server, `createApp()` für Tests + Produktion exportiert
 - Proxies: Overpass, Nominatim, Valhalla routing, Mapillary, OSM Notes
-- In-memory Overpass cache (TTL 5 min, BBox-snapping auf 0,05°-Raster)
+- In-memory Overpass cache (TTL 5 min, BBox-Snapping auf 0,05°-Raster)
+- Security: helmet (CSP, X-Frame-Options …), trust proxy, rate limiting
 
 ### Frontend (`src/client/`)
 | Module | Purpose |
@@ -56,39 +64,6 @@ Copy `.env.example` → `.env` for local dev:
 SERVER_PORT=3000
 MAPILLARY_ACCESS_TOKEN=   # optional — Mapillary street-level photos
 ```
-
-For Firebase Cloud Functions, environment variables are set in the Firebase Console
-(Build → Functions → "api" → Edit → Environment variables) or via:
-```bash
-firebase functions:secrets:set MAPILLARY_ACCESS_TOKEN
-```
-
-## Firebase Deployment
-
-### Erstmaliges Setup
-```bash
-npm install -g firebase-tools
-firebase login
-# Firebase Projekt anlegen: https://console.firebase.google.com
-# Projekt-ID in .firebaserc eintragen
-firebase use DEIN_PROJEKT_ID
-```
-
-### Deployen
-```bash
-npm run deploy
-# oder einzeln:
-firebase deploy --only hosting
-firebase deploy --only functions
-```
-
-### Was wird deployed?
-| Service | Quelle | Inhalt |
-|---|---|---|
-| Firebase Hosting | `dist/client/` | Vite-Build, statische Assets |
-| Cloud Functions | `dist/server/` | Express-App als `api`-Function |
-
-Hosting rewritet `/api/**` → Cloud Function `api` (Region: `europe-west1`).
 
 ## Testing
 - Unit tests alongside source: `*.test.ts`
