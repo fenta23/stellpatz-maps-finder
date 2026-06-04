@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-05
+
+### Fixed
+- Render build: vite 8→7 (rolldown/binding-linux-ppc64-gnu fehlende Version crashte npm install auf Linux)
+- Render build: `npm install` statt `npm ci`, Node-Version-Pin entfernt (Render nutzt Node 24 default)
+- Lockfile neu generiert nach npm 11/10 Inkompatibilität
+
 ## [0.3.0] - 2026-06-05
 
 ### Added
