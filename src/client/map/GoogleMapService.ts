@@ -37,7 +37,7 @@ export class GoogleMapService {
 
     this.map.addListener('bounds_changed', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
-      this.debounceTimer = setTimeout(() => this.emitBoundsChanged(), 500)
+      this.debounceTimer = setTimeout(() => this.emitBoundsChanged(), 1200)
     })
   }
 

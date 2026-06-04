@@ -6,10 +6,27 @@ import type { LatLngBounds, OsmElement } from './OverpassClient.js'
 
 const BOUNDS: LatLngBounds = { south: 48.0, west: 11.0, north: 48.5, east: 11.5 }
 
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+]
+
+// Mock all three endpoints with the same handler
+function mockAllEndpoints(handler: (url: string) => ReturnType<typeof http.post>) {
+  return OVERPASS_URLS.map(url => handler(url))
+}
+
 const mockServer = setupServer()
 beforeAll(() => mockServer.listen())
 afterEach(() => mockServer.resetHandlers())
 afterAll(() => mockServer.close())
+
+const PARKING_RESPONSE = {
+  elements: [
+    { type: 'node', id: 42, lat: 48.1, lon: 11.1, tags: { amenity: 'parking', name: 'Testparkplatz' } },
+  ],
+}
 
 describe('buildQuery', () => {
   it('includes parking query when parking type active', () => {
@@ -76,15 +93,9 @@ describe('fetchPois', () => {
   })
 
   it('parses node elements correctly', async () => {
-    mockServer.use(
-      http.post('https://overpass-api.de/api/interpreter', () =>
-        HttpResponse.json({
-          elements: [
-            { type: 'node', id: 42, lat: 48.1, lon: 11.1, tags: { amenity: 'parking', name: 'Testparkplatz' } },
-          ],
-        }),
-      ),
-    )
+    mockServer.use(...mockAllEndpoints(url =>
+      http.post(url, () => HttpResponse.json(PARKING_RESPONSE)),
+    ))
     const result = await fetchPois(BOUNDS, new Set(['parking']))
     expect(result).toHaveLength(1)
     expect(result[0]).toMatchObject({ id: 42, type: 'parking', lat: 48.1, lon: 11.1 })
@@ -92,57 +103,69 @@ describe('fetchPois', () => {
   })
 
   it('uses center for way elements', async () => {
-    mockServer.use(
-      http.post('https://overpass-api.de/api/interpreter', () =>
+    mockServer.use(...mockAllEndpoints(url =>
+      http.post(url, () =>
         HttpResponse.json({
           elements: [
             { type: 'way', id: 99, center: { lat: 48.2, lon: 11.2 }, tags: { tourism: 'campsite' } },
           ],
         }),
       ),
-    )
+    ))
     const result = await fetchPois(BOUNDS, new Set(['campsite']))
     expect(result[0]).toMatchObject({ lat: 48.2, lon: 11.2, type: 'campsite' })
   })
 
-  it('throws on non-ok HTTP response', async () => {
-    mockServer.use(
-      http.post('https://overpass-api.de/api/interpreter', () =>
-        new HttpResponse(null, { status: 429 }),
-      ),
-    )
-    await expect(fetchPois(BOUNDS, new Set(['parking']))).rejects.toThrow('429')
+  it('falls back to next endpoint on 429', async () => {
+    let callCount = 0
+    mockServer.use(...mockAllEndpoints(url =>
+      http.post(url, () => {
+        callCount++
+        // first call 429, subsequent calls return data
+        return callCount === 1
+          ? new HttpResponse(null, { status: 429 })
+          : HttpResponse.json(PARKING_RESPONSE)
+      }),
+    ))
+    const result = await fetchPois(BOUNDS, new Set(['parking']))
+    expect(result).toHaveLength(1)
+    expect(callCount).toBeGreaterThanOrEqual(2)
+  })
+
+  it('throws when all endpoints return 429', async () => {
+    mockServer.use(...mockAllEndpoints(url =>
+      http.post(url, () => new HttpResponse(null, { status: 429 })),
+    ))
+    await expect(fetchPois(BOUNDS, new Set(['parking']))).rejects.toThrow()
   })
 
   it('filters elements without coordinates', async () => {
-    mockServer.use(
-      http.post('https://overpass-api.de/api/interpreter', () =>
+    mockServer.use(...mockAllEndpoints(url =>
+      http.post(url, () =>
         HttpResponse.json({
           elements: [
-            { type: 'way', id: 1, tags: { amenity: 'parking' } }, // no lat/lon, no center
+            { type: 'way', id: 1, tags: { amenity: 'parking' } },
             { type: 'node', id: 2, lat: 48.3, lon: 11.3, tags: { amenity: 'parking' } },
           ],
         }),
       ),
-    )
+    ))
     const result = await fetchPois(BOUNDS, new Set(['parking']))
     expect(result).toHaveLength(1)
     expect(result[0]?.id).toBe(2)
   })
 
   it('handles missing elements field gracefully', async () => {
-    mockServer.use(
-      http.post('https://overpass-api.de/api/interpreter', () =>
-        HttpResponse.json({ version: 0.6, generator: 'Overpass' }),
-      ),
-    )
+    mockServer.use(...mockAllEndpoints(url =>
+      http.post(url, () => HttpResponse.json({ version: 0.6, generator: 'Overpass' })),
+    ))
     const result = await fetchPois(BOUNDS, new Set(['parking']))
     expect(result).toEqual([])
   })
 
   it('deduplicates elements with same id', async () => {
-    mockServer.use(
-      http.post('https://overpass-api.de/api/interpreter', () =>
+    mockServer.use(...mockAllEndpoints(url =>
+      http.post(url, () =>
         HttpResponse.json({
           elements: [
             { type: 'node', id: 7, lat: 48.1, lon: 11.1, tags: { amenity: 'parking' } },
@@ -150,7 +173,7 @@ describe('fetchPois', () => {
           ],
         }),
       ),
-    )
+    ))
     const result = await fetchPois(BOUNDS, new Set(['parking']))
     expect(result).toHaveLength(1)
   })
