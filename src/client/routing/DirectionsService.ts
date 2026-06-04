@@ -51,6 +51,10 @@ export function buildOsmPoiLink(destination: LatLon): string {
   return `https://www.openstreetmap.org/?mlat=${destination.lat}&mlon=${destination.lon}&zoom=16`
 }
 
+export function buildGoogleMapsLink(destination: LatLon): string {
+  return `https://www.google.com/maps?q=${destination.lat},${destination.lon}`
+}
+
 export function buildRouteResult(
   distanceMeters: number,
   durationSeconds: number,

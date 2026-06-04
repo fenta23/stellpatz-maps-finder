@@ -1,5 +1,5 @@
 import type { OsmPoi } from '../poi/OverpassClient.js'
-import { buildOsmPoiLink } from '../routing/DirectionsService.js'
+import { buildOsmPoiLink, buildGoogleMapsLink } from '../routing/DirectionsService.js'
 import type { RouteResult, RoutingMode } from '../routing/DirectionsService.js'
 
 export type NavigateRequest = { readonly poi: OsmPoi }
@@ -52,7 +52,8 @@ export class PoiDetailPanel {
   private renderHtml(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving'): string {
     const t = poi.tags
     const name = t.name ?? typeLabel(poi.type)
-    const deeplink = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
+    const osmLink = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
+    const googleLink = buildGoogleMapsLink({ lat: poi.lat, lon: poi.lon })
 
     const rows: string[] = []
     const add = (label: string, value: string | undefined) => {
@@ -92,7 +93,8 @@ export class PoiDetailPanel {
       </table>
       <div class="panel-actions">
         <button class="btn-navigate btn-primary">🗺️ Route hierhin</button>
-        <a class="btn-secondary" href="${deeplink}" target="_blank" rel="noopener">Auf OpenStreetMap anzeigen ↗</a>
+        <a class="btn-secondary" href="${osmLink}" target="_blank" rel="noopener">Auf OpenStreetMap anzeigen ↗</a>
+        <a class="btn-secondary" href="${googleLink}" target="_blank" rel="noopener">In Google Maps öffnen ↗</a>
       </div>
     `
   }
