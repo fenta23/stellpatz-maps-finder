@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-06-04
+
+### Added
+- Marker-Clustering via `leaflet.markercluster` — bei vielen POIs werden Gruppen gebündelt (farbcodiert grün/gelb/orange/rot nach Dichte), einzelne Marker ab Zoom 17
+
+### Fixed
+- Overpass `openstreetmap.fr` als erster Endpoint (antwortet in <2s)
+- Per-Endpoint-Timeout auf 20s gesetzt; Fallback auf 4 Endpoints statt 3
+- Client zeigt "Warte auf Overpass-Server…" nach 8s damit der User weiß dass es normal ist
+
 ## [0.1.2] - 2026-06-04
 
 ### Changed

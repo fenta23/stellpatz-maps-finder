@@ -1,5 +1,8 @@
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import L from 'leaflet'
+import 'leaflet.markercluster'
 import { MapService, getUserLocation } from './map/MapService.js'
 import { fetchPois } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
@@ -39,6 +42,15 @@ async function init() {
 
   const leafletMap = mapService.getMap()
 
+  const clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    zoomToBoundsOnClick: true,
+    disableClusteringAtZoom: 17,
+  })
+  clusterGroup.addTo(leafletMap)
+
   const adapter = {
     createMarker({ lat, lon, title, icon, onClick }: {
       lat: number; lon: number; title: string; icon: string; onClick: () => void
@@ -46,13 +58,13 @@ async function init() {
       const leafletIcon = L.icon({ iconUrl: icon, iconSize: [32, 32], iconAnchor: [16, 32] })
       const marker = L.marker([lat, lon], { icon: leafletIcon, title })
       marker.on('click', onClick)
-      marker.addTo(leafletMap)
+      clusterGroup.addLayer(marker)
       return {
         setVisible(v: boolean) {
-          if (v) marker.addTo(leafletMap)
-          else marker.remove()
+          if (v) clusterGroup.addLayer(marker)
+          else clusterGroup.removeLayer(marker)
         },
-        remove() { marker.remove() },
+        remove() { clusterGroup.removeLayer(marker) },
       }
     },
   }

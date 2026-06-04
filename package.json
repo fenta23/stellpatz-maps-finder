@@ -17,12 +17,14 @@
     "express": "^4.19.2",
     "express-rate-limit": "^7.3.1",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "supertest": "^7.2.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/google.maps": "^3.55.11",
     "@types/leaflet": "^1.9.21",
+    "@types/leaflet.markercluster": "^1.5.6",
     "@types/node": "^20.14.2",
     "@vitest/coverage-v8": "^1.6.0",
     "concurrently": "^8.2.2",
