@@ -149,13 +149,13 @@ export class PoiDetailPanel {
       </div>
       ${routeHtml}
       <table class="poi-tags">${rows.join('')}</table>
+      <div data-section="notes" class="poi-notes">
+        <p class="notes-loading">Community-Hinweise werden geladen…</p>
+      </div>
       <div class="panel-actions">
         <button class="btn-navigate btn-primary">🗺️ Route hierhin</button>
         <a class="btn-secondary" href="${osmLink}" target="_blank" rel="noopener">Auf OpenStreetMap anzeigen ↗</a>
         <a class="btn-secondary" href="${googleLink}" target="_blank" rel="noopener">In Google Maps öffnen ↗</a>
-      </div>
-      <div data-section="notes" class="poi-notes">
-        <p class="notes-loading">Community-Hinweise werden geladen…</p>
       </div>
     `
   }
