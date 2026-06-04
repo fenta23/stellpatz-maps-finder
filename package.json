@@ -4,7 +4,7 @@
   "description": "Route planning with parking, camper and camping POIs",
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite\"",
