@@ -7,6 +7,7 @@ import { MapService } from './map/MapService.js'
 import { fetchPois, type OsmPoi } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
 import { DirectionsService, type RoutingMode } from './routing/DirectionsService.js'
+import type { OsmNote } from './ui/PoiDetailPanel.js'
 import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
@@ -155,6 +156,7 @@ async function init() {
         routingMode,
       ).catch(() => undefined)
       detailPanel.show(poi, route, routingMode)
+      loadNotesFor(poi)
     },
     filterPanel.getActiveTypes(),
   )
@@ -234,13 +236,27 @@ async function init() {
       { lat: poi.lat, lon: poi.lon },
       routingMode,
     ).catch(() => undefined)
-    if (route) detailPanel.show(poi, route, routingMode)
+    if (route) {
+      detailPanel.show(poi, route, routingMode)
+      loadNotesFor(poi)
+    }
   })
 
   detailPanel.onClose(() => {
     selectedPoi = null
     directionsService.clearRoute()
   })
+
+  function loadNotesFor(poi: { id: number; lat: number; lon: number }) {
+    fetch(`/api/notes?lat=${poi.lat}&lon=${poi.lon}`)
+      .then(r => r.json() as Promise<OsmNote[]>)
+      .then(notes => {
+        if (selectedPoi?.id === poi.id) detailPanel.updateNotes(notes)
+      })
+      .catch(() => {
+        if (selectedPoi?.id === poi.id) detailPanel.updateNotes([])
+      })
+  }
 
   searchBar.onPlaceSelected(({ lat, lng }) => {
     mapService.setCenter(lat, lng, 14)

@@ -212,6 +212,41 @@ export function createApp() {
     }
   })
 
+  // ── OSM Notes proxy ───────────────────────────────────────────────────────
+  app.get('/api/notes', async (req, res) => {
+    const lat = parseFloat(String(req.query['lat'] ?? ''))
+    const lon = parseFloat(String(req.query['lon'] ?? ''))
+    if (isNaN(lat) || isNaN(lon)) { res.status(400).json({ error: 'lat and lon required' }); return }
+
+    const r = 0.003 // ~300m radius
+    const bbox = `${lon - r},${lat - r},${lon + r},${lat + r}`
+    const url = `https://api.openstreetmap.org/api/0.6/notes.json?bbox=${bbox}&limit=5&closed=0`
+
+    try {
+      const upstream = await fetch(url, {
+        headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!upstream.ok) { res.status(upstream.status).json({ error: 'OSM Notes error' }); return }
+      const raw = await upstream.json() as { features?: Array<{
+        properties: { id: number; date_created: string; comments: Array<{ text: string }> }
+      }> }
+
+      const notes = (raw.features ?? [])
+        .filter(f => f.properties.comments.length > 0)
+        .map(f => ({
+          id: f.properties.id,
+          date: f.properties.date_created.slice(0, 10),
+          text: f.properties.comments[0]!.text.trim(),
+        }))
+        .filter(n => n.text.length > 0)
+
+      res.json(notes)
+    } catch {
+      res.status(503).json({ error: 'OSM Notes unreachable' })
+    }
+  })
+
   // ── Static serving (production build) ─────────────────────────────────────
   const clientDist = path.resolve(__dirname, '../../dist/client')
   app.use(express.static(clientDist))

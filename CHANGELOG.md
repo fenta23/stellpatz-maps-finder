@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-06-04
+
+### Added
+- Detail-Panel massiv erweitert: typ-spezifische Tags für Parking (Belag, Höhe, überdacht, bewacht, Park&Ride) und Camping/Stellplatz (Strom, Wasser, Dusche, Toilette, Entsorgung, WLAN, Hunde, Sterne)
+- Adressen aus `addr:*`-Tags zusammengesetzt, E-Mail als `mailto:`-Link
+- Community-Hinweise aus der OSM Notes API (300 m Radius) laden asynchron nach und erscheinen gelb hervorgehoben unter dem Panel
+- Neuer Server-Proxy `/api/notes` (4 Tests)
+
 ## [0.1.6] - 2026-06-04
 
 ### Added

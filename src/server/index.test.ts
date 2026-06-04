@@ -132,6 +132,50 @@ function decodeJsonParam(calledUrl: string) {
   return JSON.parse(decodeURIComponent(match![1]))
 }
 
+describe('GET /api/notes', () => {
+  const OSM_NOTES_RESPONSE = {
+    features: [
+      {
+        properties: {
+          id: 42,
+          date_created: '2024-03-10 14:00:00 UTC',
+          comments: [{ text: 'Campsite is closed for the season' }],
+        },
+      },
+      {
+        properties: { id: 43, date_created: '2024-01-01 00:00:00 UTC', comments: [] }, // no comments → filtered out
+      },
+    ],
+  }
+
+  it('returns 400 when lat/lon missing', async () => {
+    const res = await request(createApp()).get('/api/notes')
+    expect(res.status).toBe(400)
+  })
+
+  it('parses and returns simplified notes array', async () => {
+    mockFetch(200, OSM_NOTES_RESPONSE)
+    const res = await request(createApp()).get('/api/notes?lat=48.1&lon=11.5')
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(1)
+    expect(res.body[0]).toMatchObject({ id: 42, date: '2024-03-10', text: 'Campsite is closed for the season' })
+  })
+
+  it('calls OSM Notes API with bbox around the coordinate', async () => {
+    mockFetch(200, { features: [] })
+    await request(createApp()).get('/api/notes?lat=48.1&lon=11.5')
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(calledUrl).toContain('openstreetmap.org/api/0.6/notes.json')
+    expect(calledUrl).toContain('bbox=')
+  })
+
+  it('returns 503 when OSM Notes is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
+    const res = await request(createApp()).get('/api/notes?lat=48.1&lon=11.5')
+    expect(res.status).toBe(503)
+  })
+})
+
 describe('GET /api/route', () => {
   it('returns 400 when coordinates are missing', async () => {
     const res = await request(createApp()).get('/api/route')

@@ -4,6 +4,12 @@ import type { RouteResult, RoutingMode } from '../routing/DirectionsService.js'
 
 export type NavigateRequest = { readonly poi: OsmPoi }
 
+export interface OsmNote {
+  readonly id: number
+  readonly date: string
+  readonly text: string
+}
+
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
@@ -19,12 +25,16 @@ export class PoiDetailPanel {
   show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode): void {
     this.panel.classList.remove('hidden')
     this.panel.innerHTML = this.renderHtml(poi, route, mode)
-
     this.panel.querySelector('.btn-navigate')?.addEventListener('click', () => {
       for (const l of this.listeners) l({ poi })
     })
-
     this.panel.querySelector('.btn-close')?.addEventListener('click', () => this.hide())
+  }
+
+  updateNotes(notes: OsmNote[]): void {
+    const section = this.panel.querySelector<HTMLElement>('[data-section="notes"]')
+    if (!section) return
+    section.innerHTML = renderNotes(notes)
   }
 
   hide(): void {
@@ -59,20 +69,71 @@ export class PoiDetailPanel {
     const add = (label: string, value: string | undefined) => {
       if (value) rows.push(`<tr><th>${esc(label)}</th><td>${esc(value)}</td></tr>`)
     }
+    const addLink = (label: string, href: string, text: string) => {
+      rows.push(`<tr><th>${esc(label)}</th><td><a href="${esc(href)}" target="_blank" rel="noopener">${esc(text)} ↗</a></td></tr>`)
+    }
+    const bool = (v: string | undefined) =>
+      v === 'yes' ? 'Ja' : v === 'no' ? 'Nein' : v === 'limited' ? 'Begrenzt' : v
 
+    // ── Basic ──────────────────────────────────────────────────────────────────
     add('Typ', typeLabel(poi.type))
+    add('Zugang', ACCESS_LABELS[t['access'] ?? ''] ?? t['access'])
     add('Öffnungszeiten', t.opening_hours)
-    add('Telefon', t.phone)
-    add('Website', t.website ? undefined : undefined) // handled below
-    add('Gebühr', t.fee)
+
+    // ── Parking-specific ───────────────────────────────────────────────────────
+    if (poi.type === 'parking') {
+      add('Parkplatztyp', PARKING_LABELS[t['parking'] ?? ''] ?? t['parking'])
+      add('Belag', SURFACE_LABELS[t['surface'] ?? ''] ?? t['surface'])
+      add('Beleuchtet', bool(t['lit']))
+      add('Überdacht', bool(t['covered']))
+      add('Bewacht', bool(t['supervised']))
+      if (t['maxheight']) add('Max. Höhe', t['maxheight'] + ' m')
+      if (t['maxweight']) add('Max. Gewicht', t['maxweight'] + ' t')
+      add('Park & Ride', bool(t['park_ride']))
+      add('E-Ladesäule', bool(t['capacity:charging']))
+    }
+
+    // ── Camper / campsite ──────────────────────────────────────────────────────
+    if (poi.type === 'camper' || poi.type === 'campsite') {
+      add('Strom', bool(t['electricity'] ?? t['power_supply']))
+      add('Trinkwasser', bool(t['drinking_water']))
+      add('Dusche', bool(t['shower']))
+      add('Toilette', bool(t['toilets']))
+      add('Entsorgungsstation', bool(t['sanitary_dump_station'] ?? t['motorhome_dump_station']))
+      add('WLAN', WIFI_LABELS[t['internet_access'] ?? ''] ?? bool(t['internet_access']))
+      add('Hunde', DOG_LABELS[t['dog'] ?? ''] ?? bool(t['dog']))
+      add('Wohnwagen', bool(t['caravans']))
+      add('Zelte', bool(t['tents']))
+      add('Nur Gruppen', bool(t['group_only']))
+      if (t['stars']) add('Sterne', '★'.repeat(Number(t['stars'])))
+    }
+
+    // ── Costs ─────────────────────────────────────────────────────────────────
+    add('Gebühr', t.fee === 'yes' ? 'Ja' : t.fee === 'no' ? 'Nein' : t.fee)
+    add('Preis', t['charge'])
+    add('Max. Aufenthalt', t['maxstay'])
     add('Kapazität', t.capacity)
+
+    // ── Contact ────────────────────────────────────────────────────────────────
+    if (t.phone) addLink('Telefon', `tel:${t.phone}`, t.phone)
+    if (t.email) addLink('E-Mail', `mailto:${t.email}`, t.email)
+    if (t.website) addLink('Website', t.website, 'Öffnen')
+
+    // ── Address ────────────────────────────────────────────────────────────────
+    const addrParts = [
+      t['addr:street'] && t['addr:housenumber']
+        ? `${t['addr:street']} ${t['addr:housenumber']}`
+        : t['addr:street'],
+      t['addr:postcode'] && t['addr:city']
+        ? `${t['addr:postcode']} ${t['addr:city']}`
+        : t['addr:city'],
+    ].filter(Boolean)
+    if (addrParts.length) add('Adresse', addrParts.join(', '))
+
     add('Betreiber', t.operator)
-    add('Beschreibung', t.description)
+    if (t.description) add('Beschreibung', t.description)
 
-    const websiteRow = t.website
-      ? `<tr><th>Website</th><td><a href="${esc(t.website)}" target="_blank" rel="noopener">Öffnen ↗</a></td></tr>`
-      : ''
-
+    // ── Route summary ──────────────────────────────────────────────────────────
     const modeIcon: Record<RoutingMode, string> = { driving: '🚗', cycling: '🚲', foot: '🚶' }
     const routeHtml = route
       ? `<div class="route-summary">
@@ -87,17 +148,27 @@ export class PoiDetailPanel {
         <button class="btn-close" aria-label="Schließen">✕</button>
       </div>
       ${routeHtml}
-      <table class="poi-tags">
-        ${rows.join('')}
-        ${websiteRow}
-      </table>
+      <table class="poi-tags">${rows.join('')}</table>
       <div class="panel-actions">
         <button class="btn-navigate btn-primary">🗺️ Route hierhin</button>
         <a class="btn-secondary" href="${osmLink}" target="_blank" rel="noopener">Auf OpenStreetMap anzeigen ↗</a>
         <a class="btn-secondary" href="${googleLink}" target="_blank" rel="noopener">In Google Maps öffnen ↗</a>
       </div>
+      <div data-section="notes" class="poi-notes">
+        <p class="notes-loading">Community-Hinweise werden geladen…</p>
+      </div>
     `
   }
+}
+
+function renderNotes(notes: OsmNote[]): string {
+  if (notes.length === 0) return ''
+  const items = notes.map(n => `
+    <div class="note-item">
+      <div class="note-text">${esc(n.text)}</div>
+      <div class="note-meta">${esc(n.date)}</div>
+    </div>`).join('')
+  return `<h3 class="notes-heading">📝 Community-Hinweise</h3>${items}`
 }
 
 function esc(s: string): string {
@@ -105,14 +176,28 @@ function esc(s: string): string {
 }
 
 function typeLabel(type: OsmPoi['type']): string {
-  const labels: Record<OsmPoi['type'], string> = {
-    parking: 'Parkplatz',
-    camper: 'Camper-Stellplatz',
-    campsite: 'Campingplatz',
-  }
-  return labels[type]
+  return { parking: 'Parkplatz', camper: 'Camper-Stellplatz', campsite: 'Campingplatz' }[type]
 }
 
 function formatMeters(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`
+}
+
+const ACCESS_LABELS: Record<string, string> = {
+  public: 'Öffentlich', private: 'Privat', permissive: 'Erlaubt',
+  customers: 'Nur Kunden', yes: 'Ja', no: 'Nein',
+}
+const PARKING_LABELS: Record<string, string> = {
+  surface: 'Außenparkplatz', underground: 'Tiefgarage',
+  multi_storey: 'Parkhaus', rooftop: 'Dachparkplatz', street_side: 'Straßenrand',
+}
+const SURFACE_LABELS: Record<string, string> = {
+  paved: 'Asphalt/Pflaster', unpaved: 'Unbefestigt', gravel: 'Schotter',
+  sand: 'Sand', grass: 'Rasen', dirt: 'Erde',
+}
+const WIFI_LABELS: Record<string, string> = {
+  wifi: 'WLAN', wired: 'Kabel', yes: 'Ja', no: 'Nein',
+}
+const DOG_LABELS: Record<string, string> = {
+  yes: 'Erlaubt', no: 'Nicht erlaubt', leashed: 'An der Leine', unleashed: 'Frei',
 }
