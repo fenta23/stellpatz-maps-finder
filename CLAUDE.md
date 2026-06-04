@@ -70,5 +70,10 @@ MAPILLARY_ACCESS_TOKEN=   # optional — Mapillary street-level photos
 - Mocking HTTP: MSW (Mock Service Worker)
 - Run: `npm test`
 
+## Git Workflow
+- Jedes Feature / Bugfix bekommt einen eigenen Branch: `feat/...` oder `fix/...`
+- Nach Fertigstellung: PR gegen `main` öffnen, dann mergen
+- Direkte Commits auf `main` nur für triviale Dinge (typo, config)
+
 ## Changelog
 Keep `CHANGELOG.md` updated (Keep-a-Changelog format) for every meaningful change.
