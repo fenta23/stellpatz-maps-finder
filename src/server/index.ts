@@ -174,21 +174,18 @@ export function createApp() {
     }
 
     const costing = VALHALLA_COSTING[modeParam] ?? 'auto'
-    const requestBody = JSON.stringify({
+    const jsonParam = encodeURIComponent(JSON.stringify({
       locations: [
         { lat: Number(fromLat), lon: Number(fromLon) },
         { lat: Number(toLat), lon: Number(toLon) },
       ],
       costing,
       units: 'km',
-      shape_format: 'geojson',
-    })
+    }))
 
     try {
-      const upstream = await fetch('https://valhalla.openstreetmap.de/route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
-        body: requestBody,
+      const upstream = await fetch(`https://valhalla1.openstreetmap.de/route?json=${jsonParam}`, {
+        headers: { 'User-Agent': UA },
         signal: AbortSignal.timeout(10000),
       })
       if (!upstream.ok) { res.status(upstream.status).json({ error: 'Routing error' }); return }

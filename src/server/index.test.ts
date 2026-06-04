@@ -119,11 +119,17 @@ describe('GET /api/geocode', () => {
   })
 })
 
+// Valhalla returns encoded polyline string for shape; empty string → empty coords
 const VALHALLA_PAYLOAD = {
   trip: {
-    legs: [{ shape: { type: 'LineString', coordinates: [[11.5, 48.1], [11.6, 48.2]] } }],
+    legs: [{ shape: '' }],
     summary: { length: 5.0, time: 600 },
   },
+}
+
+function decodeJsonParam(calledUrl: string) {
+  const match = calledUrl.match(/json=([^&]+)/)
+  return JSON.parse(decodeURIComponent(match![1]))
 }
 
 describe('GET /api/route', () => {
@@ -132,50 +138,49 @@ describe('GET /api/route', () => {
     expect(res.status).toBe(400)
   })
 
-  it('proxies to Valhalla and transforms response to OSRM shape', async () => {
+  it('proxies to Valhalla via GET and transforms response', async () => {
     mockFetch(200, VALHALLA_PAYLOAD)
     const res = await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6')
     expect(res.status).toBe(200)
     expect(res.body.code).toBe('Ok')
-    expect(res.body.routes[0].distance).toBe(5000)  // 5 km → meters
+    expect(res.body.routes[0].distance).toBe(5000) // 5 km → meters
     expect(res.body.routes[0].duration).toBe(600)
-    expect(res.body.routes[0].geometry.coordinates).toEqual([[11.5, 48.1], [11.6, 48.2]])
     const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
-    expect(calledUrl).toContain('valhalla.openstreetmap.de')
+    expect(calledUrl).toContain('valhalla1.openstreetmap.de')
+    expect(calledUrl).toContain('json=')
   })
 
   it('sends auto costing for driving mode', async () => {
     mockFetch(200, VALHALLA_PAYLOAD)
     await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=driving')
-    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
-    expect(body.costing).toBe('auto')
+    const req = decodeJsonParam(String(vi.mocked(fetch).mock.calls[0]?.[0]))
+    expect(req.costing).toBe('auto')
   })
 
   it('sends bicycle costing for mode=cycling', async () => {
     mockFetch(200, VALHALLA_PAYLOAD)
     await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=cycling')
-    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
-    expect(body.costing).toBe('bicycle')
+    const req = decodeJsonParam(String(vi.mocked(fetch).mock.calls[0]?.[0]))
+    expect(req.costing).toBe('bicycle')
   })
 
   it('sends pedestrian costing for mode=foot', async () => {
     mockFetch(200, VALHALLA_PAYLOAD)
     await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=foot')
-    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
-    expect(body.costing).toBe('pedestrian')
+    const req = decodeJsonParam(String(vi.mocked(fetch).mock.calls[0]?.[0]))
+    expect(req.costing).toBe('pedestrian')
   })
 
   it('falls back to auto costing for unknown mode', async () => {
     mockFetch(200, VALHALLA_PAYLOAD)
     await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=helicopter')
-    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
-    expect(body.costing).toBe('auto')
+    const req = decodeJsonParam(String(vi.mocked(fetch).mock.calls[0]?.[0]))
+    expect(req.costing).toBe('auto')
   })
 
-  it('decodes encoded polyline shape when shape_format not supported', async () => {
-    mockFetch(200, { trip: { legs: [{ shape: '' }], summary: { length: 1.0, time: 60 } } })
+  it('decodes encoded polyline shape (empty string → empty coords)', async () => {
+    mockFetch(200, VALHALLA_PAYLOAD)
     const res = await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6')
-    expect(res.status).toBe(200)
     expect(res.body.routes[0].geometry.coordinates).toEqual([])
   })
 
