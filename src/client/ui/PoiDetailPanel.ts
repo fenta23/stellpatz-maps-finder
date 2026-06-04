@@ -26,6 +26,14 @@ export class PoiDetailPanel {
     this.panel.className = 'poi-detail-panel hidden'
     this.panel.setAttribute('aria-label', 'POI Details')
     this.container.appendChild(this.panel)
+
+    this.panel.addEventListener('click', (e) => {
+      const link = (e.target as HTMLElement).closest<HTMLElement>('[data-lightbox]')
+      if (link?.dataset['lightbox']) {
+        e.preventDefault()
+        showLightbox(link.dataset['lightbox'])
+      }
+    })
   }
 
   show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode): void {
@@ -53,6 +61,7 @@ export class PoiDetailPanel {
   hide(): void {
     this.panel.classList.add('hidden')
     this.panel.innerHTML = ''
+    hideLightbox()
     for (const l of this.closeListeners) l()
   }
 
@@ -208,7 +217,7 @@ function renderNoteText(text: string): string {
     if (m.index > last) parts.push(esc(text.slice(last, m.index)))
     const raw = m[0].replace(/[.,;:!?)]+$/, '') // strip trailing punctuation
     if (IMG_EXT_RE.test(raw)) {
-      parts.push(`<a href="${esc(raw)}" target="_blank" rel="noopener"><img src="${esc(raw)}" class="note-img" alt="" loading="lazy" /></a>`)
+      parts.push(`<a href="${esc(raw)}" data-lightbox="${esc(raw)}"><img src="${esc(raw)}" class="note-img" alt="" loading="lazy" /></a>`)
     } else {
       const label = raw.length > 45 ? raw.slice(0, 45) + '…' : raw
       parts.push(`<a href="${esc(raw)}" target="_blank" rel="noopener">${esc(label)}</a>`)
@@ -217,6 +226,35 @@ function renderNoteText(text: string): string {
   }
   if (last < text.length) parts.push(esc(text.slice(last)))
   return parts.join('')
+}
+
+function getLightbox(): HTMLElement {
+  let lb = document.getElementById('poi-lightbox')
+  if (!lb) {
+    lb = document.createElement('div')
+    lb.id = 'poi-lightbox'
+    lb.className = 'lightbox hidden'
+    lb.innerHTML = `
+      <div class="lightbox-backdrop"></div>
+      <button class="lightbox-close" aria-label="Schließen">✕</button>
+      <img class="lightbox-img" src="" alt="" />
+    `
+    document.body.appendChild(lb)
+    lb.querySelector('.lightbox-backdrop')!.addEventListener('click', hideLightbox)
+    lb.querySelector('.lightbox-close')!.addEventListener('click', hideLightbox)
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideLightbox() })
+  }
+  return lb
+}
+
+function showLightbox(src: string): void {
+  const lb = getLightbox()
+  lb.querySelector<HTMLImageElement>('.lightbox-img')!.src = src
+  lb.classList.remove('hidden')
+}
+
+function hideLightbox(): void {
+  document.getElementById('poi-lightbox')?.classList.add('hidden')
 }
 
 function esc(s: string): string {

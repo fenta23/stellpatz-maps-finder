@@ -371,6 +371,54 @@
       object-fit: cover;
     }
 
+    /* ── Lightbox ── */
+    #poi-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #poi-lightbox.hidden { display: none; }
+
+    .lightbox-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 1;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lightbox-close:hover { background: rgba(255,255,255,0.32); }
+
+    .lightbox-img {
+      position: relative;
+      z-index: 1;
+      max-width: 92vw;
+      max-height: 88vh;
+      border-radius: 6px;
+      object-fit: contain;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+
     @media (max-width: 600px) {
       .poi-detail-panel {
         position: absolute;
