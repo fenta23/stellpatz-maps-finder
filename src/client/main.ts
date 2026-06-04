@@ -11,6 +11,7 @@ import type { OsmNote, PoiImage, NearbyItem } from './ui/PoiDetailPanel.js'
 import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
+import { LocalFavoritesStore } from './favorites/FavoritesStore.js'
 
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447] // Germany center
 
@@ -53,6 +54,7 @@ async function init() {
   const filterPanel = new FilterPanel(filterContainer)
   const detailPanel = new PoiDetailPanel(detailContainer)
   const searchBar = new SearchBar(searchContainer)
+  const favorites = new LocalFavoritesStore()
   const directionsService = new DirectionsService(mapService.getMap())
   const leafletMap = mapService.getMap()
 
@@ -136,6 +138,9 @@ async function init() {
           else clusterGroup.removeLayer(marker)
         },
         remove() { clusterGroup.removeLayer(marker) },
+        updateIcon(iconUrl: string) {
+          marker.setIcon(L.icon({ iconUrl, iconSize: [32, 32], iconAnchor: [16, 32] }))
+        },
       }
     },
   }
@@ -145,7 +150,7 @@ async function init() {
     async (poi) => {
       selectedPoi = poi
       if (!currentUserPos) {
-        detailPanel.show(poi, undefined)
+        detailPanel.show(poi, undefined, undefined, favorites.has(String(poi.id)))
         setStatus('Standort unbekannt – Route nicht möglich', true)
         setTimeout(() => setStatus(''), 3000)
         return
@@ -155,7 +160,7 @@ async function init() {
         { lat: poi.lat, lon: poi.lon },
         routingMode,
       ).catch(() => undefined)
-      detailPanel.show(poi, route, routingMode)
+      detailPanel.show(poi, route, routingMode, favorites.has(String(poi.id)))
       void loadImagesFor(poi)
       loadNearbyFor(poi)
       loadNotesFor(poi)
@@ -239,7 +244,7 @@ async function init() {
       routingMode,
     ).catch(() => undefined)
     if (route) {
-      detailPanel.show(poi, route, routingMode)
+      detailPanel.show(poi, route, routingMode, favorites.has(String(poi.id)))
       void loadImagesFor(poi)
       loadNearbyFor(poi)
       loadNotesFor(poi)
@@ -249,6 +254,12 @@ async function init() {
   detailPanel.onClose(() => {
     selectedPoi = null
     directionsService.clearRoute()
+  })
+
+  detailPanel.onFavoriteToggle(() => {
+    if (!selectedPoi) return
+    favorites.toggle(String(selectedPoi.id))
+    markerManager.setFavorites(favorites.getAll())
   })
 
   async function loadImagesFor(poi: OsmPoi) {

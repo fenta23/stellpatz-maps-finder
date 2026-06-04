@@ -27,6 +27,7 @@ export class PoiDetailPanel {
   private readonly panel: HTMLElement
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
   private readonly closeListeners: Array<() => void> = []
+  private readonly favListeners: Array<() => void> = []
 
   constructor(private readonly container: HTMLElement) {
     this.panel = document.createElement('aside')
@@ -43,13 +44,22 @@ export class PoiDetailPanel {
     })
   }
 
-  show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode): void {
+  show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode, isFavorite = false): void {
     this.panel.classList.remove('hidden')
-    this.panel.innerHTML = this.renderHtml(poi, route, mode)
+    this.panel.innerHTML = this.renderHtml(poi, route, mode, isFavorite)
     this.panel.querySelector('.btn-navigate')?.addEventListener('click', () => {
       for (const l of this.listeners) l({ poi })
     })
     this.panel.querySelector('.btn-close')?.addEventListener('click', () => this.hide())
+
+    const favBtn = this.panel.querySelector<HTMLButtonElement>('.btn-favorite')
+    favBtn?.addEventListener('click', () => {
+      const nowFav = favBtn.getAttribute('aria-pressed') !== 'true'
+      favBtn.setAttribute('aria-pressed', String(nowFav))
+      favBtn.textContent = nowFav ? '♥' : '♡'
+      favBtn.classList.toggle('active', nowFav)
+      for (const l of this.favListeners) l()
+    })
   }
 
   updateImages(images: PoiImage[]): void {
@@ -93,6 +103,14 @@ export class PoiDetailPanel {
     }
   }
 
+  onFavoriteToggle(listener: () => void): () => void {
+    this.favListeners.push(listener)
+    return () => {
+      const idx = this.favListeners.indexOf(listener)
+      if (idx !== -1) this.favListeners.splice(idx, 1)
+    }
+  }
+
   onNavigate(listener: (r: NavigateRequest) => void): () => void {
     this.listeners.push(listener)
     return () => {
@@ -101,7 +119,7 @@ export class PoiDetailPanel {
     }
   }
 
-  private renderHtml(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving'): string {
+  private renderHtml(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false): string {
     const t = poi.tags
     const name = t.name ?? typeLabel(poi.type)
     const osmLink = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
@@ -193,6 +211,7 @@ export class PoiDetailPanel {
     return `
       <div class="panel-header">
         <h2>${esc(name)}</h2>
+        <button class="btn-favorite${isFavorite ? ' active' : ''}" aria-label="Favorit" aria-pressed="${isFavorite}">${isFavorite ? '♥' : '♡'}</button>
         <button class="btn-close" aria-label="Schließen">✕</button>
       </div>
       ${ohBadge}

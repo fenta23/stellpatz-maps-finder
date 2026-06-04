@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-04
+
+### Added
+- **Favoriten**: Herz-Button (♡/♥) im Detail-Panel-Header — ein Klick markiert einen POI als Favorit
+- Favorisierte Marker erhalten ein rotes Herz-Badge (kleiner roter Kreis oben rechts am Marker-Icon)
+- Favoriten werden in `localStorage` gespeichert und bleiben nach Reload erhalten
+- `LocalFavoritesStore` implementiert `IFavoritesStore`-Interface — vorbereitet für Firebase-Swap (gleiche API, anderer Backing Store)
+- `PoiMarkerManager.setFavorites()` aktualisiert alle sichtbaren Marker-Icons live ohne Neu-Laden
+- 9 neue Tests für `LocalFavoritesStore`, 4 neue Tests für Marker-Icons (101 Tests gesamt)
+
 ## [0.1.9] - 2026-06-04
 
 ### Added

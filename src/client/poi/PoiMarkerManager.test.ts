@@ -1,14 +1,16 @@
 import { describe, it, expect, vi } from 'vitest'
-import { PoiMarkerManager, svgToDataUrl } from './PoiMarkerManager.js'
+import { PoiMarkerManager, svgToDataUrl, buildIcon } from './PoiMarkerManager.js'
 import type { MapAdapter, MarkerHandle } from './PoiMarkerManager.js'
 import type { OsmPoi } from './OverpassClient.js'
 
-function makeHandle(): MarkerHandle & { visible: boolean; removed: boolean } {
+function makeHandle(): MarkerHandle & { visible: boolean; removed: boolean; icon: string } {
   return {
     visible: true,
     removed: false,
+    icon: '',
     setVisible(v) { this.visible = v },
     remove() { this.removed = true },
+    updateIcon(i) { this.icon = i },
   }
 }
 
@@ -16,10 +18,10 @@ function makeAdapter(): MapAdapter & { handles: ReturnType<typeof makeHandle>[] 
   const handles: ReturnType<typeof makeHandle>[] = []
   return {
     handles,
-    createMarker({ onClick }) {
+    createMarker({ onClick, icon }) {
       const handle = makeHandle()
+      handle.icon = icon
       handles.push(handle)
-      // simulate click so the onClick-test works
       void onClick
       return handle
     },
@@ -115,5 +117,43 @@ describe('svgToDataUrl', () => {
   it('produces a data URL', () => {
     const url = svgToDataUrl('<svg></svg>')
     expect(url).toMatch(/^data:image\/svg\+xml;charset=utf-8,/)
+  })
+})
+
+describe('buildIcon', () => {
+  it('returns base SVG when not favorited', () => {
+    const svg = buildIcon('parking', false)
+    expect(svg).not.toContain('♥')
+  })
+
+  it('injects heart badge when favorited', () => {
+    const svg = buildIcon('parking', true)
+    expect(svg).toContain('♥')
+    expect(svg).toContain('#E53935')
+  })
+
+  it('heart badge works for all poi types', () => {
+    for (const type of ['parking', 'camper', 'campsite', 'dump', 'water'] as const) {
+      expect(buildIcon(type, true)).toContain('♥')
+    }
+  })
+})
+
+describe('PoiMarkerManager.setFavorites', () => {
+  it('updateIcon is called on existing markers when favorites change', () => {
+    const adapter = makeAdapter()
+    const mgr = new PoiMarkerManager(adapter, vi.fn())
+    mgr.updatePois([poi(1), poi(2)])
+    mgr.setFavorites(new Set(['1']))
+    expect(adapter.handles[0]?.icon).toContain('%E2%99%A5') // ♥ URL-encoded
+    expect(adapter.handles[1]?.icon).not.toContain('%E2%99%A5')
+  })
+
+  it('new markers pick up existing favorites', () => {
+    const adapter = makeAdapter()
+    const mgr = new PoiMarkerManager(adapter, vi.fn())
+    mgr.setFavorites(new Set(['1']))
+    mgr.updatePois([poi(1)])
+    expect(adapter.handles[0]?.icon).toContain('%E2%99%A5')
   })
 })
