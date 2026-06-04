@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "lib": ["ES2022"],
+    "outDir": "dist/server",
+    "rootDir": "src/server",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/server/**/*.ts"],
+  "exclude": ["src/server/**/*.test.ts", "node_modules"]
+}

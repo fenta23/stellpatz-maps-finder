@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-05
+
+### Added
+- **Firebase Deployment**: App läuft jetzt auf Firebase Hosting (Client) + Cloud Functions Gen 2 (Express-Server)
+- `src/server/functions.ts` — Cloud Function Entry Point, kapselt `createApp()` via `onRequest` (Region: `europe-west1`)
+- `tsconfig.server.json` — separates TS-Kompilierungsziel für den Server (`node16`-Auflösung, kein DOM, Ausgabe nach `dist/server/`)
+- `firebase.json` — Hosting-Config (`dist/client/`) mit `/api/**`-Rewrite auf Cloud Function; `predeploy`-Hooks bauen automatisch
+- `.firebaserc` — Projekt-Platzhalter (Projekt-ID vor erstem Deploy eintragen)
+- `npm run build:client` / `npm run build:server` — separate Build-Targets; `npm run build` führt beide aus
+- `npm run deploy` — Shortcut für `firebase deploy`
+- `firebase-functions@7` + `firebase-admin@13` als Dependencies
+
+### Changed
+- `.env.example` — `GOOGLE_MAPS_API_KEY` entfernt (nicht mehr benötigt), Firebase-Hinweise für Umgebungsvariablen ergänzt
+
 ## [0.2.0] - 2026-06-04
 
 ### Added
