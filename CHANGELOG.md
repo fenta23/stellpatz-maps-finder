@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-06-04
+
+### Added
+- **Öffnungsstatus-Badge**: grüner/roter Streifen unter dem Titel mit "Geöffnet · schließt HH:MM" / "Geschlossen · öffnet HH:MM" (parst `Mo-Fr HH:MM-HH:MM`-Syntax, keine externe Library)
+- **„In der Nähe"**: neuer Panel-Abschnitt mit Entfernung zu Tankstelle ⛽, Supermarkt 🛒, Apotheke 💊, Bäckerei 🥐, Entsorgung 🚿, Frischwasser 🚰 (max 2 km, Haversine, sortiert nach Distanz) via neuem `/api/nearby`-Proxy
+- **Entsorgung & Wasser als eigene Kartenebene**: zwei neue Filter-Buttons in der Filterleiste; eigene Marker und Overpass-Queries für `amenity=sanitary_dump_station` und `amenity=water_point`
+- 6 neue Server-Tests für `/api/nearby`, 2 neue Client-Tests (87 Tests gesamt)
+
 ## [0.1.8] - 2026-06-04
 
 ### Added

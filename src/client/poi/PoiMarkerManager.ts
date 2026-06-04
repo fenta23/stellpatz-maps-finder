@@ -33,6 +33,14 @@ const ICONS: Record<PoiType, string> = {
     <circle cx="16" cy="16" r="15" fill="#E65100" stroke="#fff" stroke-width="2"/>
     <text x="16" y="21" font-family="Arial" font-size="14" fill="#fff" text-anchor="middle">⛺</text>
   </svg>`,
+  dump: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="15" fill="#795548" stroke="#fff" stroke-width="2"/>
+    <text x="16" y="21" font-family="Arial" font-size="14" fill="#fff" text-anchor="middle">🚿</text>
+  </svg>`,
+  water: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="15" fill="#0277BD" stroke="#fff" stroke-width="2"/>
+    <text x="16" y="21" font-family="Arial" font-size="14" fill="#fff" text-anchor="middle">🚰</text>
+  </svg>`,
 }
 
 export function svgToDataUrl(svg: string): string {

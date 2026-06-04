@@ -212,6 +212,82 @@ export function createApp() {
     }
   })
 
+  // ── Nearby amenities proxy ────────────────────────────────────────────────
+  const NEARBY_ICONS: Record<string, string> = {
+    fuel: '⛽', supermarket: '🛒', pharmacy: '💊',
+    bakery: '🥐', water: '🚰', dump: '🚿',
+  }
+  const NEARBY_LABELS: Record<string, string> = {
+    fuel: 'Tankstelle', supermarket: 'Supermarkt', pharmacy: 'Apotheke',
+    bakery: 'Bäckerei', water: 'Frischwasser', dump: 'Entsorgung',
+  }
+
+  function classifyNearby(tags: Record<string, string>): string | null {
+    if (tags['amenity'] === 'fuel') return 'fuel'
+    if (tags['shop'] === 'supermarket') return 'supermarket'
+    if (tags['amenity'] === 'pharmacy') return 'pharmacy'
+    if (tags['shop'] === 'bakery') return 'bakery'
+    if (tags['amenity'] === 'water_point') return 'water'
+    if (tags['amenity'] === 'sanitary_dump_station') return 'dump'
+    return null
+  }
+
+  function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6_371_000
+    const toRad = (d: number) => d * Math.PI / 180
+    const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1)
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  }
+
+  app.get('/api/nearby', async (req, res) => {
+    const lat = parseFloat(String(req.query['lat'] ?? ''))
+    const lon = parseFloat(String(req.query['lon'] ?? ''))
+    if (isNaN(lat) || isNaN(lon)) { res.status(400).json({ error: 'lat and lon required' }); return }
+
+    const query = `[out:json][timeout:15];\n(\n  node["amenity"="fuel"](around:2000,${lat},${lon});\n  way["amenity"="fuel"](around:2000,${lat},${lon});\n  node["shop"="supermarket"](around:2000,${lat},${lon});\n  way["shop"="supermarket"](around:2000,${lat},${lon});\n  node["amenity"="pharmacy"](around:2000,${lat},${lon});\n  node["shop"="bakery"](around:2000,${lat},${lon});\n  node["amenity"="water_point"](around:2000,${lat},${lon});\n  node["amenity"="sanitary_dump_station"](around:2000,${lat},${lon});\n);\nout center tags;`
+
+    try {
+      const upstream = await fetch(OVERPASS_ENDPOINTS[0]!, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: AbortSignal.timeout(12000),
+      })
+      if (!upstream.ok) { res.status(upstream.status).json({ error: 'Overpass error' }); return }
+
+      const data = await upstream.json() as {
+        elements?: Array<{
+          id: number; lat?: number; lon?: number
+          center?: { lat: number; lon: number }
+          tags: Record<string, string>
+        }>
+      }
+      const seen = new Set<number>()
+      const items = (data.elements ?? [])
+        .filter(el => { if (seen.has(el.id)) return false; seen.add(el.id); return true })
+        .map(el => {
+          const pos = el.lat !== undefined ? { lat: el.lat, lon: el.lon! } : el.center
+          if (!pos) return null
+          const kind = classifyNearby(el.tags)
+          if (!kind) return null
+          return {
+            kind,
+            icon: NEARBY_ICONS[kind]!,
+            name: el.tags['name'] ?? NEARBY_LABELS[kind]!,
+            distance: Math.round(haversineMeters(lat, lon, pos.lat, pos.lon)),
+          }
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 15)
+
+      res.json(items)
+    } catch {
+      res.status(503).json({ error: 'Overpass unreachable' })
+    }
+  })
+
   // ── Mapillary proxy ───────────────────────────────────────────────────────
   app.get('/api/mapillary', async (req, res) => {
     const lat = parseFloat(String(req.query['lat'] ?? ''))

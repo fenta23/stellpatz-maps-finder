@@ -7,7 +7,7 @@ import { MapService } from './map/MapService.js'
 import { fetchPois, type OsmPoi } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
 import { DirectionsService, type RoutingMode } from './routing/DirectionsService.js'
-import type { OsmNote, PoiImage } from './ui/PoiDetailPanel.js'
+import type { OsmNote, PoiImage, NearbyItem } from './ui/PoiDetailPanel.js'
 import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
@@ -157,6 +157,7 @@ async function init() {
       ).catch(() => undefined)
       detailPanel.show(poi, route, routingMode)
       void loadImagesFor(poi)
+      loadNearbyFor(poi)
       loadNotesFor(poi)
     },
     filterPanel.getActiveTypes(),
@@ -240,6 +241,7 @@ async function init() {
     if (route) {
       detailPanel.show(poi, route, routingMode)
       void loadImagesFor(poi)
+      loadNearbyFor(poi)
       loadNotesFor(poi)
     }
   })
@@ -286,6 +288,13 @@ async function init() {
         if (selectedPoi?.id === poi.id) detailPanel.updateImages([...images, ...mapillaryImages])
       }
     } catch { /* ignore */ }
+  }
+
+  function loadNearbyFor(poi: { id: number; lat: number; lon: number }) {
+    fetch(`/api/nearby?lat=${poi.lat}&lon=${poi.lon}`)
+      .then(r => r.json() as Promise<NearbyItem[]>)
+      .then(items => { if (selectedPoi?.id === poi.id) detailPanel.updateNearby(items) })
+      .catch(() => { if (selectedPoi?.id === poi.id) detailPanel.updateNearby([]) })
   }
 
   function loadNotesFor(poi: { id: number; lat: number; lon: number }) {

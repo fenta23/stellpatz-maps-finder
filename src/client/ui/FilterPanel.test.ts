@@ -20,16 +20,16 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock })
 beforeEach(() => localStorageMock.clear())
 
 describe('FilterPanel', () => {
-  it('renders 3 toggle buttons', () => {
+  it('renders 5 toggle buttons', () => {
     const el = makeContainer()
     new FilterPanel(el)
-    expect(el.querySelectorAll('.filter-btn')).toHaveLength(3)
+    expect(el.querySelectorAll('.filter-btn')).toHaveLength(5)
   })
 
   it('all buttons active by default', () => {
     const el = makeContainer()
     const panel = new FilterPanel(el)
-    expect(panel.getActiveTypes().size).toBe(3)
+    expect(panel.getActiveTypes().size).toBe(5)
   })
 
   it('toggles a type off on click', () => {
@@ -80,5 +80,7 @@ describe('FilterPanel', () => {
     expect(active.has('parking')).toBe(false)
     expect(active.has('camper')).toBe(true)
     expect(active.has('campsite')).toBe(true)
+    expect(active.has('dump')).toBe(true)
+    expect(active.has('water')).toBe(true)
   })
 })

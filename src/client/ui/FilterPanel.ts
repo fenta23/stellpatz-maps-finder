@@ -1,7 +1,7 @@
 import type { PoiType } from '../poi/OverpassClient.js'
 
 const STORAGE_KEY = 'stellpatz:filters'
-const ALL_TYPES: readonly PoiType[] = ['parking', 'camper', 'campsite']
+const ALL_TYPES: readonly PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water']
 
 export type FilterChangeEvent = { readonly type: PoiType; readonly active: boolean }
 
@@ -43,6 +43,8 @@ export class FilterPanel {
       parking: '🅿️ Parkplatz',
       camper: '🚐 Stellplatz',
       campsite: '⛺ Camping',
+      dump: '🚿 Entsorgung',
+      water: '🚰 Wasser',
     }
     for (const type of ALL_TYPES) {
       const btn = document.createElement('button')

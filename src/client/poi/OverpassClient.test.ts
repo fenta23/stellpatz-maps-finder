@@ -74,6 +74,14 @@ describe('elementToPoiType', () => {
     expect(elementToPoiType({ ...base, tags: { tourism: 'caravan_site' } })).toBe('camper')
   })
 
+  it('classifies sanitary_dump_station as dump', () => {
+    expect(elementToPoiType({ ...base, tags: { amenity: 'sanitary_dump_station' } })).toBe('dump')
+  })
+
+  it('classifies water_point as water', () => {
+    expect(elementToPoiType({ ...base, tags: { amenity: 'water_point' } })).toBe('water')
+  })
+
   it('defaults to parking', () => {
     expect(elementToPoiType({ ...base, tags: { amenity: 'parking' } })).toBe('parking')
   })

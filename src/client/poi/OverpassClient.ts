@@ -1,4 +1,4 @@
-export type PoiType = 'parking' | 'camper' | 'campsite'
+export type PoiType = 'parking' | 'camper' | 'campsite' | 'dump' | 'water'
 
 export interface LatLngBounds {
   readonly south: number
@@ -66,6 +66,14 @@ export function buildQuery(bounds: LatLngBounds, types: ReadonlySet<PoiType>): s
     parts.push(`way["tourism"="camp_site"](${bbox});`)
     parts.push(`relation["tourism"="camp_site"](${bbox});`)
   }
+  if (types.has('dump')) {
+    parts.push(`node["amenity"="sanitary_dump_station"](${bbox});`)
+    parts.push(`way["amenity"="sanitary_dump_station"](${bbox});`)
+  }
+  if (types.has('water')) {
+    parts.push(`node["amenity"="water_point"](${bbox});`)
+    parts.push(`way["amenity"="water_point"](${bbox});`)
+  }
 
   return `[out:json][timeout:30];\n(\n  ${parts.join('\n  ')}\n);\nout center tags;`
 }
@@ -75,6 +83,8 @@ export function elementToPoiType(el: OsmElement): PoiType {
   if (el.tags.tourism === 'camp_pitch') return 'camper'
   if (el.tags.tourism === 'caravan_site') return 'camper'
   if (el.tags.motorhome === 'yes') return 'camper'
+  if (el.tags.amenity === 'sanitary_dump_station') return 'dump'
+  if (el.tags.amenity === 'water_point') return 'water'
   return 'parking'
 }
 

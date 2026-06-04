@@ -132,6 +132,50 @@ function decodeJsonParam(calledUrl: string) {
   return JSON.parse(decodeURIComponent(match![1]))
 }
 
+describe('GET /api/nearby', () => {
+  it('returns 400 when lat/lon missing', async () => {
+    const res = await request(createApp()).get('/api/nearby')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns sorted nearby items with distance and icon', async () => {
+    mockFetch(200, {
+      elements: [
+        { type: 'node', id: 1, lat: 48.105, lon: 11.5, tags: { amenity: 'pharmacy', name: 'Apotheke am Markt' } },
+        { type: 'node', id: 2, lat: 48.102, lon: 11.5, tags: { shop: 'bakery', name: 'Bäcker Huber' } },
+      ],
+    })
+    const res = await request(createApp()).get('/api/nearby?lat=48.1&lon=11.5')
+    expect(res.status).toBe(200)
+    expect(res.body.length).toBe(2)
+    expect(res.body[0]).toMatchObject({ kind: 'bakery', icon: '🥐', name: 'Bäcker Huber' })
+    expect(res.body[0].distance).toBeLessThan(res.body[1].distance)
+  })
+
+  it('classifies all supported amenity types', async () => {
+    mockFetch(200, {
+      elements: [
+        { type: 'node', id: 1, lat: 48.1, lon: 11.5, tags: { amenity: 'fuel' } },
+        { type: 'node', id: 2, lat: 48.1, lon: 11.5, tags: { shop: 'supermarket' } },
+        { type: 'node', id: 3, lat: 48.1, lon: 11.5, tags: { amenity: 'water_point' } },
+        { type: 'node', id: 4, lat: 48.1, lon: 11.5, tags: { amenity: 'sanitary_dump_station' } },
+      ],
+    })
+    const res = await request(createApp()).get('/api/nearby?lat=48.1&lon=11.5')
+    const kinds = res.body.map((x: { kind: string }) => x.kind)
+    expect(kinds).toContain('fuel')
+    expect(kinds).toContain('supermarket')
+    expect(kinds).toContain('water')
+    expect(kinds).toContain('dump')
+  })
+
+  it('returns 503 when Overpass is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
+    const res = await request(createApp()).get('/api/nearby?lat=48.1&lon=11.5')
+    expect(res.status).toBe(503)
+  })
+})
+
 describe('GET /api/mapillary', () => {
   afterEach(() => { delete process.env['MAPILLARY_ACCESS_TOKEN'] })
 
