@@ -1,37 +1,106 @@
+import type { LatLngBounds } from '../poi/OverpassClient.js'
+
 export type PlaceSelectedEvent = {
   readonly lat: number
   readonly lng: number
   readonly name: string
 }
 
+interface NominatimResult {
+  readonly lat: string
+  readonly lon: string
+  readonly display_name: string
+}
+
 export class SearchBar {
   private readonly input: HTMLInputElement
-  private autocomplete: google.maps.places.Autocomplete | null = null
+  private readonly dropdown: HTMLElement
   private readonly listeners: Array<(e: PlaceSelectedEvent) => void> = []
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null
+  private bounds: LatLngBounds | null = null
 
   constructor(private readonly container: HTMLElement) {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'search-wrapper'
+
     this.input = document.createElement('input')
     this.input.type = 'search'
     this.input.placeholder = 'Ort suchen…'
     this.input.className = 'search-input'
     this.input.setAttribute('aria-label', 'Ort suchen')
-    this.container.appendChild(this.input)
+    this.input.setAttribute('autocomplete', 'off')
+
+    this.dropdown = document.createElement('ul')
+    this.dropdown.className = 'search-dropdown hidden'
+    this.dropdown.setAttribute('role', 'listbox')
+
+    wrapper.appendChild(this.input)
+    wrapper.appendChild(this.dropdown)
+    this.container.appendChild(wrapper)
+
+    this.input.addEventListener('input', () => {
+      if (this.debounceTimer) clearTimeout(this.debounceTimer)
+      this.debounceTimer = setTimeout(() => void this.search(), 350)
+    })
+
+    this.input.addEventListener('blur', () => {
+      // small delay so click on item fires first
+      setTimeout(() => this.hideDropdown(), 150)
+    })
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.hideDropdown()
+    })
   }
 
-  init(map: google.maps.Map): void {
-    this.autocomplete = new google.maps.places.Autocomplete(this.input, {
-      fields: ['geometry', 'name'],
-    })
-    this.autocomplete.bindTo('bounds', map)
+  updateBounds(bounds: LatLngBounds): void {
+    this.bounds = bounds
+  }
 
-    this.autocomplete.addListener('place_changed', () => {
-      const place = this.autocomplete?.getPlace()
-      const loc = place?.geometry?.location
-      if (!loc) return
-      for (const l of this.listeners) {
-        l({ lat: loc.lat(), lng: loc.lng(), name: place?.name ?? '' })
-      }
-    })
+  private async search(): Promise<void> {
+    const q = this.input.value.trim()
+    if (q.length < 2) { this.hideDropdown(); return }
+
+    const params = new URLSearchParams({ q, limit: '6' })
+    if (this.bounds) {
+      // Nominatim viewbox: left(west),top(north),right(east),bottom(south)
+      params.set('viewbox', `${this.bounds.west},${this.bounds.north},${this.bounds.east},${this.bounds.south}`)
+    }
+
+    try {
+      const res = await fetch(`/api/geocode?${params}`)
+      if (!res.ok) { this.hideDropdown(); return }
+      const results = await res.json() as NominatimResult[]
+      this.showDropdown(results)
+    } catch {
+      this.hideDropdown()
+    }
+  }
+
+  private showDropdown(results: NominatimResult[]): void {
+    this.dropdown.innerHTML = ''
+    if (results.length === 0) { this.hideDropdown(); return }
+
+    for (const r of results) {
+      const li = document.createElement('li')
+      li.className = 'search-dropdown-item'
+      li.setAttribute('role', 'option')
+      li.textContent = r.display_name
+      li.addEventListener('mousedown', () => {
+        this.input.value = r.display_name
+        this.hideDropdown()
+        for (const l of this.listeners) {
+          l({ lat: Number(r.lat), lng: Number(r.lon), name: r.display_name })
+        }
+      })
+      this.dropdown.appendChild(li)
+    }
+    this.dropdown.classList.remove('hidden')
+  }
+
+  private hideDropdown(): void {
+    this.dropdown.classList.add('hidden')
+    this.dropdown.innerHTML = ''
   }
 
   onPlaceSelected(listener: (e: PlaceSelectedEvent) => void): () => void {

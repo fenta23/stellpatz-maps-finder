@@ -1,3 +1,5 @@
+import L from 'leaflet'
+
 export interface LatLon {
   readonly lat: number
   readonly lon: number
@@ -12,6 +14,19 @@ export interface RouteResult {
   readonly detourFactor: number
 }
 
+interface OsrmRoute {
+  readonly distance: number
+  readonly duration: number
+  readonly geometry: {
+    readonly coordinates: ReadonlyArray<readonly [number, number]>
+  }
+}
+
+interface OsrmResponse {
+  readonly code: string
+  readonly routes: readonly OsrmRoute[]
+}
+
 export function haversineMeters(a: LatLon, b: LatLon): number {
   const R = 6_371_000
   const toRad = (d: number) => (d * Math.PI) / 180
@@ -24,8 +39,8 @@ export function haversineMeters(a: LatLon, b: LatLon): number {
   return 2 * R * Math.asin(Math.sqrt(chord))
 }
 
-export function buildGoogleMapsDeeplink(destination: LatLon): string {
-  return `https://www.google.com/maps/dir/?api=1&destination=${destination.lat},${destination.lon}&travelmode=driving`
+export function buildOsmPoiLink(destination: LatLon): string {
+  return `https://www.openstreetmap.org/?mlat=${destination.lat}&mlon=${destination.lon}&zoom=16`
 }
 
 export function buildRouteResult(
@@ -57,41 +72,34 @@ export function buildRouteResult(
 }
 
 export class DirectionsService {
-  private currentRenderer: google.maps.DirectionsRenderer | null = null
+  private routeLine: L.Polyline | null = null
 
-  constructor(private readonly map: google.maps.Map) {}
+  constructor(private readonly map: L.Map) {}
 
   async route(from: LatLon, to: LatLon): Promise<RouteResult> {
-    const service = new google.maps.DirectionsService()
+    const res = await fetch(
+      `/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}`,
+    )
+    if (!res.ok) throw new Error(`Route API error: ${res.status}`)
+    const data = await res.json() as OsrmResponse
 
-    const result = await service.route({
-      origin: { lat: from.lat, lng: from.lon },
-      destination: { lat: to.lat, lng: to.lon },
-      travelMode: google.maps.TravelMode.DRIVING,
-    })
+    if (data.code !== 'Ok' || !data.routes[0]) throw new Error('No route found')
+    const osrmRoute = data.routes[0]
 
-    const leg = result.routes[0]?.legs[0]
-    if (!leg) throw new Error('No route found')
+    this.clearRoute()
+    // OSRM returns [lon, lat] — Leaflet needs [lat, lon]
+    const coords = osrmRoute.geometry.coordinates.map(
+      ([lon, lat]) => [lat, lon] as L.LatLngTuple,
+    )
+    this.routeLine = L.polyline(coords, { color: '#1565C0', weight: 5, opacity: 0.75 }).addTo(this.map)
 
-    const distanceMeters = leg.distance?.value ?? 0
-    const durationSeconds = leg.duration?.value ?? 0
-
-    if (this.currentRenderer) {
-      this.currentRenderer.setMap(null)
-    }
-    this.currentRenderer = new google.maps.DirectionsRenderer({
-      map: this.map,
-      directions: result,
-      suppressMarkers: false,
-    })
-
-    return buildRouteResult(distanceMeters, durationSeconds, from, to)
+    return buildRouteResult(osrmRoute.distance, osrmRoute.duration, from, to)
   }
 
   clearRoute(): void {
-    if (this.currentRenderer) {
-      this.currentRenderer.setMap(null)
-      this.currentRenderer = null
+    if (this.routeLine) {
+      this.routeLine.remove()
+      this.routeLine = null
     }
   }
 }

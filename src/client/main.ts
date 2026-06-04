@@ -1,4 +1,6 @@
-import { loadGoogleMapsApi, GoogleMapService, getUserLocation } from './map/GoogleMapService.js'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+import { MapService, getUserLocation } from './map/MapService.js'
 import { fetchPois } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
 import { DirectionsService } from './routing/DirectionsService.js'
@@ -7,8 +9,6 @@ import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
 
 async function init() {
-  await loadGoogleMapsApi()
-
   const mapContainer = document.getElementById('map')!
   const filterContainer = document.getElementById('filter-panel')!
   const detailContainer = document.getElementById('detail-panel')!
@@ -16,30 +16,43 @@ async function init() {
   const statusEl = document.getElementById('status')!
 
   const userPos = await getUserLocation()
-  const center = userPos ?? { lat: 48.137, lng: 11.576 }
+  const center: [number, number] = userPos ?? [48.137, 11.576]
 
-  const mapService = new GoogleMapService(mapContainer, center)
+  const mapService = new MapService(mapContainer, center)
   const filterPanel = new FilterPanel(filterContainer)
   const detailPanel = new PoiDetailPanel(detailContainer)
   const searchBar = new SearchBar(searchContainer)
   const directionsService = new DirectionsService(mapService.getMap())
 
-  let currentUserPos = center
+  let currentUserPos = { lat: center[0], lon: center[1] }
+
+  if (userPos) {
+    currentUserPos = { lat: userPos[0], lon: userPos[1] }
+    L.circleMarker(userPos, {
+      radius: 8,
+      fillColor: '#4285F4',
+      fillOpacity: 1,
+      color: '#fff',
+      weight: 2,
+    }).addTo(mapService.getMap()).bindTooltip('Mein Standort')
+  }
+
+  const leafletMap = mapService.getMap()
 
   const adapter = {
     createMarker({ lat, lon, title, icon, onClick }: {
       lat: number; lon: number; title: string; icon: string; onClick: () => void
     }) {
-      const marker = new google.maps.Marker({
-        position: { lat, lng: lon },
-        map: mapService.getMap(),
-        title,
-        icon: { url: icon, scaledSize: new google.maps.Size(32, 32) },
-      })
-      marker.addListener('click', onClick)
+      const leafletIcon = L.icon({ iconUrl: icon, iconSize: [32, 32], iconAnchor: [16, 32] })
+      const marker = L.marker([lat, lon], { icon: leafletIcon, title })
+      marker.on('click', onClick)
+      marker.addTo(leafletMap)
       return {
-        setVisible(v: boolean) { marker.setVisible(v) },
-        remove() { marker.setMap(null) },
+        setVisible(v: boolean) {
+          if (v) marker.addTo(leafletMap)
+          else marker.remove()
+        },
+        remove() { marker.remove() },
       }
     },
   }
@@ -48,30 +61,13 @@ async function init() {
     adapter,
     async (poi) => {
       const route = await directionsService.route(
-        { lat: currentUserPos.lat, lon: currentUserPos.lng },
+        currentUserPos,
         { lat: poi.lat, lon: poi.lon },
       ).catch(() => undefined)
       detailPanel.show(poi, route)
     },
     filterPanel.getActiveTypes(),
   )
-
-  if (userPos) {
-    currentUserPos = userPos
-    new google.maps.Marker({
-      position: userPos,
-      map: mapService.getMap(),
-      title: 'Mein Standort',
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#4285F4',
-        fillOpacity: 1,
-        strokeColor: '#fff',
-        strokeWeight: 2,
-      },
-    })
-  }
 
   let abortController: AbortController | null = null
   let isLoading = false
@@ -85,7 +81,6 @@ async function init() {
     const bounds = mapService.getBounds()
     if (!bounds) return
 
-    // skip very large viewports (Overpass would timeout)
     const latSpan = bounds.north - bounds.south
     const lonSpan = bounds.east - bounds.west
     if (latSpan > 1.5 || lonSpan > 1.5) {
@@ -126,25 +121,25 @@ async function init() {
     }
   }
 
-  // initial load triggered by bounds_changed (fires once map renders)
-  // also do an explicit call as belt-and-suspenders after a brief delay
-  mapService.onBoundsChanged(() => refreshPois())
-  setTimeout(() => refreshPois(), 800)
+  mapService.onBoundsChanged((bounds) => {
+    searchBar.updateBounds(bounds)
+    void refreshPois()
+  })
+  setTimeout(() => void refreshPois(), 800)
 
   filterPanel.onChange(({ type, active }) => {
     markerManager.setTypeVisible(type, active)
-    refreshPois()
+    void refreshPois()
   })
 
   detailPanel.onNavigate(async ({ poi }) => {
     const route = await directionsService.route(
-      { lat: currentUserPos.lat, lon: currentUserPos.lng },
+      currentUserPos,
       { lat: poi.lat, lon: poi.lon },
     ).catch(() => undefined)
     if (route) detailPanel.show(poi, route)
   })
 
-  searchBar.init(mapService.getMap())
   searchBar.onPlaceSelected(({ lat, lng }) => {
     mapService.setCenter(lat, lng, 14)
   })
@@ -153,5 +148,5 @@ async function init() {
 init().catch(err => {
   console.error('Startup failed:', err)
   const map = document.getElementById('map')
-  if (map) map.textContent = `Fehler beim Laden: ${err.message}`
+  if (map) map.textContent = `Fehler beim Laden: ${(err as Error).message}`
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { haversineMeters, buildGoogleMapsDeeplink, buildRouteResult } from './DirectionsService.js'
+import { haversineMeters, buildOsmPoiLink, buildRouteResult } from './DirectionsService.js'
 
 describe('haversineMeters', () => {
   it('returns ~0 for identical points', () => {
@@ -19,12 +19,12 @@ describe('haversineMeters', () => {
   })
 })
 
-describe('buildGoogleMapsDeeplink', () => {
+describe('buildOsmPoiLink', () => {
   it('includes destination coordinates', () => {
-    const url = buildGoogleMapsDeeplink({ lat: 48.123, lon: 11.456 })
+    const url = buildOsmPoiLink({ lat: 48.123, lon: 11.456 })
     expect(url).toContain('48.123')
     expect(url).toContain('11.456')
-    expect(url).toContain('travelmode=driving')
+    expect(url).toContain('openstreetmap.org')
   })
 })
 
