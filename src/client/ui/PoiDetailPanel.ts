@@ -190,10 +190,33 @@ function renderNotes(notes: OsmNote[]): string {
   if (notes.length === 0) return ''
   const items = notes.map(n => `
     <div class="note-item">
-      <div class="note-text">${esc(n.text)}</div>
+      <div class="note-text">${renderNoteText(n.text)}</div>
       <div class="note-meta">${esc(n.date)}</div>
     </div>`).join('')
   return `<h3 class="notes-heading">📝 Community-Hinweise</h3>${items}`
+}
+
+const URL_RE = /https?:\/\/\S+/g
+const IMG_EXT_RE = /\.(?:jpe?g|png|gif|webp)(?:\?.*)?$/i
+
+function renderNoteText(text: string): string {
+  const parts: string[] = []
+  let last = 0
+  let m: RegExpExecArray | null
+  URL_RE.lastIndex = 0
+  while ((m = URL_RE.exec(text)) !== null) {
+    if (m.index > last) parts.push(esc(text.slice(last, m.index)))
+    const raw = m[0].replace(/[.,;:!?)]+$/, '') // strip trailing punctuation
+    if (IMG_EXT_RE.test(raw)) {
+      parts.push(`<a href="${esc(raw)}" target="_blank" rel="noopener"><img src="${esc(raw)}" class="note-img" alt="" loading="lazy" /></a>`)
+    } else {
+      const label = raw.length > 45 ? raw.slice(0, 45) + '…' : raw
+      parts.push(`<a href="${esc(raw)}" target="_blank" rel="noopener">${esc(label)}</a>`)
+    }
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push(esc(text.slice(last)))
+  return parts.join('')
 }
 
 function esc(s: string): string {
