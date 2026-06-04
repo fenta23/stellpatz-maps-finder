@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-06-04
+
+### Fixed
+- Routing-Modi liefern jetzt wirklich unterschiedliche Routen: OSRM-Public-Server durch **Valhalla** (`valhalla.openstreetmap.de`) ersetzt, das `auto`/`bicycle`/`pedestrian` mit eigenen Algorithmen berechnet
+- Server-Proxy transformiert Valhalla-Response in OSRM-kompatibles Format; enthält Polyline-Decoder als Fallback falls `shape_format=geojson` nicht unterstützt wird
+
 ## [0.1.4] - 2026-06-04
 
 ### Added

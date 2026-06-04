@@ -103,49 +103,67 @@ describe('GET /api/geocode', () => {
   })
 })
 
+const VALHALLA_PAYLOAD = {
+  trip: {
+    legs: [{ shape: { type: 'LineString', coordinates: [[11.5, 48.1], [11.6, 48.2]] } }],
+    summary: { length: 5.0, time: 600 },
+  },
+}
+
 describe('GET /api/route', () => {
   it('returns 400 when coordinates are missing', async () => {
     const res = await request(createApp()).get('/api/route')
     expect(res.status).toBe(400)
   })
 
-  it('proxies to OSRM and returns route', async () => {
-    const osrmPayload = {
-      code: 'Ok',
-      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [[11.5, 48.1], [11.6, 48.2]] } }],
-    }
-    mockFetch(200, osrmPayload)
+  it('proxies to Valhalla and transforms response to OSRM shape', async () => {
+    mockFetch(200, VALHALLA_PAYLOAD)
     const res = await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6')
     expect(res.status).toBe(200)
-    expect(res.body).toEqual(osrmPayload)
+    expect(res.body.code).toBe('Ok')
+    expect(res.body.routes[0].distance).toBe(5000)  // 5 km → meters
+    expect(res.body.routes[0].duration).toBe(600)
+    expect(res.body.routes[0].geometry.coordinates).toEqual([[11.5, 48.1], [11.6, 48.2]])
     const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
-    expect(calledUrl).toContain('router.project-osrm.org')
-    // OSRM needs lon,lat order
-    expect(calledUrl).toContain('11.5,48.1')
+    expect(calledUrl).toContain('valhalla.openstreetmap.de')
   })
 
-  it('uses cycling profile when mode=cycling', async () => {
-    mockFetch(200, { code: 'Ok', routes: [] })
+  it('sends auto costing for driving mode', async () => {
+    mockFetch(200, VALHALLA_PAYLOAD)
+    await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=driving')
+    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
+    expect(body.costing).toBe('auto')
+  })
+
+  it('sends bicycle costing for mode=cycling', async () => {
+    mockFetch(200, VALHALLA_PAYLOAD)
     await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=cycling')
-    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
-    expect(calledUrl).toContain('/cycling/')
+    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
+    expect(body.costing).toBe('bicycle')
   })
 
-  it('uses foot profile when mode=foot', async () => {
-    mockFetch(200, { code: 'Ok', routes: [] })
+  it('sends pedestrian costing for mode=foot', async () => {
+    mockFetch(200, VALHALLA_PAYLOAD)
     await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=foot')
-    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
-    expect(calledUrl).toContain('/foot/')
+    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
+    expect(body.costing).toBe('pedestrian')
   })
 
-  it('falls back to driving for unknown mode', async () => {
-    mockFetch(200, { code: 'Ok', routes: [] })
+  it('falls back to auto costing for unknown mode', async () => {
+    mockFetch(200, VALHALLA_PAYLOAD)
     await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=helicopter')
-    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
-    expect(calledUrl).toContain('/driving/')
+    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit)?.body))
+    expect(body.costing).toBe('auto')
   })
 
-  it('returns 503 when OSRM is unreachable', async () => {
+  it('decodes encoded polyline shape when shape_format not supported', async () => {
+    mockFetch(200, { trip: { legs: [{ shape: '' }], summary: { length: 1.0, time: 60 } } })
+    const res = await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6')
+    expect(res.status).toBe(200)
+    expect(res.body.routes[0].geometry.coordinates).toEqual([])
+  })
+
+  it('returns 503 when Valhalla is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
     const res = await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6')
     expect(res.status).toBe(503)

@@ -92,8 +92,33 @@ export function createApp() {
     }
   })
 
-  // ── OSRM routing proxy ─────────────────────────────────────────────────────
-  const OSRM_PROFILES: Record<string, string> = { driving: 'driving', cycling: 'cycling', foot: 'foot' }
+  // ── Valhalla routing proxy ────────────────────────────────────────────────
+  // OSRM public demo only has the driving profile built in; Valhalla supports
+  // auto/bicycle/pedestrian with genuinely different routing algorithms.
+  const VALHALLA_COSTING: Record<string, string> = {
+    driving: 'auto',
+    cycling: 'bicycle',
+    foot: 'pedestrian',
+  }
+
+  interface ValhallaShape { type: string; coordinates: Array<[number, number]> }
+  interface ValhallaLeg { shape: string | ValhallaShape; summary?: { length: number; time: number } }
+  interface ValhallaResponse { trip: { legs: ValhallaLeg[]; summary: { length: number; time: number } } }
+
+  function decodeValhallaPolyline(encoded: string): Array<[number, number]> {
+    const coords: Array<[number, number]> = []
+    let index = 0, lat = 0, lng = 0
+    while (index < encoded.length) {
+      let b, shift = 0, result = 0
+      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
+      lat += (result & 1) ? ~(result >> 1) : (result >> 1)
+      shift = 0; result = 0
+      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
+      lng += (result & 1) ? ~(result >> 1) : (result >> 1)
+      coords.push([lng / 1e6, lat / 1e6]) // [lon, lat] for GeoJSON
+    }
+    return coords
+  }
 
   app.get('/api/route', async (req, res) => {
     const from = String(req.query['from'] ?? '')
@@ -107,20 +132,45 @@ export function createApp() {
       return
     }
 
-    const profile = OSRM_PROFILES[modeParam] ?? 'driving'
-    // OSRM coordinate order: lon,lat
-    const url = `https://router.project-osrm.org/route/v1/${profile}/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson`
+    const costing = VALHALLA_COSTING[modeParam] ?? 'auto'
+    const requestBody = JSON.stringify({
+      locations: [
+        { lat: Number(fromLat), lon: Number(fromLon) },
+        { lat: Number(toLat), lon: Number(toLon) },
+      ],
+      costing,
+      units: 'km',
+      shape_format: 'geojson',
+    })
 
     try {
-      const upstream = await fetch(url, {
-        headers: { 'User-Agent': UA },
+      const upstream = await fetch('https://valhalla.openstreetmap.de/route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
+        body: requestBody,
         signal: AbortSignal.timeout(10000),
       })
-      if (!upstream.ok) { res.status(upstream.status).json({ error: 'OSRM error' }); return }
-      const data = await upstream.json() as unknown
-      res.json(data)
+      if (!upstream.ok) { res.status(upstream.status).json({ error: 'Routing error' }); return }
+
+      const data = await upstream.json() as ValhallaResponse
+      const leg = data.trip?.legs?.[0]
+      if (!leg) { res.status(502).json({ error: 'No route found' }); return }
+
+      const shape = leg.shape
+      const coordinates = typeof shape === 'string'
+        ? decodeValhallaPolyline(shape)
+        : (shape as ValhallaShape).coordinates
+
+      res.json({
+        code: 'Ok',
+        routes: [{
+          distance: data.trip.summary.length * 1000, // km → meters
+          duration: data.trip.summary.time,
+          geometry: { coordinates },
+        }],
+      })
     } catch {
-      res.status(503).json({ error: 'OSRM unreachable' })
+      res.status(503).json({ error: 'Routing service unreachable' })
     }
   })
 
