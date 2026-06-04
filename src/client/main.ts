@@ -4,7 +4,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import L from 'leaflet'
 import 'leaflet.markercluster'
 import { MapService } from './map/MapService.js'
-import { fetchPois } from './poi/OverpassClient.js'
+import { fetchPois, type OsmPoi } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
 import { DirectionsService, type RoutingMode } from './routing/DirectionsService.js'
 import { FilterPanel } from './ui/FilterPanel.js'
@@ -61,6 +61,7 @@ async function init() {
     : null
 
   let routingMode: RoutingMode = 'driving'
+  let selectedPoi: OsmPoi | null = null
 
   const routingModeEl = document.getElementById('routing-mode')!
   routingModeEl.addEventListener('click', (e) => {
@@ -71,7 +72,14 @@ async function init() {
     routingMode = newMode
     routingModeEl.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'))
     btn.classList.add('active')
-    directionsService.clearRoute()
+    if (selectedPoi && currentUserPos) {
+      void directionsService
+        .route(currentUserPos, { lat: selectedPoi.lat, lon: selectedPoi.lon }, routingMode)
+        .then(route => detailPanel.show(selectedPoi!, route, routingMode))
+        .catch(() => directionsService.clearRoute())
+    } else {
+      directionsService.clearRoute()
+    }
   })
 
   let locationMarker: L.CircleMarker | null = null
@@ -134,6 +142,7 @@ async function init() {
   const markerManager = new PoiMarkerManager(
     adapter,
     async (poi) => {
+      selectedPoi = poi
       if (!currentUserPos) {
         detailPanel.show(poi, undefined)
         setStatus('Standort unbekannt – Route nicht möglich', true)
@@ -145,7 +154,7 @@ async function init() {
         { lat: poi.lat, lon: poi.lon },
         routingMode,
       ).catch(() => undefined)
-      detailPanel.show(poi, route)
+      detailPanel.show(poi, route, routingMode)
     },
     filterPanel.getActiveTypes(),
   )
@@ -225,7 +234,12 @@ async function init() {
       { lat: poi.lat, lon: poi.lon },
       routingMode,
     ).catch(() => undefined)
-    if (route) detailPanel.show(poi, route)
+    if (route) detailPanel.show(poi, route, routingMode)
+  })
+
+  detailPanel.onClose(() => {
+    selectedPoi = null
+    directionsService.clearRoute()
   })
 
   searchBar.onPlaceSelected(({ lat, lng }) => {

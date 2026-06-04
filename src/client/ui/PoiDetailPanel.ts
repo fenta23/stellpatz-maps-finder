@@ -1,12 +1,13 @@
 import type { OsmPoi } from '../poi/OverpassClient.js'
 import { buildOsmPoiLink } from '../routing/DirectionsService.js'
-import type { RouteResult } from '../routing/DirectionsService.js'
+import type { RouteResult, RoutingMode } from '../routing/DirectionsService.js'
 
 export type NavigateRequest = { readonly poi: OsmPoi }
 
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
+  private readonly closeListeners: Array<() => void> = []
 
   constructor(private readonly container: HTMLElement) {
     this.panel = document.createElement('aside')
@@ -15,9 +16,9 @@ export class PoiDetailPanel {
     this.container.appendChild(this.panel)
   }
 
-  show(poi: OsmPoi, route?: RouteResult): void {
+  show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode): void {
     this.panel.classList.remove('hidden')
-    this.panel.innerHTML = this.renderHtml(poi, route)
+    this.panel.innerHTML = this.renderHtml(poi, route, mode)
 
     this.panel.querySelector('.btn-navigate')?.addEventListener('click', () => {
       for (const l of this.listeners) l({ poi })
@@ -29,6 +30,15 @@ export class PoiDetailPanel {
   hide(): void {
     this.panel.classList.add('hidden')
     this.panel.innerHTML = ''
+    for (const l of this.closeListeners) l()
+  }
+
+  onClose(listener: () => void): () => void {
+    this.closeListeners.push(listener)
+    return () => {
+      const idx = this.closeListeners.indexOf(listener)
+      if (idx !== -1) this.closeListeners.splice(idx, 1)
+    }
   }
 
   onNavigate(listener: (r: NavigateRequest) => void): () => void {
@@ -39,7 +49,7 @@ export class PoiDetailPanel {
     }
   }
 
-  private renderHtml(poi: OsmPoi, route?: RouteResult): string {
+  private renderHtml(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving'): string {
     const t = poi.tags
     const name = t.name ?? typeLabel(poi.type)
     const deeplink = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
@@ -62,9 +72,10 @@ export class PoiDetailPanel {
       ? `<tr><th>Website</th><td><a href="${esc(t.website)}" target="_blank" rel="noopener">Öffnen ↗</a></td></tr>`
       : ''
 
+    const modeIcon: Record<RoutingMode, string> = { driving: '🚗', cycling: '🚲', foot: '🚶' }
     const routeHtml = route
       ? `<div class="route-summary">
-          <span>🚗 ${esc(route.distanceText)} · ${esc(route.durationText)}</span>
+          <span>${modeIcon[mode]} ${esc(route.distanceText)} · ${esc(route.durationText)}</span>
           <span class="detour">Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})</span>
         </div>`
       : ''
