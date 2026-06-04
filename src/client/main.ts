@@ -113,7 +113,14 @@ async function init() {
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
       console.error('POI fetch failed:', err)
-      setStatus('Fehler beim Laden der Daten', true)
+      const msg = (err as Error).message ?? ''
+      if (msg.includes('429')) {
+        setStatus('Overpass API überlastet – bitte 30 Sekunden warten und erneut zoomen', true)
+      } else if (msg.includes('503') || msg.includes('fetch')) {
+        setStatus('Overpass API nicht erreichbar – Server vorübergehend down', true)
+      } else {
+        setStatus('Fehler beim Laden der Daten', true)
+      }
     } finally {
       isLoading = false
     }

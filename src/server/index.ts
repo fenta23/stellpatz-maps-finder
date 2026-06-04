@@ -6,6 +6,12 @@ import path from 'node:path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+]
+
 export function createApp() {
   const app = express()
 
@@ -30,6 +36,47 @@ export function createApp() {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' })
   })
+
+  let overpassIdx = 0
+  app.post(
+    '/api/overpass',
+    express.text({ type: 'application/x-www-form-urlencoded' }),
+    async (req, res) => {
+      const body = req.body as string
+      const n = OVERPASS_ENDPOINTS.length
+      for (let i = 0; i < n; i++) {
+        const url = OVERPASS_ENDPOINTS[overpassIdx % n]!
+        overpassIdx++
+        try {
+          const upstream = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'User-Agent': 'stellpatz-maps-finder/0.1 (https://github.com/local/stellpatz)',
+            },
+            body,
+            signal: AbortSignal.timeout(12000),
+          })
+          if (upstream.status === 429 || upstream.status === 503) {
+            if (i < n - 1) continue
+            res.status(429).json({ error: 'Overpass rate limited on all endpoints' })
+            return
+          }
+          if (!upstream.ok) {
+            res.status(upstream.status).json({ error: `Overpass error: ${upstream.statusText}` })
+            return
+          }
+          const data = await upstream.json() as unknown
+          res.json(data)
+          return
+        } catch {
+          if (i < n - 1) continue
+          res.status(503).json({ error: 'All Overpass endpoints unreachable' })
+          return
+        }
+      }
+    },
+  )
 
   const clientDist = path.resolve(__dirname, '../../dist/client')
   app.use(express.static(clientDist))

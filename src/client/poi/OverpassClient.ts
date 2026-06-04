@@ -1,22 +1,5 @@
 export type PoiType = 'parking' | 'camper' | 'campsite'
 
-// Multiple public Overpass endpoints — rotated to spread load
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-]
-let endpointIndex = 0
-function nextEndpoint(): string {
-  const url = OVERPASS_ENDPOINTS[endpointIndex % OVERPASS_ENDPOINTS.length]!
-  endpointIndex++
-  return url
-}
-
-// Global cooldown: minimum ms between completed requests
-let lastRequestFinishedAt = 0
-const MIN_REQUEST_INTERVAL_MS = 3000
-
 export interface LatLngBounds {
   readonly south: number
   readonly west: number
@@ -104,19 +87,6 @@ function elementToLatLon(el: OsmElement): { lat: number; lon: number } | null {
   return null
 }
 
-async function fetchFromEndpoint(
-  url: string,
-  query: string,
-  signal?: AbortSignal,
-): Promise<Response> {
-  return fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-    signal,
-  })
-}
-
 function parseElements(data: { elements?: OsmElement[] }): readonly OsmPoi[] {
   const elements = data.elements ?? []
   const seen = new Set<number>()
@@ -147,43 +117,18 @@ export async function fetchPois(
 ): Promise<readonly OsmPoi[]> {
   if (types.size === 0) return []
 
-  // Enforce minimum interval between requests to avoid 429
-  const now = Date.now()
-  const wait = lastRequestFinishedAt + MIN_REQUEST_INTERVAL_MS - now
-  if (wait > 0) {
-    await new Promise<void>(resolve => setTimeout(resolve, wait))
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-  }
-
   const query = buildQuery(bounds, types)
+  const res = await fetch('/api/overpass', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `data=${encodeURIComponent(query)}`,
+    signal,
+  })
 
-  // Try each endpoint in rotation; on 429 move to next
-  const attempts = OVERPASS_ENDPOINTS.length
-  for (let i = 0; i < attempts; i++) {
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-    const url = nextEndpoint()
-    try {
-      const res = await fetchFromEndpoint(url, query, signal)
-      lastRequestFinishedAt = Date.now()
-
-      if (res.status === 429 || res.status === 503) {
-        // rate-limited on this endpoint — try the next one
-        if (i < attempts - 1) continue
-        throw new Error(`Overpass API error: ${res.status} ${res.statusText}`)
-      }
-
-      if (!res.ok) {
-        throw new Error(`Overpass API error: ${res.status} ${res.statusText}`)
-      }
-
-      const data = await res.json() as { elements?: OsmElement[] }
-      return parseElements(data)
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') throw err
-      if (i < attempts - 1) continue // try next endpoint
-      throw err
-    }
+  if (!res.ok) {
+    throw new Error(`Overpass proxy error: ${res.status} ${res.statusText}`)
   }
 
-  throw new Error('All Overpass endpoints failed')
+  const data = await res.json() as { elements?: OsmElement[] }
+  return parseElements(data)
 }
