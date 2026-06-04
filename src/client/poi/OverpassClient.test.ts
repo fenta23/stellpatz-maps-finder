@@ -30,7 +30,7 @@ describe('buildQuery', () => {
 
   it('includes campsite query when campsite type active', () => {
     const q = buildQuery(BOUNDS, new Set(['campsite']))
-    expect(q).toContain('"tourism"="campsite"')
+    expect(q).toContain('"tourism"="camp_site"')
     expect(q).not.toContain('"amenity"="parking"')
   })
 
@@ -38,7 +38,7 @@ describe('buildQuery', () => {
     const q = buildQuery(BOUNDS, new Set(['parking', 'camper', 'campsite']))
     expect(q).toContain('"amenity"="parking"')
     expect(q).toContain('"tourism"="camp_pitch"')
-    expect(q).toContain('"tourism"="campsite"')
+    expect(q).toContain('"tourism"="camp_site"')
     expect(q).toContain('"motorhome"="yes"')
     expect(q).toContain('"tourism"="caravan_site"')
   })
@@ -58,8 +58,8 @@ describe('buildQuery', () => {
 describe('elementToPoiType', () => {
   const base: OsmElement = { type: 'node', id: 1, lat: 48, lon: 11, tags: {} }
 
-  it('classifies campsite', () => {
-    expect(elementToPoiType({ ...base, tags: { tourism: 'campsite' } })).toBe('campsite')
+  it('classifies camp_site as campsite', () => {
+    expect(elementToPoiType({ ...base, tags: { tourism: 'camp_site' } })).toBe('campsite')
   })
 
   it('classifies camp_pitch as camper', () => {
@@ -96,7 +96,7 @@ describe('fetchPois', () => {
   it('uses center for way elements', async () => {
     stubFetch(200, {
       elements: [
-        { type: 'way', id: 99, center: { lat: 48.2, lon: 11.2 }, tags: { tourism: 'campsite' } },
+        { type: 'way', id: 99, center: { lat: 48.2, lon: 11.2 }, tags: { tourism: 'camp_site' } },
       ],
     })
     const result = await fetchPois(BOUNDS, new Set(['campsite']))

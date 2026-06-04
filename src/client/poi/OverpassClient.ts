@@ -61,16 +61,17 @@ export function buildQuery(bounds: LatLngBounds, types: ReadonlySet<PoiType>): s
     parts.push(`relation["tourism"="caravan_site"](${bbox});`)
   }
   if (types.has('campsite')) {
-    parts.push(`node["tourism"="campsite"](${bbox});`)
-    parts.push(`way["tourism"="campsite"](${bbox});`)
-    parts.push(`relation["tourism"="campsite"](${bbox});`)
+    // OSM tag is camp_site (with underscore), not campsite
+    parts.push(`node["tourism"="camp_site"](${bbox});`)
+    parts.push(`way["tourism"="camp_site"](${bbox});`)
+    parts.push(`relation["tourism"="camp_site"](${bbox});`)
   }
 
   return `[out:json][timeout:30];\n(\n  ${parts.join('\n  ')}\n);\nout center tags;`
 }
 
 export function elementToPoiType(el: OsmElement): PoiType {
-  if (el.tags.tourism === 'campsite') return 'campsite'
+  if (el.tags.tourism === 'camp_site') return 'campsite'
   if (el.tags.tourism === 'camp_pitch') return 'camper'
   if (el.tags.tourism === 'caravan_site') return 'camper'
   if (el.tags.motorhome === 'yes') return 'camper'
