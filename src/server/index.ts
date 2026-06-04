@@ -212,6 +212,39 @@ export function createApp() {
     }
   })
 
+  // ── Mapillary proxy ───────────────────────────────────────────────────────
+  app.get('/api/mapillary', async (req, res) => {
+    const lat = parseFloat(String(req.query['lat'] ?? ''))
+    const lon = parseFloat(String(req.query['lon'] ?? ''))
+    if (isNaN(lat) || isNaN(lon)) { res.status(400).json({ error: 'lat and lon required' }); return }
+
+    const token = process.env['MAPILLARY_ACCESS_TOKEN']
+    if (!token) { res.json([]); return }
+
+    const r = 0.0005 // ~50 m radius
+    const bbox = `${(lon - r).toFixed(6)},${(lat - r).toFixed(6)},${(lon + r).toFixed(6)},${(lat + r).toFixed(6)}`
+    const url = `https://graph.mapillary.com/images?access_token=${token}&bbox=${bbox}&fields=id,thumb_256_url,captured_at&limit=6`
+
+    try {
+      const upstream = await fetch(url, {
+        headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!upstream.ok) { res.status(upstream.status).json({ error: 'Mapillary error' }); return }
+      const raw = await upstream.json() as {
+        data?: Array<{ id: string; thumb_256_url: string; captured_at: number }>
+      }
+      const images = (raw.data ?? []).map(img => ({
+        src: img.thumb_256_url,
+        link: `https://www.mapillary.com/app/?pKey=${img.id}`,
+        caption: `Mapillary · ${new Date(img.captured_at).toISOString().slice(0, 7)}`,
+      }))
+      res.json(images)
+    } catch {
+      res.status(503).json({ error: 'Mapillary unreachable' })
+    }
+  })
+
   // ── OSM Notes proxy ───────────────────────────────────────────────────────
   app.get('/api/notes', async (req, res) => {
     const lat = parseFloat(String(req.query['lat'] ?? ''))

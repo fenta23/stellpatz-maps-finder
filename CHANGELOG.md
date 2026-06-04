@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-06-04
+
+### Added
+- Bildergalerie im Detail-Panel: scrollbarer Streifen direkt unterhalb der Routen-Zusammenfassung
+- OSM `image`-Tag wird sofort angezeigt (direkte URL)
+- `wikimedia_commons`-Tag wird via Wikimedia Commons API aufgelöst (client-seitig, CORS-fähig)
+- Mapillary Street-Level-Fotos (bis 6 Bilder, ~50 m Radius) über neuen Server-Proxy `/api/mapillary`
+- `MAPILLARY_ACCESS_TOKEN` in `.env.example` — ohne Token liefert der Endpunkt ein leeres Array
+- 4 neue Server-Tests für `/api/mapillary` (81 Tests gesamt)
+
 ## [0.1.7] - 2026-06-04
 
 ### Added

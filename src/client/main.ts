@@ -7,7 +7,7 @@ import { MapService } from './map/MapService.js'
 import { fetchPois, type OsmPoi } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
 import { DirectionsService, type RoutingMode } from './routing/DirectionsService.js'
-import type { OsmNote } from './ui/PoiDetailPanel.js'
+import type { OsmNote, PoiImage } from './ui/PoiDetailPanel.js'
 import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
@@ -156,6 +156,7 @@ async function init() {
         routingMode,
       ).catch(() => undefined)
       detailPanel.show(poi, route, routingMode)
+      void loadImagesFor(poi)
       loadNotesFor(poi)
     },
     filterPanel.getActiveTypes(),
@@ -238,6 +239,7 @@ async function init() {
     ).catch(() => undefined)
     if (route) {
       detailPanel.show(poi, route, routingMode)
+      void loadImagesFor(poi)
       loadNotesFor(poi)
     }
   })
@@ -246,6 +248,45 @@ async function init() {
     selectedPoi = null
     directionsService.clearRoute()
   })
+
+  async function loadImagesFor(poi: OsmPoi) {
+    const images: PoiImage[] = []
+
+    if (poi.tags['image']) {
+      images.push({ src: poi.tags['image'], caption: 'OSM' })
+    }
+
+    const wmc = poi.tags['wikimedia_commons']
+    if (wmc) {
+      const title = wmc.startsWith('File:') || wmc.startsWith('Category:') ? wmc : `File:${wmc}`
+      try {
+        const url = `https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`
+        const resp = await fetch(url, { signal: AbortSignal.timeout(5000) })
+        const data = await resp.json() as {
+          query?: { pages?: Record<string, { imageinfo?: Array<{ url: string; thumburl: string }> }> }
+        }
+        const page = Object.values(data.query?.pages ?? {})[0]
+        const info = page?.imageinfo?.[0]
+        if (info?.thumburl) {
+          images.push({
+            src: info.thumburl,
+            link: `https://commons.wikimedia.org/wiki/${encodeURIComponent(title)}`,
+            caption: 'Wikimedia Commons',
+          })
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (selectedPoi?.id === poi.id) detailPanel.updateImages(images)
+
+    try {
+      const resp = await fetch(`/api/mapillary?lat=${poi.lat}&lon=${poi.lon}`)
+      if (resp.ok) {
+        const mapillaryImages = await resp.json() as PoiImage[]
+        if (selectedPoi?.id === poi.id) detailPanel.updateImages([...images, ...mapillaryImages])
+      }
+    } catch { /* ignore */ }
+  }
 
   function loadNotesFor(poi: { id: number; lat: number; lon: number }) {
     fetch(`/api/notes?lat=${poi.lat}&lon=${poi.lon}`)

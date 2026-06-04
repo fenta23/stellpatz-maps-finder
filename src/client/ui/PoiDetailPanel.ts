@@ -10,6 +10,12 @@ export interface OsmNote {
   readonly text: string
 }
 
+export interface PoiImage {
+  readonly src: string
+  readonly link?: string
+  readonly caption?: string
+}
+
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
@@ -29,6 +35,13 @@ export class PoiDetailPanel {
       for (const l of this.listeners) l({ poi })
     })
     this.panel.querySelector('.btn-close')?.addEventListener('click', () => this.hide())
+  }
+
+  updateImages(images: PoiImage[]): void {
+    const section = this.panel.querySelector<HTMLElement>('[data-section="images"]')
+    if (!section) return
+    if (images.length === 0) { section.innerHTML = ''; return }
+    section.innerHTML = renderImages(images)
   }
 
   updateNotes(notes: OsmNote[]): void {
@@ -148,6 +161,7 @@ export class PoiDetailPanel {
         <button class="btn-close" aria-label="Schließen">✕</button>
       </div>
       ${routeHtml}
+      <div data-section="images"></div>
       <table class="poi-tags">${rows.join('')}</table>
       <div data-section="notes" class="poi-notes">
         <p class="notes-loading">Community-Hinweise werden geladen…</p>
@@ -159,6 +173,17 @@ export class PoiDetailPanel {
       </div>
     `
   }
+}
+
+function renderImages(images: PoiImage[]): string {
+  const items = images.map(img => {
+    const thumb = `<img src="${esc(img.src)}" alt="${esc(img.caption ?? '')}" loading="lazy" class="poi-img-thumb" />`
+    const caption = img.caption ? `<div class="poi-img-caption">${esc(img.caption)}</div>` : ''
+    return img.link
+      ? `<a href="${esc(img.link)}" target="_blank" rel="noopener" class="poi-img-item">${thumb}${caption}</a>`
+      : `<div class="poi-img-item">${thumb}${caption}</div>`
+  }).join('')
+  return `<div class="poi-img-strip">${items}</div>`
 }
 
 function renderNotes(notes: OsmNote[]): string {

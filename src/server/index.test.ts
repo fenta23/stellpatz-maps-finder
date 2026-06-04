@@ -132,6 +132,46 @@ function decodeJsonParam(calledUrl: string) {
   return JSON.parse(decodeURIComponent(match![1]))
 }
 
+describe('GET /api/mapillary', () => {
+  afterEach(() => { delete process.env['MAPILLARY_ACCESS_TOKEN'] })
+
+  it('returns 400 when lat/lon missing', async () => {
+    const res = await request(createApp()).get('/api/mapillary')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns empty array when MAPILLARY_ACCESS_TOKEN not set', async () => {
+    const res = await request(createApp()).get('/api/mapillary?lat=48.1&lon=11.5')
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual([])
+  })
+
+  it('proxies to Mapillary graph API and returns simplified images', async () => {
+    process.env['MAPILLARY_ACCESS_TOKEN'] = 'test_token'
+    mockFetch(200, {
+      data: [{ id: 'img1', thumb_256_url: 'https://cdn.mapillary.com/img1.jpg', captured_at: 1709298000000 }],
+    })
+    const res = await request(createApp()).get('/api/mapillary?lat=48.1&lon=11.5')
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(1)
+    expect(res.body[0]).toMatchObject({
+      src: 'https://cdn.mapillary.com/img1.jpg',
+      caption: expect.stringContaining('Mapillary'),
+      link: expect.stringContaining('mapillary.com'),
+    })
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(calledUrl).toContain('graph.mapillary.com/images')
+    expect(calledUrl).toContain('test_token')
+  })
+
+  it('returns 503 when Mapillary is unreachable', async () => {
+    process.env['MAPILLARY_ACCESS_TOKEN'] = 'test_token'
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
+    const res = await request(createApp()).get('/api/mapillary?lat=48.1&lon=11.5')
+    expect(res.status).toBe(503)
+  })
+})
+
 describe('GET /api/notes', () => {
   const OSM_NOTES_RESPONSE = {
     features: [

@@ -278,6 +278,46 @@
 
     .btn-secondary:hover { background: #E3F2FD; }
 
+    /* ── Image strip ── */
+    .poi-img-strip {
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      background: #fafafa;
+      border-bottom: 1px solid #eee;
+    }
+
+    .poi-img-item {
+      flex-shrink: 0;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      display: block;
+    }
+
+    .poi-img-thumb {
+      height: 110px;
+      width: auto;
+      display: block;
+      object-fit: cover;
+    }
+
+    .poi-img-caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 0.68rem;
+      padding: 2px 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     /* ── Notes section ── */
     .poi-notes {
       padding: 0 16px 12px;
