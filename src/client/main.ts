@@ -3,13 +3,30 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import L from 'leaflet'
 import 'leaflet.markercluster'
-import { MapService, getUserLocation } from './map/MapService.js'
+import { MapService } from './map/MapService.js'
 import { fetchPois } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
 import { DirectionsService } from './routing/DirectionsService.js'
 import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
+
+const DEFAULT_CENTER: [number, number] = [51.163, 10.447] // Germany center
+
+async function requestLocation(statusEl: HTMLElement): Promise<[number, number] | null> {
+  if (!navigator.geolocation) return null
+
+  statusEl.textContent = 'Standort wird ermittelt…'
+  statusEl.className = 'status-loading'
+
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve([pos.coords.latitude, pos.coords.longitude]),
+      () => resolve(null),
+      { timeout: 15000, maximumAge: 60000, enableHighAccuracy: false },
+    )
+  })
+}
 
 async function init() {
   const mapContainer = document.getElementById('map')!
@@ -18,29 +35,60 @@ async function init() {
   const searchContainer = document.getElementById('search-bar')!
   const statusEl = document.getElementById('status')!
 
-  const userPos = await getUserLocation()
-  const center: [number, number] = userPos ?? [48.137, 11.576]
+  function setStatus(msg: string, isError = false) {
+    statusEl.textContent = msg
+    statusEl.className = isError ? 'status-error' : msg ? 'status-loading' : ''
+  }
 
-  const mapService = new MapService(mapContainer, center)
+  // Ask for location upfront before map init
+  const userPos = await requestLocation(statusEl)
+
+  const center: [number, number] = userPos ?? DEFAULT_CENTER
+  const zoom = userPos ? 13 : 6
+
+  setStatus('')
+
+  const mapService = new MapService(mapContainer, center, zoom)
   const filterPanel = new FilterPanel(filterContainer)
   const detailPanel = new PoiDetailPanel(detailContainer)
   const searchBar = new SearchBar(searchContainer)
   const directionsService = new DirectionsService(mapService.getMap())
+  const leafletMap = mapService.getMap()
 
-  let currentUserPos = { lat: center[0], lon: center[1] }
+  // currentUserPos is null when location is unknown — never default to map center
+  let currentUserPos: { lat: number; lon: number } | null = userPos
+    ? { lat: userPos[0], lon: userPos[1] }
+    : null
 
-  if (userPos) {
-    currentUserPos = { lat: userPos[0], lon: userPos[1] }
-    L.circleMarker(userPos, {
+  let locationMarker: L.CircleMarker | null = null
+
+  function updateLocationMarker(pos: [number, number]) {
+    if (locationMarker) locationMarker.remove()
+    locationMarker = L.circleMarker(pos, {
       radius: 8,
       fillColor: '#4285F4',
       fillOpacity: 1,
       color: '#fff',
       weight: 2,
-    }).addTo(mapService.getMap()).bindTooltip('Mein Standort')
+    }).addTo(leafletMap).bindTooltip('Mein Standort')
+    currentUserPos = { lat: pos[0], lon: pos[1] }
   }
 
-  const leafletMap = mapService.getMap()
+  if (userPos) {
+    updateLocationMarker(userPos)
+  } else {
+    setStatus('Standort nicht verfügbar – Karte auf Deutschland zentriert', true)
+    setTimeout(() => setStatus(''), 4000)
+  }
+
+  // Watch position for ongoing updates
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(
+      pos => updateLocationMarker([pos.coords.latitude, pos.coords.longitude]),
+      () => { /* silently ignore watch errors */ },
+      { maximumAge: 30000, enableHighAccuracy: false },
+    )
+  }
 
   const clusterGroup = L.markerClusterGroup({
     maxClusterRadius: 50,
@@ -72,6 +120,12 @@ async function init() {
   const markerManager = new PoiMarkerManager(
     adapter,
     async (poi) => {
+      if (!currentUserPos) {
+        detailPanel.show(poi, undefined)
+        setStatus('Standort unbekannt – Route nicht möglich', true)
+        setTimeout(() => setStatus(''), 3000)
+        return
+      }
       const route = await directionsService.route(
         currentUserPos,
         { lat: poi.lat, lon: poi.lon },
@@ -83,11 +137,6 @@ async function init() {
 
   let abortController: AbortController | null = null
   let isLoading = false
-
-  function setStatus(msg: string, isError = false) {
-    statusEl.textContent = msg
-    statusEl.className = isError ? 'status-error' : msg ? 'status-loading' : ''
-  }
 
   async function refreshPois() {
     const bounds = mapService.getBounds()
@@ -151,6 +200,11 @@ async function init() {
   })
 
   detailPanel.onNavigate(async ({ poi }) => {
+    if (!currentUserPos) {
+      setStatus('Standort unbekannt – Route nicht möglich', true)
+      setTimeout(() => setStatus(''), 3000)
+      return
+    }
     const route = await directionsService.route(
       currentUserPos,
       { lat: poi.lat, lon: poi.lon },
