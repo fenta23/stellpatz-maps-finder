@@ -28,6 +28,19 @@
       flex-shrink: 0;
     }
 
+    /* ── Status bar ── */
+    #status {
+      display: none;
+      font-size: 0.75rem;
+      padding: 3px 12px;
+      background: #E3F2FD;
+      color: #1565C0;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    #status.status-loading { display: block; }
+    #status.status-error { display: block; background: #FFEBEE; color: #c62828; }
+
     #topbar h1 {
       font-size: 1rem;
       font-weight: 600;
@@ -217,6 +230,7 @@
     <h1>🅿️ Stellpatz Finder</h1>
     <div id="search-bar"></div>
   </div>
+  <div id="status"></div>
   <div id="filter-panel"></div>
   <div id="content">
     <div id="map"></div>

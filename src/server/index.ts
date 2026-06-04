@@ -41,7 +41,8 @@ export function createApp() {
 }
 
 if (process.env['NODE_ENV'] !== 'test') {
-  const port = Number(process.env['PORT'] ?? 3000)
+  // Use SERVER_PORT to avoid conflict with Vite's PORT injection in preview environments
+  const port = Number(process.env['SERVER_PORT'] ?? process.env['PORT'] ?? 3000)
   const app = createApp()
   app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`)

@@ -1,11 +1,10 @@
 import { loadGoogleMapsApi, GoogleMapService, getUserLocation } from './map/GoogleMapService.js'
 import { fetchPois } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
-import { DirectionsService, buildRouteResult } from './routing/DirectionsService.js'
+import { DirectionsService } from './routing/DirectionsService.js'
 import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
-import type { OsmPoi } from './poi/OverpassClient.js'
 
 async function init() {
   await loadGoogleMapsApi()
@@ -14,6 +13,7 @@ async function init() {
   const filterContainer = document.getElementById('filter-panel')!
   const detailContainer = document.getElementById('detail-panel')!
   const searchContainer = document.getElementById('search-bar')!
+  const statusEl = document.getElementById('status')!
 
   const userPos = await getUserLocation()
   const center = userPos ?? { lat: 48.137, lng: 11.576 }
@@ -26,7 +26,6 @@ async function init() {
 
   let currentUserPos = center
 
-  // Google Maps adapter for PoiMarkerManager
   const adapter = {
     createMarker({ lat, lon, title, icon, onClick }: {
       lat: number; lon: number; title: string; icon: string; onClick: () => void
@@ -38,25 +37,25 @@ async function init() {
         icon: { url: icon, scaledSize: new google.maps.Size(32, 32) },
       })
       marker.addListener('click', onClick)
-      let poiType: OsmPoi['type'] = 'parking'
       return {
-        id: 0,
-        get poiType() { return poiType },
         setVisible(v: boolean) { marker.setVisible(v) },
         remove() { marker.setMap(null) },
       }
     },
   }
 
-  const markerManager = new PoiMarkerManager(adapter, async (poi) => {
-    const route = await directionsService.route(
-      { lat: currentUserPos.lat, lon: currentUserPos.lng },
-      { lat: poi.lat, lon: poi.lon },
-    ).catch(() => undefined)
-    detailPanel.show(poi, route)
-  }, filterPanel.getActiveTypes())
+  const markerManager = new PoiMarkerManager(
+    adapter,
+    async (poi) => {
+      const route = await directionsService.route(
+        { lat: currentUserPos.lat, lon: currentUserPos.lng },
+        { lat: poi.lat, lon: poi.lon },
+      ).catch(() => undefined)
+      detailPanel.show(poi, route)
+    },
+    filterPanel.getActiveTypes(),
+  )
 
-  // User location marker
   if (userPos) {
     currentUserPos = userPos
     new google.maps.Marker({
@@ -75,24 +74,55 @@ async function init() {
   }
 
   let abortController: AbortController | null = null
+  let isLoading = false
+
+  function setStatus(msg: string, isError = false) {
+    statusEl.textContent = msg
+    statusEl.className = isError ? 'status-error' : msg ? 'status-loading' : ''
+  }
 
   async function refreshPois() {
     const bounds = mapService.getBounds()
     if (!bounds) return
+
+    // skip very large viewports (Overpass would timeout)
+    const latSpan = bounds.north - bounds.south
+    const lonSpan = bounds.east - bounds.west
+    if (latSpan > 1.5 || lonSpan > 1.5) {
+      setStatus('Bitte weiter reinzoomen…')
+      return
+    }
+
     const types = filterPanel.getActiveTypes()
+    if (types.size === 0) {
+      markerManager.clear()
+      setStatus('')
+      return
+    }
 
     abortController?.abort()
     abortController = new AbortController()
+    isLoading = true
+    setStatus('Lade Stellplätze…')
 
     try {
       const pois = await fetchPois(bounds, types, abortController.signal)
       markerManager.updatePois(pois)
+      setStatus(pois.length > 0 ? `${pois.length} Orte gefunden` : 'Keine Orte in diesem Bereich')
+      setTimeout(() => { if (!isLoading) setStatus('') }, 3000)
     } catch (err) {
-      if ((err as Error).name !== 'AbortError') console.error('POI fetch failed:', err)
+      if ((err as Error).name === 'AbortError') return
+      console.error('POI fetch failed:', err)
+      setStatus('Fehler beim Laden der Daten', true)
+    } finally {
+      isLoading = false
     }
   }
 
+  // initial load triggered by bounds_changed (fires once map renders)
+  // also do an explicit call as belt-and-suspenders after a brief delay
   mapService.onBoundsChanged(() => refreshPois())
+  setTimeout(() => refreshPois(), 800)
 
   filterPanel.onChange(({ type, active }) => {
     markerManager.setTypeVisible(type, active)
@@ -115,5 +145,6 @@ async function init() {
 
 init().catch(err => {
   console.error('Startup failed:', err)
-  document.getElementById('map')!.textContent = `Fehler beim Laden: ${err.message}`
+  const map = document.getElementById('map')
+  if (map) map.textContent = `Fehler beim Laden: ${err.message}`
 })

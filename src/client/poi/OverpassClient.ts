@@ -41,32 +41,40 @@ export interface OsmPoi {
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 
-function buildQuery(bounds: LatLngBounds, types: ReadonlySet<PoiType>): string {
+export function buildQuery(bounds: LatLngBounds, types: ReadonlySet<PoiType>): string {
   const { south, west, north, east } = bounds
   const bbox = `${south},${west},${north},${east}`
   const parts: string[] = []
 
   if (types.has('parking')) {
-    parts.push(`node["amenity"="parking"](${bbox});`)
-    parts.push(`way["amenity"="parking"](${bbox});`)
+    // only pure parking, not motorhome spots (those go to camper)
+    parts.push(`node["amenity"="parking"]["motorhome"!="yes"](${bbox});`)
+    parts.push(`way["amenity"="parking"]["motorhome"!="yes"](${bbox});`)
   }
   if (types.has('camper')) {
     parts.push(`node["tourism"="camp_pitch"](${bbox});`)
     parts.push(`way["tourism"="camp_pitch"](${bbox});`)
+    parts.push(`relation["tourism"="camp_pitch"](${bbox});`)
     parts.push(`node["amenity"="parking"]["motorhome"="yes"](${bbox});`)
     parts.push(`way["amenity"="parking"]["motorhome"="yes"](${bbox});`)
+    // dedicated motorhome areas
+    parts.push(`node["tourism"="caravan_site"](${bbox});`)
+    parts.push(`way["tourism"="caravan_site"](${bbox});`)
+    parts.push(`relation["tourism"="caravan_site"](${bbox});`)
   }
   if (types.has('campsite')) {
     parts.push(`node["tourism"="campsite"](${bbox});`)
     parts.push(`way["tourism"="campsite"](${bbox});`)
+    parts.push(`relation["tourism"="campsite"](${bbox});`)
   }
 
-  return `[out:json][timeout:25];\n(\n  ${parts.join('\n  ')}\n);\nout center;`
+  return `[out:json][timeout:30];\n(\n  ${parts.join('\n  ')}\n);\nout center tags;`
 }
 
-function elementToPoiType(el: OsmElement): PoiType {
+export function elementToPoiType(el: OsmElement): PoiType {
   if (el.tags.tourism === 'campsite') return 'campsite'
   if (el.tags.tourism === 'camp_pitch') return 'camper'
+  if (el.tags.tourism === 'caravan_site') return 'camper'
   if (el.tags.motorhome === 'yes') return 'camper'
   return 'parking'
 }
@@ -100,9 +108,17 @@ export async function fetchPois(
     throw new Error(`Overpass API error: ${res.status} ${res.statusText}`)
   }
 
-  const data = await res.json() as { elements: OsmElement[] }
+  const data = await res.json() as { elements?: OsmElement[] }
+  const elements = data.elements ?? []
 
-  return data.elements
+  // deduplicate by id (Overpass union can occasionally return same element twice)
+  const seen = new Set<number>()
+  return elements
+    .filter(el => {
+      if (seen.has(el.id)) return false
+      seen.add(el.id)
+      return true
+    })
     .map((el): OsmPoi | null => {
       const pos = elementToLatLon(el)
       if (!pos) return null
@@ -116,5 +132,3 @@ export async function fetchPois(
     })
     .filter((p): p is OsmPoi => p !== null)
 }
-
-export { buildQuery, elementToPoiType }

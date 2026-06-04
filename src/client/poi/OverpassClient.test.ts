@@ -30,6 +30,12 @@ describe('buildQuery', () => {
     expect(q).toContain('"tourism"="camp_pitch"')
     expect(q).toContain('"tourism"="campsite"')
     expect(q).toContain('"motorhome"="yes"')
+    expect(q).toContain('"tourism"="caravan_site"')
+  })
+
+  it('excludes motorhome spots from pure parking query', () => {
+    const q = buildQuery(BOUNDS, new Set(['parking']))
+    expect(q).toContain('"motorhome"!="yes"')
   })
 
   it('returns empty-ish query when no types', () => {
@@ -52,6 +58,10 @@ describe('elementToPoiType', () => {
 
   it('classifies motorhome parking as camper', () => {
     expect(elementToPoiType({ ...base, tags: { amenity: 'parking', motorhome: 'yes' } })).toBe('camper')
+  })
+
+  it('classifies caravan_site as camper', () => {
+    expect(elementToPoiType({ ...base, tags: { tourism: 'caravan_site' } })).toBe('camper')
   })
 
   it('defaults to parking', () => {
@@ -118,5 +128,30 @@ describe('fetchPois', () => {
     const result = await fetchPois(BOUNDS, new Set(['parking']))
     expect(result).toHaveLength(1)
     expect(result[0]?.id).toBe(2)
+  })
+
+  it('handles missing elements field gracefully', async () => {
+    mockServer.use(
+      http.post('https://overpass-api.de/api/interpreter', () =>
+        HttpResponse.json({ version: 0.6, generator: 'Overpass' }),
+      ),
+    )
+    const result = await fetchPois(BOUNDS, new Set(['parking']))
+    expect(result).toEqual([])
+  })
+
+  it('deduplicates elements with same id', async () => {
+    mockServer.use(
+      http.post('https://overpass-api.de/api/interpreter', () =>
+        HttpResponse.json({
+          elements: [
+            { type: 'node', id: 7, lat: 48.1, lon: 11.1, tags: { amenity: 'parking' } },
+            { type: 'node', id: 7, lat: 48.1, lon: 11.1, tags: { amenity: 'parking' } },
+          ],
+        }),
+      ),
+    )
+    const result = await fetchPois(BOUNDS, new Set(['parking']))
+    expect(result).toHaveLength(1)
   })
 })
