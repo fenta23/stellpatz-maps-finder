@@ -15,8 +15,27 @@ const OVERPASS_ENDPOINTS = [
 
 const UA = 'stellpatz-maps-finder/0.1 (https://github.com/local/stellpatz)'
 
+// Snap bbox coordinates to a grid so nearby viewports share cache entries.
+// floor for south/west (expand outward), ceil for north/east.
+const BBOX_SNAP = 0.05
+function snapBboxInQuery(query: string): string {
+  return query.replace(
+    /\((-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*)\)/g,
+    (_m, s, w, n, e) => {
+      const fl = (v: string) => (Math.floor(parseFloat(v) / BBOX_SNAP) * BBOX_SNAP).toFixed(2)
+      const ce = (v: string) => (Math.ceil(parseFloat(v) / BBOX_SNAP) * BBOX_SNAP).toFixed(2)
+      return `(${fl(s)},${fl(w)},${ce(n)},${ce(e)})`
+    },
+  )
+}
+
 export function createApp() {
   const app = express()
+
+  // Per-app cache so tests start clean; TTL 5 min, max 200 entries (LRU-evict oldest).
+  const overpassCache = new Map<string, { data: unknown; expiresAt: number }>()
+  const CACHE_TTL = 5 * 60 * 1000
+  const CACHE_MAX = 200
 
   const apiLimiter = rateLimit({
     windowMs: 60_000,
@@ -37,7 +56,22 @@ export function createApp() {
     '/api/overpass',
     express.text({ type: 'application/x-www-form-urlencoded' }),
     async (req, res) => {
-      const body = req.body as string
+      const rawBody = req.body as string
+
+      // Decode query, snap bbox, re-encode — larger but stable cache keys
+      const rawQuery = decodeURIComponent(rawBody.startsWith('data=') ? rawBody.slice(5) : rawBody)
+      const snappedQuery = snapBboxInQuery(rawQuery)
+      const cacheKey = snappedQuery
+
+      // Serve from cache if fresh
+      const now = Date.now()
+      const cached = overpassCache.get(cacheKey)
+      if (cached && cached.expiresAt > now) {
+        res.json(cached.data)
+        return
+      }
+
+      const body = 'data=' + encodeURIComponent(snappedQuery)
       const n = OVERPASS_ENDPOINTS.length
       for (let i = 0; i < n; i++) {
         const url = OVERPASS_ENDPOINTS[overpassIdx % n]!
@@ -59,6 +93,13 @@ export function createApp() {
             return
           }
           const data = await upstream.json() as unknown
+
+          // Store in cache; evict oldest entry if over limit
+          overpassCache.set(cacheKey, { data, expiresAt: now + CACHE_TTL })
+          if (overpassCache.size > CACHE_MAX) {
+            overpassCache.delete(overpassCache.keys().next().value!)
+          }
+
           res.json(data)
           return
         } catch {

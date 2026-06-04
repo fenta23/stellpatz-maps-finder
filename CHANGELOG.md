@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-06-04
+
+### Added
+- Server-seitiger In-Memory-Cache für Overpass-Antworten (TTL 5 min, max 200 Einträge)
+- BBox-Snapping auf 0,05°-Raster (~5 km): leicht unterschiedliche Viewports treffen denselben Cache-Eintrag — zweiter Request in der gleichen Region kommt sofort zurück
+
 ## [0.1.5] - 2026-06-04
 
 ### Fixed

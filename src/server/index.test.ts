@@ -53,6 +53,22 @@ describe('POST /api/overpass', () => {
     expect(calls).toBeGreaterThanOrEqual(2)
   })
 
+  it('returns cached result on second identical request without hitting upstream', async () => {
+    const payload = { elements: [{ id: 1 }] }
+    mockFetch(200, payload)
+    const app = createApp()
+    await request(app)
+      .post('/api/overpass')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('data=' + encodeURIComponent('[out:json];(node["amenity"="parking"](48.00,11.00,48.05,11.05););out center tags;'))
+    const callsAfterFirst = vi.mocked(fetch).mock.calls.length
+    await request(app)
+      .post('/api/overpass')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('data=' + encodeURIComponent('[out:json];(node["amenity"="parking"](48.00,11.00,48.05,11.05););out center tags;'))
+    expect(vi.mocked(fetch).mock.calls.length).toBe(callsAfterFirst)
+  })
+
   it('returns 429 when all endpoints are rate-limited', async () => {
     mockFetch(429, null)
     const res = await request(createApp())
