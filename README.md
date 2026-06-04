@@ -1,5 +1,7 @@
 # 🅿️ Stellpatz Finder
 
+> ⚠️ **Absolute Spielwiese.** Dieses Projekt dient ausschließlich zum Experimentieren und Ausprobieren — kein Produktions-Code, keine Garantien, keine Support-Versprechen. Alles kann sich jederzeit ändern oder wegfallen.
+
 Kartenbasierte Web-App zur Routenplanung mit automatischer Anzeige von **Parkplätzen**, **Camper-Stellplätzen** und **Campingplätzen** im aktuellen Kartenausschnitt — alles auf Basis von OpenStreetMap, ohne proprietäre APIs.
 
 ![Stellpatz Finder Screenshot](https://placehold.co/900x500/1565C0/fff?text=Stellpatz+Finder)
