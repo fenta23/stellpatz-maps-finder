@@ -124,6 +124,27 @@ describe('GET /api/route', () => {
     expect(calledUrl).toContain('11.5,48.1')
   })
 
+  it('uses cycling profile when mode=cycling', async () => {
+    mockFetch(200, { code: 'Ok', routes: [] })
+    await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=cycling')
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(calledUrl).toContain('/cycling/')
+  })
+
+  it('uses foot profile when mode=foot', async () => {
+    mockFetch(200, { code: 'Ok', routes: [] })
+    await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=foot')
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(calledUrl).toContain('/foot/')
+  })
+
+  it('falls back to driving for unknown mode', async () => {
+    mockFetch(200, { code: 'Ok', routes: [] })
+    await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6&mode=helicopter')
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0])
+    expect(calledUrl).toContain('/driving/')
+  })
+
   it('returns 503 when OSRM is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
     const res = await request(createApp()).get('/api/route?from=48.1,11.5&to=48.2,11.6')

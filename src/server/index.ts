@@ -93,9 +93,12 @@ export function createApp() {
   })
 
   // ── OSRM routing proxy ─────────────────────────────────────────────────────
+  const OSRM_PROFILES: Record<string, string> = { driving: 'driving', cycling: 'cycling', foot: 'foot' }
+
   app.get('/api/route', async (req, res) => {
     const from = String(req.query['from'] ?? '')
     const to = String(req.query['to'] ?? '')
+    const modeParam = String(req.query['mode'] ?? 'driving')
     const [fromLat, fromLon] = from.split(',')
     const [toLat, toLon] = to.split(',')
 
@@ -104,8 +107,9 @@ export function createApp() {
       return
     }
 
+    const profile = OSRM_PROFILES[modeParam] ?? 'driving'
     // OSRM coordinate order: lon,lat
-    const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson`
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson`
 
     try {
       const upstream = await fetch(url, {

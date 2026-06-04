@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-06-04
+
+### Added
+- Routing-Modus-Auswahl: 🚗 Auto / 🚲 Fahrrad / 🚶 Fußweg in der Filterleiste
+- OSRM-Proxy nutzt jetzt das passende Profil (`driving` / `cycling` / `foot`)
+- Polyline-Farbe je Modus: blau (Auto), grün (Fahrrad), orange (Fußweg)
+- 3 neue Server-Tests für Modus-Parameter (ungültige Werte → Fallback auf `driving`)
+
 ## [0.1.3] - 2026-06-04
 
 ### Added

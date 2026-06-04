@@ -1,5 +1,7 @@
 import L from 'leaflet'
 
+export type RoutingMode = 'driving' | 'cycling' | 'foot'
+
 export interface LatLon {
   readonly lat: number
   readonly lon: number
@@ -12,6 +14,12 @@ export interface RouteResult {
   readonly durationText: string
   readonly straightLineMeters: number
   readonly detourFactor: number
+}
+
+const MODE_COLORS: Record<RoutingMode, string> = {
+  driving: '#1565C0',
+  cycling: '#2E7D32',
+  foot: '#E65100',
 }
 
 interface OsrmRoute {
@@ -76,9 +84,9 @@ export class DirectionsService {
 
   constructor(private readonly map: L.Map) {}
 
-  async route(from: LatLon, to: LatLon): Promise<RouteResult> {
+  async route(from: LatLon, to: LatLon, mode: RoutingMode = 'driving'): Promise<RouteResult> {
     const res = await fetch(
-      `/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}`,
+      `/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}&mode=${mode}`,
     )
     if (!res.ok) throw new Error(`Route API error: ${res.status}`)
     const data = await res.json() as OsrmResponse
@@ -91,7 +99,7 @@ export class DirectionsService {
     const coords = osrmRoute.geometry.coordinates.map(
       ([lon, lat]) => [lat, lon] as L.LatLngTuple,
     )
-    this.routeLine = L.polyline(coords, { color: '#1565C0', weight: 5, opacity: 0.75 }).addTo(this.map)
+    this.routeLine = L.polyline(coords, { color: MODE_COLORS[mode], weight: 5, opacity: 0.75 }).addTo(this.map)
 
     return buildRouteResult(osrmRoute.distance, osrmRoute.duration, from, to)
   }

@@ -6,7 +6,7 @@ import 'leaflet.markercluster'
 import { MapService } from './map/MapService.js'
 import { fetchPois } from './poi/OverpassClient.js'
 import { PoiMarkerManager } from './poi/PoiMarkerManager.js'
-import { DirectionsService } from './routing/DirectionsService.js'
+import { DirectionsService, type RoutingMode } from './routing/DirectionsService.js'
 import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
@@ -30,7 +30,7 @@ async function requestLocation(statusEl: HTMLElement): Promise<[number, number] 
 
 async function init() {
   const mapContainer = document.getElementById('map')!
-  const filterContainer = document.getElementById('filter-panel')!
+  const filterContainer = document.getElementById('poi-filter')!
   const detailContainer = document.getElementById('detail-panel')!
   const searchContainer = document.getElementById('search-bar')!
   const statusEl = document.getElementById('status')!
@@ -59,6 +59,20 @@ async function init() {
   let currentUserPos: { lat: number; lon: number } | null = userPos
     ? { lat: userPos[0], lon: userPos[1] }
     : null
+
+  let routingMode: RoutingMode = 'driving'
+
+  const routingModeEl = document.getElementById('routing-mode')!
+  routingModeEl.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.mode-btn')
+    if (!btn?.dataset['mode']) return
+    const newMode = btn.dataset['mode'] as RoutingMode
+    if (newMode === routingMode) return
+    routingMode = newMode
+    routingModeEl.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    directionsService.clearRoute()
+  })
 
   let locationMarker: L.CircleMarker | null = null
 
@@ -129,6 +143,7 @@ async function init() {
       const route = await directionsService.route(
         currentUserPos,
         { lat: poi.lat, lon: poi.lon },
+        routingMode,
       ).catch(() => undefined)
       detailPanel.show(poi, route)
     },
@@ -208,6 +223,7 @@ async function init() {
     const route = await directionsService.route(
       currentUserPos,
       { lat: poi.lat, lon: poi.lon },
+      routingMode,
     ).catch(() => undefined)
     if (route) detailPanel.show(poi, route)
   })
