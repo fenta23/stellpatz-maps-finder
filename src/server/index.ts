@@ -7,6 +7,7 @@ import path from 'node:path'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const OVERPASS_ENDPOINTS = [
+  'https://overpass.openstreetmap.fr/api/interpreter',
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
@@ -46,7 +47,7 @@ export function createApp() {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA },
             body,
-            signal: AbortSignal.timeout(12000),
+            signal: AbortSignal.timeout(20000),
           })
           if (upstream.status === 429 || upstream.status === 503) {
             if (i < n - 1) continue

@@ -100,12 +100,18 @@ async function init() {
     isLoading = true
     setStatus('Lade Stellplätze…')
 
+    const slowTimer = setTimeout(() => {
+      if (isLoading) setStatus('Warte auf Overpass-Server – kann bis 30 s dauern…')
+    }, 8000)
+
     try {
       const pois = await fetchPois(bounds, types, abortController.signal)
+      clearTimeout(slowTimer)
       markerManager.updatePois(pois)
       setStatus(pois.length > 0 ? `${pois.length} Orte gefunden` : 'Keine Orte in diesem Bereich')
       setTimeout(() => { if (!isLoading) setStatus('') }, 3000)
     } catch (err) {
+      clearTimeout(slowTimer)
       if ((err as Error).name === 'AbortError') return
       console.error('POI fetch failed:', err)
       const msg = (err as Error).message ?? ''
