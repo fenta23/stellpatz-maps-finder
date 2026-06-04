@@ -145,10 +145,26 @@ async function init() {
     },
   }
 
+  const PANEL_WIDTH = 320
+
+  function panPoiIntoView(poi: { lat: number; lon: number }) {
+    // Ensure the clicked marker ends up in the visible area left of the detail panel.
+    // Leaflet doesn't know the panel exists, so markers in the right PANEL_WIDTH pixels
+    // get hidden behind it. Pan so the POI sits at the center of the visible left strip.
+    const poiPoint = leafletMap.latLngToContainerPoint([poi.lat, poi.lon])
+    const visibleWidth = mapContainer.clientWidth - PANEL_WIDTH
+    const targetX = Math.max(visibleWidth / 2, 40) // center of visible area, min 40px from left
+    const dx = poiPoint.x - targetX
+    if (dx > 0) {
+      leafletMap.panBy([dx, 0], { animate: true })
+    }
+  }
+
   const markerManager = new PoiMarkerManager(
     adapter,
     async (poi) => {
       selectedPoi = poi
+      panPoiIntoView(poi)
       if (!currentUserPos) {
         detailPanel.show(poi, undefined, undefined, favorites.has(String(poi.id)))
         setStatus('Standort unbekannt – Route nicht möglich', true)
@@ -167,6 +183,9 @@ async function init() {
     },
     filterPanel.getActiveTypes(),
   )
+
+  // Apply saved favorites to markers immediately (before first Overpass response)
+  markerManager.setFavorites(favorites.getAll())
 
   let abortController: AbortController | null = null
   let isLoading = false
