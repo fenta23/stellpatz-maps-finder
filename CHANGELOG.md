@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-06-06
+
+### Added
+- **Satelliten-Ansicht**: Layer-Switcher oben rechts (Leaflet `L.control.layers`) schaltet zwischen „Karte" (OSM) und „Satellit" (Esri World Imagery) um — Marker bleiben in beiden Ansichten sichtbar
+- Esri-Tiles sind gratis und ohne API-Key nutzbar; Attribution „Luftbilder © Esri, Maxar, Earthstar Geographics" wird automatisch eingeblendet
+- `BASE_LAYER_CONFIGS` + `buildBaseLayers()` als pure, testbare Funktionen in `MapService.ts` (7 neue Tests)
+
 ## [0.3.5] - 2026-06-06
 
 ### Added
