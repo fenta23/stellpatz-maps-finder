@@ -1,6 +1,6 @@
 {
   "name": "stellpatz-maps-finder",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Route planning with parking, camper and camping POIs",
   "type": "module",
   "engines": {
