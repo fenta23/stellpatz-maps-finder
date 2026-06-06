@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { notNullUndefined } from '../../shared/common.js'
 import { USER_AGENT } from '../config.js'
 
 const OSM_NOTES_API = 'https://api.openstreetmap.org/api/0.6/notes.json'
@@ -39,14 +40,15 @@ export function createNotesRouter(): Router {
         }>
       }
 
-      const notes = (raw.features ?? [])
-        .filter(f => f.properties.comments.length > 0)
-        .map(f => ({
-          id: f.properties.id,
-          date: f.properties.date_created.slice(0, 10),
-          text: f.properties.comments[0]!.text.trim(),
-        }))
-        .filter(n => n.text.length > 0)
+      // notNullUndefined acts as type guard for the first comment,
+      // replacing the separate comments.length > 0 + [0]! pattern.
+      const notes = (raw.features ?? []).flatMap(f => {
+        const first = f.properties.comments[0]
+        if (!notNullUndefined(first)) return []
+        const text = first.text.trim()
+        if (!text) return []
+        return [{ id: f.properties.id, date: f.properties.date_created.slice(0, 10), text }]
+      })
 
       res.json(notes)
     } catch {

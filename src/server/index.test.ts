@@ -129,7 +129,7 @@ const VALHALLA_PAYLOAD = {
 
 function decodeJsonParam(calledUrl: string) {
   const match = calledUrl.match(/json=([^&]+)/)
-  return JSON.parse(decodeURIComponent(match![1]))
+  return JSON.parse(decodeURIComponent(match![1]!))
 }
 
 describe('GET /api/nearby', () => {
