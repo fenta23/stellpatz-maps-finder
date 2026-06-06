@@ -1,3 +1,5 @@
+import { notNullUndefined } from '../../shared/common.js'
+
 export type PoiType = 'parking' | 'camper' | 'campsite' | 'dump' | 'water'
 
 export interface LatLngBounds {
@@ -99,26 +101,15 @@ function elementToLatLon(el: OsmElement): { lat: number; lon: number } | null {
 }
 
 function parseElements(data: { elements?: OsmElement[] }): readonly OsmPoi[] {
-  const elements = data.elements ?? []
   const seen = new Set<number>()
-  return elements
-    .filter(el => {
-      if (seen.has(el.id)) return false
-      seen.add(el.id)
-      return true
-    })
+  return (data.elements ?? [])
+    .filter(el => !seen.has(el.id) && seen.add(el.id))
     .map((el): OsmPoi | null => {
       const pos = elementToLatLon(el)
       if (!pos) return null
-      return {
-        id: el.id,
-        type: elementToPoiType(el),
-        lat: pos.lat,
-        lon: pos.lon,
-        tags: el.tags,
-      }
+      return { id: el.id, type: elementToPoiType(el), lat: pos.lat, lon: pos.lon, tags: el.tags }
     })
-    .filter((p): p is OsmPoi => p !== null)
+    .filter(notNullUndefined)
 }
 
 export async function fetchPois(
@@ -133,7 +124,8 @@ export async function fetchPois(
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `data=${encodeURIComponent(query)}`,
-    signal,
+    // exactOptionalPropertyTypes: pass signal only when present
+    ...(signal ? { signal } : {}),
   })
 
   if (!res.ok) {

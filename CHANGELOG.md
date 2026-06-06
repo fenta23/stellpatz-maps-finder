@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-06-06
+
+### Changed
+- `OverpassClient.ts` → `parseElements`: `map().filter((p): p is OsmPoi => p !== null)` → `filter(notNullUndefined)` (typisiertes Predikat aus `shared/common`)
+- `PoiDetailPanel.ts` → `typeLabel`: alle 5 POI-Typen abgedeckt (dump/water fehlten), `coalesce('Ort')` als Fallback
+- `PoiDetailPanel.ts` → `renderNoteText`: URL-Truncation via `strEllipsisLen(45)` aus `shared/str`
+- `shared/str.ts` → `strEllipsisLen`: `'...'` → `'…'` (Unicode-Ellipsis-Zeichen)
+
+### Fixed
+- `OverpassClient.ts` → `fetchPois`: `signal: undefined` via bedingtem Spread (Fehler mit `exactOptionalPropertyTypes: true`)
+- `index.test.ts` → `decodeJsonParam`: fehlende Non-null-Assertion für `match![1]!` (Fehler mit `noUncheckedIndexedAccess`)
+
 ## [0.3.3] - 2026-06-06
 
 ### Added

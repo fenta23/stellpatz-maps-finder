@@ -1,6 +1,8 @@
 import type { OsmPoi } from '../poi/OverpassClient.js'
 import { buildOsmPoiLink, buildGoogleMapsLink } from '../routing/DirectionsService.js'
 import type { RouteResult, RoutingMode } from '../routing/DirectionsService.js'
+import { coalesce } from '../../shared/fp.js'
+import { strEllipsisLen } from '../../shared/str.js'
 
 export type NavigateRequest = { readonly poi: OsmPoi }
 
@@ -266,7 +268,7 @@ function renderNoteText(text: string): string {
     if (IMG_EXT_RE.test(raw)) {
       parts.push(`<a href="${esc(raw)}" data-lightbox="${esc(raw)}"><img src="${esc(raw)}" class="note-img" alt="" loading="lazy" /></a>`)
     } else {
-      const label = raw.length > 45 ? raw.slice(0, 45) + '…' : raw
+      const label = strEllipsisLen(45)(raw) ?? raw
       parts.push(`<a href="${esc(raw)}" target="_blank" rel="noopener">${esc(label)}</a>`)
     }
     last = m.index + m[0].length
@@ -359,9 +361,16 @@ function safeUrl(url: string): string {
   }
 }
 
-function typeLabel(type: OsmPoi['type']): string {
-  return { parking: 'Parkplatz', camper: 'Camper-Stellplatz', campsite: 'Campingplatz' }[type]
+const TYPE_LABELS: Record<OsmPoi['type'], string> = {
+  parking: 'Parkplatz',
+  camper: 'Camper-Stellplatz',
+  campsite: 'Campingplatz',
+  dump: 'Entsorgungsstation',
+  water: 'Wasserstelle',
 }
+
+// coalesce ensures we always get a string, even if a new type is added later
+const typeLabel = (type: OsmPoi['type']): string => coalesce('Ort')(TYPE_LABELS[type])
 
 function formatMeters(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`

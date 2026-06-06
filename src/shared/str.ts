@@ -34,7 +34,7 @@ export const strUpperLocale = (val: string): string => val.toLocaleUpperCase()
 export const strEllipsisLen =
   (len: number) =>
   (text: string | null | undefined): string | null | undefined =>
-    text && text.length > len ? text.slice(0, len) + '...' : text
+    text && text.length > len ? text.slice(0, len) + '…' : text
 
 export const strPadLeft =
   (padWith: string) =>

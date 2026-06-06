@@ -55,6 +55,7 @@ describe('strPadLeft', () => {
 })
 
 describe('strEllipsisLen', () => {
-  it('truncates long strings', () => expect(strEllipsisLen(5)('hello world')).toBe('hello...'))
+  it('truncates long strings with unicode ellipsis', () => expect(strEllipsisLen(5)('hello world')).toBe('hello…'))
   it('passes short strings through', () => expect(strEllipsisLen(20)('hello')).toBe('hello'))
+  it('returns null for null input', () => expect(strEllipsisLen(5)(null)).toBeNull())
 })
