@@ -4,14 +4,14 @@
     "module": "node16",
     "moduleResolution": "node16",
     "lib": ["ES2022"],
-    "outDir": "dist/server",
-    "rootDir": "src/server",
+    "outDir": "dist",
+    "rootDir": "src",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "skipLibCheck": true
   },
-  "include": ["src/server/**/*.ts"],
-  "exclude": ["src/server/**/*.test.ts", "node_modules"]
+  "include": ["src/server/**/*.ts", "src/shared/**/*.ts"],
+  "exclude": ["src/server/**/*.test.ts", "src/shared/**/*.test.ts", "node_modules"]
 }

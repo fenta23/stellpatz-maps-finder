@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-06-06
+
+### Changed
+- `OverpassClient.ts` → `parseElements`: `map().filter((p): p is OsmPoi => p !== null)` → `filter(notNullUndefined)` (typisiertes Predikat aus `shared/common`)
+- `PoiDetailPanel.ts` → `typeLabel`: alle 5 POI-Typen abgedeckt (dump/water fehlten), `coalesce('Ort')` als Fallback
+- `PoiDetailPanel.ts` → `renderNoteText`: URL-Truncation via `strEllipsisLen(45)` aus `shared/str`
+- `shared/str.ts` → `strEllipsisLen`: `'...'` → `'…'` (Unicode-Ellipsis-Zeichen)
+
+### Fixed
+- `OverpassClient.ts` → `fetchPois`: `signal: undefined` via bedingtem Spread (Fehler mit `exactOptionalPropertyTypes: true`)
+- `index.test.ts` → `decodeJsonParam`: fehlende Non-null-Assertion für `match![1]!` (Fehler mit `noUncheckedIndexedAccess`)
+
+## [0.3.3] - 2026-06-06
+
+### Added
+- `src/shared/` — FP-Utilities, aus dem `util-manipulation`-Ordner extrahiert und bereinigt:
+  - `fp.ts` — `compose` (getypte Overloads bis 6 Stufen), `coalesce`, `curry`, `flip`, `findOrDefault`, `not`
+  - `common.ts` — `notNullUndefined`, `isNullUndefined`, `jsonCopy`, `jsonEqual`, `jsonDiff`
+  - `str.ts` — `strNonNull`, `strTrim`, `strCompareAlphanumeric`, `strPadLeftWithZeroN`, `strEllipsisLen`, u. a.
+  - `array.ts` — `arrayFilterNotEmpty`, `arrayUnique`, `arraySortByKey`, `arrayRemove`, u. a.
+  - Vollständige Test-Suite für alle vier Module (94 neue Tests)
+
+### Changed
+- `routes/geocode.ts` — Query-Normalisierung via `compose(strTrim, strNonNull)` statt manuellem `String() + trim()`
+- `routes/notes.ts` — `notNullUndefined` als Type-Guard für ersten Comment; `filter/map/filter` → `flatMap` (entfernt `[0]!`-Non-null-Assertion)
+- `tsconfig.server.json` — `rootDir: src/server` → `src`, `outDir: dist/server` → `dist`; inkludiert jetzt `src/shared/**/*.ts`
+
+### Removed
+- `src/util-manipulation/` — Angular/RxJS/Date-Cruft entfernt; die nutzbaren Teile leben jetzt in `src/shared/`
+  - Entfernt: `rxjs/` (Angular-Decorators + RxJS), `date/` (15 Dateien, nicht benötigt), `sort.ts` (`@angular/common`-Abhängigkeit), `fp/math.ts` (triviale Math-Wrapper), alle Nx/Angular-Konfigdateien
+
 ## [0.3.2] - 2026-06-06
 
 ### Changed

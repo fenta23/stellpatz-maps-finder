@@ -1,14 +1,19 @@
 import { Router } from 'express'
+import { compose } from '../../shared/fp.js'
+import { strNonNull, strTrim } from '../../shared/str.js'
 import { USER_AGENT } from '../config.js'
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 const VIEWBOX_RE = /^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$/
 
+// Converts any query param value to a trimmed string (null/undefined → '')
+const normalizeParam = compose(strTrim, strNonNull)
+
 export function createGeocodeRouter(): Router {
   const router = Router()
 
   router.get('/', async (req, res) => {
-    const q = String(req.query['q'] ?? '').trim()
+    const q = normalizeParam(req.query['q'])
     if (!q) {
       res.status(400).json({ error: 'q is required' })
       return
