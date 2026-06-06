@@ -1,6 +1,38 @@
 import L from 'leaflet'
 import type { LatLngBounds } from '../poi/OverpassClient.js'
 
+export interface BaseLayerConfig {
+  readonly label: string
+  readonly url: string
+  readonly attribution: string
+  readonly maxZoom: number
+}
+
+/** Base map layers offered in the layer switcher (top-right control). */
+export const BASE_LAYER_CONFIGS: readonly BaseLayerConfig[] = [
+  {
+    label: 'Karte',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+    maxZoom: 19,
+  },
+  {
+    label: 'Satellit',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Luftbilder © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics',
+    maxZoom: 19,
+  },
+] as const
+
+/** Builds a `{ label → TileLayer }` map from the configs — first entry is the default. */
+export function buildBaseLayers(): Record<string, L.TileLayer> {
+  const layers: Record<string, L.TileLayer> = {}
+  for (const cfg of BASE_LAYER_CONFIGS) {
+    layers[cfg.label] = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom })
+  }
+  return layers
+}
+
 export class MapService {
   private readonly map: L.Map
   private readonly boundsListeners: Array<(b: LatLngBounds) => void> = []
@@ -13,10 +45,10 @@ export class MapService {
   ) {
     this.map = L.map(container, { zoomControl: true }).setView(center, zoom)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
-      maxZoom: 19,
-    }).addTo(this.map)
+    const baseLayers = buildBaseLayers()
+    // First config is the default base layer shown on load
+    baseLayers[BASE_LAYER_CONFIGS[0]!.label]!.addTo(this.map)
+    L.control.layers(baseLayers, undefined, { position: 'topright' }).addTo(this.map)
 
     this.map.on('moveend', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
