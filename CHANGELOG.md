@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-06
+
+### Changed
+- **Server-Refactoring**: `src/server/index.ts` (417 Zeilen, alles in einer Datei) aufgeteilt in:
+  - `config.ts` — Konstanten (Endpoints, UA, Cache-Parameter)
+  - `cache.ts` — reine Cache-Funktionen (`createCache`, `getCached`, `setCached`)
+  - `geo.ts` — reine Geo-Funktionen (`snapBboxInQuery`, `haversineMeters`, `decodeValhallaPolyline`)
+  - `routes/health.ts`, `routes/overpass.ts`, `routes/geocode.ts`, `routes/route.ts`, `routes/nearby.ts`, `routes/mapillary.ts`, `routes/notes.ts`
+  - `index.ts` jetzt nur noch Middleware-Wiring + Bootstrap (~55 Zeilen)
+- Route-Handler als Factory-Funktionen (`createXxxRouter()`) — Composition via Parameter, keine Vererbung, keine globale State
+- `nearby.ts`: `NEARBY_ICONS` + `NEARBY_LABELS` → `KIND_META` zusammengeführt (DRY)
+- `nearby.ts`: `filter` + `map` + `filter(null)` → `flatMap` (lesbarer)
+- `route.ts`: Koordinaten-Parsing in pure `parseCoordPair()` extrahiert
+- `geo.ts`: `decodeValhallaPolyline` mit `decodeVarInt` helper — klare Rückgabe `{ value, nextIndex }`
+
 ## [0.3.1] - 2026-06-05
 
 ### Fixed
