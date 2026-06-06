@@ -69,6 +69,51 @@ describe('PoiDetailPanel', () => {
     expect(container.querySelector('.route-summary')?.textContent).toContain('15 min')
   })
 
+  it('hides on Escape key when panel is open', () => {
+    const container = document.createElement('div')
+    const panel = new PoiDetailPanel(container)
+    panel.show(poi)
+    expect(container.querySelector('.poi-detail-panel')?.classList.contains('hidden')).toBe(false)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(container.querySelector('.poi-detail-panel')?.classList.contains('hidden')).toBe(true)
+  })
+
+  it('does not hide on Escape when panel is already closed', () => {
+    const container = document.createElement('div')
+    const panel = new PoiDetailPanel(container)
+    const cb = vi.fn()
+    panel.onClose(cb)
+    // panel never shown — ESC should be a no-op
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(cb).not.toHaveBeenCalled()
+  })
+
+  it('fires onClose listener when Escape is pressed', () => {
+    const container = document.createElement('div')
+    const panel = new PoiDetailPanel(container)
+    const cb = vi.fn()
+    panel.onClose(cb)
+    panel.show(poi)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(cb).toHaveBeenCalledOnce()
+  })
+
+  it('does not close panel when lightbox is open', () => {
+    const container = document.createElement('div')
+    const panel = new PoiDetailPanel(container)
+    panel.show(poi)
+
+    // Simulate an open lightbox
+    const lb = document.createElement('div')
+    lb.id = 'poi-lightbox'
+    document.body.appendChild(lb) // no 'hidden' class → lightbox is open
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(container.querySelector('.poi-detail-panel')?.classList.contains('hidden')).toBe(false)
+
+    document.body.removeChild(lb)
+  })
+
   it('escapes HTML in tag values', () => {
     const container = document.createElement('div')
     const panel = new PoiDetailPanel(container)
