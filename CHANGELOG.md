@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-06-06
+
+### Added
+- ESC-Taste schließt die Sidebar (Detail-Panel) — außer wenn die Lightbox gerade offen ist (die hat ihren eigenen ESC-Handler)
+- 4 neue Tests für das ESC-Verhalten in `PoiDetailPanel.test.ts`
+
 ## [0.3.2] - 2026-06-06
 
 ### Changed

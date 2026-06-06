@@ -42,6 +42,15 @@ export class PoiDetailPanel {
         showLightbox(link.dataset['lightbox'])
       }
     })
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return
+      if (this.panel.classList.contains('hidden')) return
+      // Lightbox handles its own ESC — don't also close the panel behind it
+      const lightbox = document.getElementById('poi-lightbox')
+      if (lightbox && !lightbox.classList.contains('hidden')) return
+      this.hide()
+    })
   }
 
   show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode, isFavorite = false): void {
