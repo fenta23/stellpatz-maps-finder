@@ -52,6 +52,7 @@ features/
   filters/    FilterPanel
   favorites/  FavoritesStore (IFavoritesStore + LocalFavoritesStore)
   install/    installPrompt (PWA)
+  menu/       SideMenu (Drawer), clearAppCache
 ```
 
 **Slice-Regel:** Ein Slice importiert **nicht die Interna** eines anderen — Verdrahtung passiert in `app/`. Typen über Slices hinweg sind ok. Neue Features bekommen einen eigenen `features/<name>/`-Ordner.

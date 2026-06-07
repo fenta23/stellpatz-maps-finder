@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-07
+
+### Added
+- **Sidebar-Menü** (`features/menu/`): Hamburger-Button (☰) in der Topbar öffnet einen Slide-in-Drawer mit Backdrop; ESC/Backdrop schließen. Datengetriebene Einträge — leicht erweiterbar.
+- Erster Eintrag **„Cache leeren & neu laden"**: löscht alle Service-Worker-Caches + meldet den SW ab und lädt neu → erzwingt die frischeste App-Version (Nutzerdaten in localStorage bleiben). Behebt die SW-Stale-Krux ohne DevTools.
+- 9 neue Tests (`clearAppCache`, `SideMenu`)
+
 ## [0.5.0] - 2026-06-07
 
 ### Changed
