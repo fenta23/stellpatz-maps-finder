@@ -7,6 +7,6 @@ export const OVERPASS_ENDPOINTS = [
 
 export const USER_AGENT = 'stellpatz-maps-finder/0.1 (https://github.com/local/stellpatz)'
 
-export const CACHE_TTL_MS = 5 * 60 * 1000
-export const CACHE_MAX_ENTRIES = 200
+export const CACHE_TTL_MS = 25 * 60 * 1000
+export const CACHE_MAX_ENTRIES = 20000
 export const BBOX_SNAP_DEG = 0.05
