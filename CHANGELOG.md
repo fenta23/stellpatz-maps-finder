@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- README aktualisiert: Tech-Stack (CARTO Voyager + Esri, PWA, Supabase), Features (Satelliten-Layer, installierbare PWA, öffentlich/privat-Parkplätze), Supabase-Setup, pluggable Cache-Hinweis
+
 ## [0.7.0] - 2026-06-07
 
 ### Added
