@@ -14,8 +14,11 @@ import { FilterPanel } from '@/features/filters/FilterPanel.js'
 import { SearchBar } from '@/features/search/SearchBar.js'
 import { LocalFavoritesStore } from '@/features/favorites/FavoritesStore.js'
 import { setupInstall } from '@/features/install/installPrompt.js'
-import { SideMenu } from '@/features/menu/SideMenu.js'
+import { SideMenu, type MenuItem } from '@/features/menu/SideMenu.js'
 import { clearAppCache } from '@/features/menu/clearAppCache.js'
+import { getSupabaseClient } from '@/features/auth/authClient.js'
+import { createAuth } from '@/features/auth/auth.js'
+import { AuthPanel } from '@/features/auth/AuthPanel.js'
 import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
@@ -43,14 +46,19 @@ async function init() {
   const routingModeEl = document.getElementById('routing-mode') as HTMLSelectElement
   if (installBtn) setupInstall(installBtn)
 
-  // Side menu — first item clears the app cache and reloads (force fresh version)
-  const menu = new SideMenu(document.body, [
-    {
-      icon: '🗑️',
-      label: 'Cache leeren & neu laden',
-      onSelect: () => void clearAppCache().then(() => location.reload()),
-    },
-  ])
+  // Side menu items — account entry only when Supabase auth is configured
+  const menuItems: MenuItem[] = []
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    const authPanel = new AuthPanel(document.body, createAuth(supabase))
+    menuItems.push({ icon: '👤', label: 'Konto', onSelect: () => authPanel.open() })
+  }
+  menuItems.push({
+    icon: '🗑️',
+    label: 'Cache leeren & neu laden',
+    onSelect: () => void clearAppCache().then(() => location.reload()),
+  })
+  const menu = new SideMenu(document.body, menuItems)
   document.getElementById('btn-menu')?.addEventListener('click', () => menu.toggle())
 
   const setStatus = (msg: string, isError = false) => {

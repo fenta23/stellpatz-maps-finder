@@ -54,7 +54,10 @@ features/
   favorites/  FavoritesStore (IFavoritesStore + LocalFavoritesStore)
   install/    installPrompt (PWA)
   menu/       SideMenu (Drawer), clearAppCache
+  auth/       Supabase Auth (Magic-Link): authClient, createAuth, AuthPanel — gated auf VITE_SUPABASE_*
 ```
+
+Client-Env (Build-Zeit, Vite): `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (anon = öffentlich). Ohne → Login aus.
 
 **Slice-Regel:** Ein Slice importiert **nicht die Interna** eines anderen — Verdrahtung passiert in `app/`. Typen über Slices hinweg sind ok. Neue Features bekommen einen eigenen `features/<name>/`-Ordner.
 

@@ -7,8 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-07
+
+### Added
+- **Login (Supabase Auth, Magic-Link)** — Phase 2 der Server-Erweiterung:
+  - Neuer Slice `features/auth/`: `authClient` (Client aus `VITE_SUPABASE_*`), `createAuth` (sendMagicLink/signOut/currentUser/onChange), pure `isValidEmail`, `AuthPanel` (Modal).
+  - ☰-Menü-Eintrag **„👤 Konto"** → Modal: passwortloser Login per E-Mail bzw. „Angemeldet als … · Abmelden".
+  - **Gated:** ohne `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` ist Login einfach aus → PR sicher mergebar.
+  - `@supabase/supabase-js` als Client-Dependency; Server-CSP `connect-src` um die Supabase-Origin erweitert; `render.yaml` + `.env.example` um die `VITE_SUPABASE_*` ergänzt.
+  - 16 neue Tests (`isValidEmail`, `createAuth` mit Mock-Client, `AuthPanel`-Rendering/Flows).
+
 ### Changed
-- README aktualisiert: Tech-Stack (CARTO Voyager + Esri, PWA, Supabase), Features (Satelliten-Layer, installierbare PWA, öffentlich/privat-Parkplätze), Supabase-Setup, pluggable Cache-Hinweis
+- POI-Cache-Auswahl im Test immer In-Memory (`NODE_ENV==='test'`) — Suite bleibt hermetisch, auch wenn lokal eine `.env` mit Supabase-Keys liegt.
+- README aktualisiert: Tech-Stack (CARTO Voyager + Esri, PWA, Supabase), Features, Supabase-Setup, pluggable Cache-Hinweis.
 
 ## [0.7.0] - 2026-06-07
 

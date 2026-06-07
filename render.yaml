@@ -15,3 +15,7 @@ services:
         sync: false   # optional — persistenter POI-Cache
       - key: SUPABASE_SERVICE_KEY
         sync: false   # service_role key, nur serverseitig
+      - key: VITE_SUPABASE_URL
+        sync: false   # Client-Login (Build-Zeit), = Project URL
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false   # Client-Login (Build-Zeit), anon key (öffentlich)
