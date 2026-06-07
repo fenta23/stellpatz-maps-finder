@@ -12,7 +12,7 @@ Kartenbasierte Web-App zur Routenplanung mit automatischer Anzeige von **Parkpl�
 - 🅿️ **Parkplätze** (öffentlich vs. privat unterschieden), 🚐 **Camper-Stellplätze**, ⛺ **Campingplätze**, 🚿 **Entsorgungsstationen**, 🚰 **Frischwasserpunkte**
 - 🔍 **Suche** mit Nominatim-Autocomplete (viewport-basiert)
 - 🧭 **Routing** (Auto / Fahrrad / Fußweg) via Valhalla — mit Distanz, Fahrtzeit und Detour-Faktor
-- ❤️ **Favoriten** — Herz-Button im Panel, Herz-Badge auf dem Marker, localStorage-persistent (Server-Sync geplant)
+- ❤️ **Favoriten** — Herz-Button im Panel, Herz-Badge auf dem Marker; lokal in localStorage, bei Login zu Supabase synchronisiert (geräteübergreifend)
 - 📸 **Bilder** aus OSM-Tags, Wikimedia Commons und Mapillary
 - 📍 **In der Nähe**: Tankstelle, Supermarkt, Apotheke, Bäckerei, Frischwasser, Entsorgung (bis 2 km)
 - 📝 **Community-Hinweise** aus der OSM Notes API
@@ -30,7 +30,7 @@ Kartenbasierte Web-App zur Routenplanung mit automatischer Anzeige von **Parkpl�
 | Routing | [Valhalla](https://valhalla.github.io/valhalla/) (openstreetmap.de) |
 | Frontend | Vanilla TypeScript, [Vite](https://vite.dev), PWA ([vite-plugin-pwa](https://vite-pwa-org.netlify.app)) |
 | Backend | Node.js + Express (Proxy + Cache) |
-| Persistenz | [Supabase](https://supabase.com) Postgres — optionaler persistenter POI-Cache (Auth + Server-Favoriten geplant) |
+| Persistenz | [Supabase](https://supabase.com) Postgres — persistenter POI-Cache, Auth (Magic-Link) + Server-Favoriten (RLS) |
 | Deployment | [Render.com](https://render.com) |
 
 ## Lokale Entwicklung
@@ -105,13 +105,16 @@ Browser
 
 Der Express-Server cached Overpass-Antworten (BBox-Snapping auf 0,05°-Raster) und setzt Security-Header via [helmet](https://helmetjs.github.io). Der POI-Cache ist **pluggable**: mit gesetzten Supabase-Variablen persistent in Postgres (TTL 7 Tage, überlebt Render-Kaltstarts), sonst In-Memory-Fallback.
 
-### Supabase (optional, persistenter POI-Cache)
+### Supabase (optional: persistenter Cache, Login, Server-Favoriten)
 
-1. Supabase-Projekt anlegen → **Project Settings → API**: Project URL + `service_role`-Key holen
-2. SQL aus `supabase/migrations/0001_poi_cache.sql` im **SQL Editor** ausführen
-3. `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` als Env-Vars setzen (Render-Dashboard / lokale `.env`)
+1. Supabase-Projekt anlegen → **Project Settings → API**: Project URL + `service_role`-Key (Server) + `anon`-Key (Client) holen
+2. Migrationen im **SQL Editor** ausführen: `supabase/migrations/0001_poi_cache.sql` (POI-Cache) und `0002_favorites.sql` (Server-Favoriten, RLS)
+3. Env-Vars setzen (Render-Dashboard / lokale `.env`):
+   - Server: `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (service_role, **nur serverseitig**)
+   - Client (Login + Favoriten): `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (anon, öffentlich; zur Build-Zeit gebacken)
+4. **Authentication → URL Configuration**: Site URL = Produktions-URL, Redirect-URLs für `localhost` + Render eintragen (siehe `supabase/templates/README.md`)
 
-Ohne diese Variablen läuft alles unverändert mit dem In-Memory-Cache.
+Ohne die Server-Variablen läuft der POI-Cache als In-Memory-Fallback; ohne die `VITE_`-Variablen sind Login + Server-Favoriten einfach aus.
 
 ## Datenquellen & Lizenzen
 

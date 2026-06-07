@@ -13,11 +13,12 @@ import { collectTagImages, loadMapillaryImages, loadNearby, loadNotes } from '@/
 import { FilterPanel } from '@/features/filters/FilterPanel.js'
 import { SearchBar } from '@/features/search/SearchBar.js'
 import { LocalFavoritesStore } from '@/features/favorites/FavoritesStore.js'
+import { SyncedFavoritesStore, createSupabaseFavoritesBackend } from '@/features/favorites/RemoteFavoritesStore.js'
 import { setupInstall } from '@/features/install/installPrompt.js'
 import { SideMenu, type MenuItem } from '@/features/menu/SideMenu.js'
 import { clearAppCache } from '@/features/menu/clearAppCache.js'
 import { getSupabaseClient } from '@/features/auth/authClient.js'
-import { createAuth } from '@/features/auth/auth.js'
+import { createAuth, type Auth } from '@/features/auth/auth.js'
 import { AuthPanel } from '@/features/auth/AuthPanel.js'
 import { createSession } from './session.js'
 import { createSelection } from './selection.js'
@@ -49,8 +50,10 @@ async function init() {
   // Side menu items — account entry only when Supabase auth is configured
   const menuItems: MenuItem[] = []
   const supabase = getSupabaseClient()
+  let auth: Auth | null = null
   if (supabase) {
-    const authPanel = new AuthPanel(document.body, createAuth(supabase))
+    auth = createAuth(supabase)
+    const authPanel = new AuthPanel(document.body, auth)
     menuItems.push({ icon: '👤', label: 'Konto', onSelect: () => authPanel.open() })
   }
   menuItems.push({
@@ -77,7 +80,7 @@ async function init() {
   const filterPanel = new FilterPanel(document.getElementById('poi-filter')!)
   const detailPanel = new PoiDetailPanel(document.getElementById('detail-panel')!)
   const searchBar = new SearchBar(document.getElementById('search-bar')!)
-  const favorites = new LocalFavoritesStore()
+  const favorites = new SyncedFavoritesStore(new LocalFavoritesStore())
   const directions = new DirectionsService(map)
   const session = createSession(userPos ? { lat: userPos[0], lon: userPos[1] } : null)
 
@@ -105,6 +108,21 @@ async function init() {
     filterPanel.getActiveTypes(),
   )
   markerManager.setFavorites(favorites.getAll())
+
+  // ── Favorites sync on login/logout ───────────────────────────────────────────
+  // Supabase emits the initial session on subscribe, so this also covers the
+  // "already logged in at startup" case.
+  if (auth && supabase) {
+    auth.onChange(user => {
+      if (user) {
+        void favorites
+          .connect(createSupabaseFavoritesBackend(supabase, user.id))
+          .then(() => markerManager.setFavorites(favorites.getAll()))
+      } else {
+        favorites.disconnect()
+      }
+    })
+  }
 
   // ── POI detail data loading (two-phase images, then nearby + notes) ──────────
   function loadDetails(poi: OsmPoi): void {
