@@ -11,10 +11,11 @@ export interface BaseLayerConfig {
 /** Base map layers offered in the layer switcher (top-right control). */
 export const BASE_LAYER_CONFIGS: readonly BaseLayerConfig[] = [
   {
+    // CARTO Voyager — clean, muted earthy tones (free, no API key)
     label: 'Karte',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
-    maxZoom: 19,
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende © <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 20,
   },
   {
     label: 'Satellit',
