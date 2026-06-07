@@ -20,6 +20,12 @@ import { createNotesRouter } from './routes/notes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+// The client talks to Supabase (auth) via fetch → its origin must be in connect-src.
+const supabaseOrigin = (() => {
+  const raw = process.env['SUPABASE_URL']
+  try { return raw ? new URL(raw).origin : null } catch { return null }
+})()
+
 const helmetConfig = helmet({
   contentSecurityPolicy: {
     directives: {
@@ -37,9 +43,9 @@ const helmetConfig = helmet({
         'https://graph.mapillary.com',
       ],
       // 'self' for the API proxy; commons for the client-side Wikimedia
-      // image-info lookup (a fetch, not an <img>). Map tiles load as <img>
-      // (see img-src) — not via fetch — so they need no connect-src entry.
-      connectSrc: ["'self'", 'https://commons.wikimedia.org'],
+      // image-info lookup; the Supabase origin for auth (all fetches).
+      // Map tiles load as <img> (see img-src), not via fetch → no entry needed.
+      connectSrc: ["'self'", 'https://commons.wikimedia.org', ...(supabaseOrigin ? [supabaseOrigin] : [])],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
@@ -63,8 +69,10 @@ export function createApp() {
   app.use('/api', apiLimiter)
 
   // Persistent Supabase cache when configured, else in-memory fallback.
-  // Created per app instance so tests start clean.
-  const cache = SUPABASE_URL && SUPABASE_SERVICE_KEY
+  // Always in-memory under test so the suite stays hermetic (no real Supabase
+  // even if a local .env is present). Created per app instance → tests start clean.
+  const useSupabase = SUPABASE_URL && SUPABASE_SERVICE_KEY && process.env['NODE_ENV'] !== 'test'
+  const cache = useSupabase
     ? createSupabaseCache({ url: SUPABASE_URL, serviceKey: SUPABASE_SERVICE_KEY, ttlMs: POI_CACHE_TTL_MS })
     : createInMemoryCache(CACHE_TTL_MS, CACHE_MAX_ENTRIES)
 
