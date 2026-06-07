@@ -76,7 +76,7 @@ Browser
                             └── /api/notes      → OSM Notes API
 ```
 
-Der Express-Server cached Overpass-Antworten (5 min TTL, BBox-Snapping auf 0,05°-Raster) und setzt Security-Header via [helmet](https://helmetjs.github.io).
+Der Express-Server cached Overpass-Antworten (25 min TTL, BBox-Snapping auf 0,05°-Raster) und setzt Security-Header via [helmet](https://helmetjs.github.io).
 
 ## Datenquellen & Lizenzen
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-06-06
+
+### Changed
+- Overpass-Cache: TTL 5 min → 25 min, max. Einträge 200 → 20.000 — weniger Upstream-Requests, längere Vorhaltung bei der Spielwiesen-Nutzung
+
 ## [0.3.6] - 2026-06-06
 
 ### Added
