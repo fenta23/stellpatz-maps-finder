@@ -37,18 +37,24 @@ Client-Dateien aus `dist/client/` — ein einziger Service für alles.
 - In-memory Overpass cache (TTL 5 min, BBox-Snapping auf 0,05°-Raster)
 - Security: helmet (CSP, X-Frame-Options …), trust proxy, rate limiting
 
-### Frontend (`src/client/`)
-| Module | Purpose |
-|---|---|
-| `map/MapService.ts` | Leaflet map init, bounds events, geolocation |
-| `poi/OverpassClient.ts` | Overpass API queries for OSM POIs |
-| `poi/PoiMarkerManager.ts` | Create/remove markers, clustering, icons, favorites badges |
-| `routing/DirectionsService.ts` | Valhalla routing, distance calc, Leaflet polyline |
-| `ui/FilterPanel.ts` | POI type toggles, localStorage persistence |
-| `ui/PoiDetailPanel.ts` | Side panel with OSM tag details, images, nearby, notes |
-| `ui/SearchBar.ts` | Nominatim-powered search with viewport bias |
-| `favorites/FavoritesStore.ts` | IFavoritesStore interface + LocalFavoritesStore |
-| `main.ts` | Bootstrap, wires all modules together |
+### Frontend (`src/client/`) — **vertical slices**
+Organisiert nach Feature, nicht nach technischer Schicht. Pfad-Aliase: `@/` → `src/client/`, `@shared/` → `src/shared/`.
+
+```
+app/        Composition Root: main.ts (nur Wiring), session.ts (State), selection.ts, poiRefresher.ts
+core/       config.ts (apiUrl / VITE_API_BASE)
+features/
+  map/        MapService, leafletAdapter (MapAdapter-Impl), locationMarker, panIntoView (pure)
+  pois/       OverpassClient, PoiMarkerManager, statusMessages (pure)
+  poi-detail/ PoiDetailPanel, poiData (Wikimedia/Mapillary/Nearby/Notes-Lader)
+  routing/    DirectionsService
+  search/     SearchBar
+  filters/    FilterPanel
+  favorites/  FavoritesStore (IFavoritesStore + LocalFavoritesStore)
+  install/    installPrompt (PWA)
+```
+
+**Slice-Regel:** Ein Slice importiert **nicht die Interna** eines anderen — Verdrahtung passiert in `app/`. Typen über Slices hinweg sind ok. Neue Features bekommen einen eigenen `features/<name>/`-Ordner.
 
 ### POI Types (Overpass queries)
 - **Parking** → `amenity=parking`

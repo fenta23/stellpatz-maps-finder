@@ -5,6 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   root: '.',
   publicDir: 'public',
+  resolve: {
+    // Order matters: @shared must be matched before the broader @ alias.
+    alias: [
+      { find: '@shared', replacement: resolve(__dirname, 'src/shared') },
+      { find: '@', replacement: resolve(__dirname, 'src/client') },
+    ],
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

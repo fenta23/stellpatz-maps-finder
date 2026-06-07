@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { PoiDetailPanel } from './PoiDetailPanel.js'
-import type { OsmPoi } from '../poi/OverpassClient.js'
+import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 
 const poi: OsmPoi = {
   id: 1,

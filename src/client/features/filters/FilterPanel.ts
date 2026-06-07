@@ -1,4 +1,4 @@
-import type { PoiType } from '../poi/OverpassClient.js'
+import type { PoiType } from '@/features/pois/OverpassClient.js'
 
 const STORAGE_KEY = 'stellpatz:filters'
 const ALL_TYPES: readonly PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water']

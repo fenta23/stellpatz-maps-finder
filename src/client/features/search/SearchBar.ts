@@ -1,5 +1,5 @@
-import type { LatLngBounds } from '../poi/OverpassClient.js'
-import { apiUrl } from '../config.js'
+import type { LatLngBounds } from '@/features/pois/OverpassClient.js'
+import { apiUrl } from '@/core/config.js'
 
 export type PlaceSelectedEvent = {
   readonly lat: number
