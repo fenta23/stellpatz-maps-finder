@@ -1,4 +1,5 @@
 import type { OsmPoi, PoiType } from './OverpassClient.js'
+import { isPrivateParking } from './OverpassClient.js'
 
 export interface MarkerHandle {
   setVisible(visible: boolean): void
@@ -20,6 +21,7 @@ interface TrackedMarker {
   readonly handle: MarkerHandle
   readonly poiType: PoiType
   readonly poiId: number
+  readonly isPrivate: boolean
 }
 
 const BASE_ICONS: Record<PoiType, string> = {
@@ -45,11 +47,22 @@ const BASE_ICONS: Record<PoiType, string> = {
   </svg>`,
 }
 
+// Grey "P" variant for private/restricted parking — same shape, muted colour
+const PRIVATE_PARKING_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="15" fill="#616161" stroke="#fff" stroke-width="2"/>
+    <text x="16" y="21" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">P</text>
+  </svg>`
+
 const HEART_BADGE = `<circle cx="26" cy="6" r="7" fill="#E53935" stroke="#fff" stroke-width="1.5"/><text x="26" y="10" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">♥</text>`
 
-export function buildIcon(type: PoiType, isFavorite: boolean): string {
-  const base = BASE_ICONS[type] ?? BASE_ICONS.parking
-  return isFavorite ? base.replace('</svg>', `${HEART_BADGE}</svg>`) : base
+// Lock badge sits bottom-left so it never collides with the heart badge (top-right)
+const LOCK_BADGE = `<circle cx="7" cy="26" r="6.5" fill="#fff" stroke="#616161" stroke-width="1"/><rect x="4" y="25.5" width="6" height="5" rx="1" fill="#616161"/><path d="M5.2 25.5 v-1.3 a1.8 1.8 0 0 1 3.6 0 V25.5" fill="none" stroke="#616161" stroke-width="1.2"/>`
+
+export function buildIcon(type: PoiType, isFavorite: boolean, isPrivate = false): string {
+  const privateParking = isPrivate && type === 'parking'
+  const base = privateParking ? PRIVATE_PARKING_ICON : (BASE_ICONS[type] ?? BASE_ICONS.parking)
+  const badges = `${privateParking ? LOCK_BADGE : ''}${isFavorite ? HEART_BADGE : ''}`
+  return badges ? base.replace('</svg>', `${badges}</svg>`) : base
 }
 
 export function svgToDataUrl(svg: string): string {
@@ -82,7 +95,8 @@ export class PoiMarkerManager {
     for (const poi of pois) {
       if (this.markers.has(poi.id)) continue
       const isFav = this.favoriteIds.has(String(poi.id))
-      const icon = svgToDataUrl(buildIcon(poi.type, isFav))
+      const isPrivate = isPrivateParking(poi)
+      const icon = svgToDataUrl(buildIcon(poi.type, isFav, isPrivate))
       const handle = this.adapter.createMarker({
         lat: poi.lat,
         lon: poi.lon,
@@ -90,7 +104,7 @@ export class PoiMarkerManager {
         icon,
         onClick: () => this.onSelect(poi),
       })
-      this.markers.set(poi.id, { handle, poiType: poi.type, poiId: poi.id })
+      this.markers.set(poi.id, { handle, poiType: poi.type, poiId: poi.id, isPrivate })
     }
 
     for (const [, tracked] of this.markers) {
@@ -102,7 +116,7 @@ export class PoiMarkerManager {
     this.favoriteIds = ids
     for (const [, tracked] of this.markers) {
       const isFav = ids.has(String(tracked.poiId))
-      tracked.handle.updateIcon(svgToDataUrl(buildIcon(tracked.poiType, isFav)))
+      tracked.handle.updateIcon(svgToDataUrl(buildIcon(tracked.poiType, isFav, tracked.isPrivate)))
     }
   }
 
