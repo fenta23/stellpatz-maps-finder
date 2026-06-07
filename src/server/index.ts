@@ -23,6 +23,7 @@ const helmetConfig = helmet({
       styleSrc: ["'self'", "'unsafe-inline'"], // Leaflet needs inline styles
       imgSrc: [
         "'self'", 'data:', 'blob:',
+        'https://*.basemaps.cartocdn.com', // CARTO Voyager base map (<img>)
         'https://*.tile.openstreetmap.org', // OSM map tiles (<img>)
         'https://server.arcgisonline.com',  // Esri satellite tiles (<img>)
         'https://upload.wikimedia.org',

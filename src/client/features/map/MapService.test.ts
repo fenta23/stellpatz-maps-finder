@@ -7,9 +7,16 @@ describe('BASE_LAYER_CONFIGS', () => {
     expect(labels).toEqual(['Karte', 'Satellit'])
   })
 
-  it('uses OSM tiles for the map layer', () => {
+  it('uses CARTO Voyager tiles for the map layer', () => {
     const map = BASE_LAYER_CONFIGS.find(c => c.label === 'Karte')
-    expect(map?.url).toContain('tile.openstreetmap.org')
+    expect(map?.url).toContain('basemaps.cartocdn.com')
+    expect(map?.url).toContain('voyager')
+  })
+
+  it('credits OpenStreetMap and CARTO on the map layer', () => {
+    const map = BASE_LAYER_CONFIGS.find(c => c.label === 'Karte')
+    expect(map?.attribution).toContain('OpenStreetMap')
+    expect(map?.attribution).toContain('CARTO')
   })
 
   it('uses Esri World Imagery for the satellite layer', () => {
@@ -39,7 +46,7 @@ describe('buildBaseLayers', () => {
   it('wires the configured url into each tile layer', () => {
     const layers = buildBaseLayers()
     // Leaflet stores the template URL on the layer instance as _url
-    expect((layers['Karte'] as unknown as { _url: string })._url).toContain('openstreetmap.org')
+    expect((layers['Karte'] as unknown as { _url: string })._url).toContain('cartocdn.com')
     expect((layers['Satellit'] as unknown as { _url: string })._url).toContain('arcgisonline.com')
   })
 })

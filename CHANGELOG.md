@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-07
+
+### Changed
+- **Frischer, erdiger „Camper"-Look** über ein CSS-Design-Token-System (`:root`-Variablen, keine neue Dependency):
+  - Palette: warmes Off-White, Oliv/Forest-Akzent (`#5E6B4F` / Topbar `#4B5640`) statt Tech-Blau, Terrakotta für Links/Highlights, Sand-/Tinten-Töne
+  - Weichere Rundungen, ruhigere Schatten, aufgeräumte Komponenten (Topbar, Filter-Chips, Dropdown, Suche, Detail-Panel, Badges, Lightbox)
+- **Karten-Default: CARTO Voyager** (clean, gedämpft, erdig — gratis, kein API-Key) statt OSM-Standard; Satellit bleibt als zweiter Layer
+- App-Icon-Hintergrund auf Oliv, Camper-Fenster auf gedämpftes Slate (statt Tech-Blau); PWA `theme_color`/`background_color` + `theme-color`-Meta angepasst
+- Routen-Polylinien (Auto/Rad/Fuß) und Standort-Marker auf die erdige Palette umgestellt
+
+### Fixed
+- CSP: `img-src` um `*.basemaps.cartocdn.com` erweitert (sonst blockt die Karte in Production)
+
 ## [0.4.1] - 2026-06-07
 
 ### Changed

@@ -8,7 +8,7 @@ export function createLocationMarker(map: L.Map): { update(pos: [number, number]
       if (marker) marker.remove()
       marker = L.circleMarker(pos, {
         radius: 8,
-        fillColor: '#4285F4',
+        fillColor: '#B5562F', // terracotta — matches the app theme
         fillOpacity: 1,
         color: '#fff',
         weight: 2,

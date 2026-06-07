@@ -17,10 +17,11 @@ export interface RouteResult {
   readonly detourFactor: number
 }
 
+// Earthy route palette to match the app theme
 const MODE_COLORS: Record<RoutingMode, string> = {
-  driving: '#1565C0',
-  cycling: '#2E7D32',
-  foot: '#E65100',
+  driving: '#5E6B4F', // olive
+  cycling: '#3F6B4A', // forest green
+  foot: '#B5562F',    // terracotta
 }
 
 interface OsrmRoute {
