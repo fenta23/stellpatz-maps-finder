@@ -66,15 +66,11 @@ async function init() {
   let routingMode: RoutingMode = 'driving'
   let selectedPoi: OsmPoi | null = null
 
-  const routingModeEl = document.getElementById('routing-mode')!
-  routingModeEl.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.mode-btn')
-    if (!btn?.dataset['mode']) return
-    const newMode = btn.dataset['mode'] as RoutingMode
+  const routingModeEl = document.getElementById('routing-mode') as HTMLSelectElement
+  routingModeEl.addEventListener('change', () => {
+    const newMode = routingModeEl.value as RoutingMode
     if (newMode === routingMode) return
     routingMode = newMode
-    routingModeEl.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'))
-    btn.classList.add('active')
     if (selectedPoi && currentUserPos) {
       void directionsService
         .route(currentUserPos, { lat: selectedPoi.lat, lon: selectedPoi.lon }, routingMode)
@@ -146,18 +142,31 @@ async function init() {
   }
 
   const PANEL_WIDTH = 320
+  // Must match the CSS in index.html: @media (max-width: 600px) + height: 60dvh
+  const MOBILE_BREAKPOINT = 600
+  const MOBILE_SHEET_FRACTION = 0.6
 
   function panPoiIntoView(poi: { lat: number; lon: number }) {
-    // Ensure the clicked marker ends up in the visible area left of the detail panel.
-    // Leaflet doesn't know the panel exists, so markers in the right PANEL_WIDTH pixels
-    // get hidden behind it. Pan so the POI sits at the center of the visible left strip.
+    // Leaflet doesn't know the detail panel exists, so a POI hidden behind it must
+    // be panned into the still-visible strip.
     const poiPoint = leafletMap.latLngToContainerPoint([poi.lat, poi.lon])
-    const visibleWidth = mapContainer.clientWidth - PANEL_WIDTH
-    const targetX = Math.max(visibleWidth / 2, 40) // center of visible area, min 40px from left
-    const dx = poiPoint.x - targetX
-    if (dx > 0) {
-      leafletMap.panBy([dx, 0], { animate: true })
+
+    if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) {
+      // Bottom sheet covers the lower 60dvh of the viewport — pan the POI up into
+      // the visible strip above it.
+      const mapTop = mapContainer.getBoundingClientRect().top
+      const sheetTopInContainer = window.innerHeight * (1 - MOBILE_SHEET_FRACTION) - mapTop
+      const targetY = Math.max(sheetTopInContainer / 2, 40) // center of visible strip
+      const dy = poiPoint.y - targetY
+      if (dy > 0) leafletMap.panBy([0, dy], { animate: true })
+      return
     }
+
+    // Desktop: side panel on the right — pan the POI into the visible left strip.
+    const visibleWidth = mapContainer.clientWidth - PANEL_WIDTH
+    const targetX = Math.max(visibleWidth / 2, 40)
+    const dx = poiPoint.x - targetX
+    if (dx > 0) leafletMap.panBy([dx, 0], { animate: true })
   }
 
   const markerManager = new PoiMarkerManager(

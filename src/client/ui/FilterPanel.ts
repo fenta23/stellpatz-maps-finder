@@ -3,6 +3,15 @@ import type { PoiType } from '../poi/OverpassClient.js'
 const STORAGE_KEY = 'stellpatz:filters'
 const ALL_TYPES: readonly PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water']
 
+// Icon-only buttons; the label lives in title + aria-label for clarity/a11y.
+const TYPE_META: Record<PoiType, { readonly icon: string; readonly label: string }> = {
+  parking: { icon: '🅿️', label: 'Parkplatz' },
+  camper: { icon: '🚐', label: 'Stellplatz' },
+  campsite: { icon: '⛺', label: 'Camping' },
+  dump: { icon: '🚿', label: 'Entsorgung' },
+  water: { icon: '🚰', label: 'Wasser' },
+}
+
 export type FilterChangeEvent = { readonly type: PoiType; readonly active: boolean }
 
 export class FilterPanel {
@@ -39,17 +48,13 @@ export class FilterPanel {
 
   private render(): void {
     this.container.innerHTML = ''
-    const labels: Record<PoiType, string> = {
-      parking: '🅿️ Parkplatz',
-      camper: '🚐 Stellplatz',
-      campsite: '⛺ Camping',
-      dump: '🚿 Entsorgung',
-      water: '🚰 Wasser',
-    }
     for (const type of ALL_TYPES) {
+      const { icon, label } = TYPE_META[type]
       const btn = document.createElement('button')
       btn.dataset['type'] = type
-      btn.textContent = labels[type]
+      btn.textContent = icon
+      btn.title = label
+      btn.setAttribute('aria-label', label)
       btn.className = `filter-btn ${this.state.get(type) ? 'active' : ''}`
       btn.setAttribute('aria-pressed', String(this.state.get(type) ?? true))
       btn.addEventListener('click', () => this.toggle(type))
