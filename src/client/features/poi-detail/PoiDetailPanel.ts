@@ -1,8 +1,8 @@
-import type { OsmPoi } from '../poi/OverpassClient.js'
-import { buildOsmPoiLink, buildGoogleMapsLink } from '../routing/DirectionsService.js'
-import type { RouteResult, RoutingMode } from '../routing/DirectionsService.js'
-import { coalesce } from '../../shared/fp.js'
-import { strEllipsisLen } from '../../shared/str.js'
+import type { OsmPoi } from '@/features/pois/OverpassClient.js'
+import { buildOsmPoiLink, buildGoogleMapsLink } from '@/features/routing/DirectionsService.js'
+import type { RouteResult, RoutingMode } from '@/features/routing/DirectionsService.js'
+import { coalesce } from '@shared/fp.js'
+import { strEllipsisLen } from '@shared/str.js'
 
 export type NavigateRequest = { readonly poi: OsmPoi }
 

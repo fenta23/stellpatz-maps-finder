@@ -13,8 +13,8 @@
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
-      "@client/*": ["src/client/*"],
-      "@server/*": ["src/server/*"]
+      "@/*": ["src/client/*"],
+      "@shared/*": ["src/shared/*"]
     }
   },
   "include": ["src", "public"],

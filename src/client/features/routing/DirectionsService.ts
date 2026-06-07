@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import { apiUrl } from '../config.js'
+import { apiUrl } from '@/core/config.js'
 
 export type RoutingMode = 'driving' | 'cycling' | 'foot'
 

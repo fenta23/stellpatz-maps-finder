@@ -1,5 +1,5 @@
-import { notNullUndefined } from '../../shared/common.js'
-import { apiUrl } from '../config.js'
+import { notNullUndefined } from '@shared/common.js'
+import { apiUrl } from '@/core/config.js'
 
 export type PoiType = 'parking' | 'camper' | 'campsite' | 'dump' | 'water'
 
