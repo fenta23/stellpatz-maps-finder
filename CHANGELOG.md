@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-06-06
+
+### Fixed
+- **Mobile-Filterleiste**: POI- und Routing-Buttons liefen am rechten Rand aus dem Bild (`flex-wrap: nowrap`) — auf Mobilgeräten war die Routing-Auswahl (Auto/Fahrrad/Fußweg) gar nicht erreichbar. Jetzt bricht die Leiste um: POI-Chips in eigene(r) Zeile(n), Routing-Modus darunter, kompaktere Buttons
+- **Mobile-Detail-Panel war nie sichtbar** — zwei zusammenwirkende Bugs:
+  1. Der `#detail-panel`-Host kollabiert auf 0px Breite (einziges Kind ist `position: absolute`), wodurch das Panel rechts außerhalb des Schirms landete → Fix: `position: fixed` relativ zum Viewport
+  2. `z-index: 20` lag unter Leaflets Karten-Panes (Tile 200, Marker 600), die mangels Stacking-Context auf `#map` im Root-Stacking-Context rendern → das Panel verschwand *hinter* der Karte. Fix: `z-index: 1100` (über Panes + Controls)
+- Zusätzlich: abgerundete obere Ecken + Schatten, Höhe `60dvh` (dynamische Viewport-Höhe, korrekt mit mobiler Browser-Toolbar)
+- **Karten-Pan beim POI-Klick**: auf Mobile schiebt die Karte den angeklickten POI jetzt nach **oben** in den sichtbaren Streifen über dem Bottom-Sheet (statt wie auf Desktop horizontal neben das Seitenpanel)
+
 ## [0.3.8] - 2026-06-06
 
 ### Changed
