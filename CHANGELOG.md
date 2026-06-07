@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Install-Button (⬇️) aus der Topbar entfernt — auf iOS war er nur ein Hinweis, kein echter Install-Trigger. Der `install`-Slice (`installPrompt.ts`) bleibt erhalten und wird später als Hilfe-Eintrag im Seitenmenü wiederverwendet.
+
 ## [0.9.0] - 2026-06-07
 
 ### Added
