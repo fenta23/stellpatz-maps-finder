@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Gated:** ohne `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` ist Login einfach aus → PR sicher mergebar.
   - `@supabase/supabase-js` als Client-Dependency; Server-CSP `connect-src` um die Supabase-Origin erweitert; `render.yaml` + `.env.example` um die `VITE_SUPABASE_*` ergänzt.
   - 16 neue Tests (`isValidEmail`, `createAuth` mit Mock-Client, `AuthPanel`-Rendering/Flows).
+  - Gebrandete deutsche E-Mail-Templates (Confirm signup + Magic Link) unter `supabase/templates/` zum Einpflegen ins Supabase-Dashboard.
 
 ### Changed
 - POI-Cache-Auswahl im Test immer In-Memory (`NODE_ENV==='test'`) — Suite bleibt hermetisch, auch wenn lokal eine `.env` mit Supabase-Keys liegt.
