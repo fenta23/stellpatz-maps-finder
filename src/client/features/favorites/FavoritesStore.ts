@@ -34,6 +34,21 @@ export class LocalFavoritesStore implements IFavoritesStore {
     return this.ids.has(id)
   }
 
+  /** Add several ids at once (no removal); persists + notifies once if changed. */
+  addMany(ids: Iterable<string>): void {
+    let changed = false
+    for (const id of ids) {
+      if (!this.ids.has(id)) {
+        this.ids.add(id)
+        changed = true
+      }
+    }
+    if (changed) {
+      this.persist()
+      this.notify()
+    }
+  }
+
   getAll(): ReadonlySet<string> {
     return this.ids
   }

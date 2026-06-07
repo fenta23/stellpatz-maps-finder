@@ -74,6 +74,25 @@ describe('LocalFavoritesStore', () => {
     expect(count).toBe(0)
   })
 
+  it('addMany adds without removing and notifies once', () => {
+    const store = new LocalFavoritesStore()
+    store.toggle('1')
+    let count = 0
+    store.onChange(() => count++)
+    store.addMany(['1', '2', '3']) // '1' already present
+    expect([...store.getAll()].sort()).toEqual(['1', '2', '3'])
+    expect(count).toBe(1)
+  })
+
+  it('addMany does not notify when nothing changes', () => {
+    const store = new LocalFavoritesStore()
+    store.toggle('1')
+    let count = 0
+    store.onChange(() => count++)
+    store.addMany(['1'])
+    expect(count).toBe(0)
+  })
+
   it('getAll reflects current state', () => {
     const store = new LocalFavoritesStore()
     store.toggle('1')

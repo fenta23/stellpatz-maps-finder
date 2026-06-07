@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-07
+
+### Added
+- **Server-Favoriten (Supabase)** — Phase 3 der Server-Erweiterung:
+  - Neue `favorites`-Tabelle (`supabase/migrations/0002_favorites.sql`), RLS-geschützt: jede:r sieht/ändert nur eigene Zeilen (`auth.uid() = user_id`). Zugriff direkt vom authentifizierten Client über den anon-Key — **kein Express/Service-Role nötig**.
+  - `SyncedFavoritesStore` (Slice `features/favorites/`): gleiche **synchrone** `IFavoritesStore`-Schnittstelle, lokaler Mirror bleibt für sofortige Reads maßgeblich. Bei Login werden Gast-Favoriten (localStorage) mit den Server-Favoriten **gemerged** (Union), Toggles schreiben im Hintergrund durch (`createSupabaseFavoritesBackend`). Sync-Fehler blockieren nie die UI.
+  - `LocalFavoritesStore.addMany()` für den Merge (fügt hinzu ohne zu entfernen, benachrichtigt einmal).
+  - Verdrahtung in `app/main.ts`: ein gemeinsamer `auth`, `auth.onChange` → `connect`/`disconnect` + Marker-Favoriten aktualisieren.
+  - 13 neue Tests (`SyncedFavoritesStore`-Merge/Write-Through/Disconnect/Fehlerfälle, `addMany`).
+
 ## [0.8.0] - 2026-06-07
 
 ### Added
