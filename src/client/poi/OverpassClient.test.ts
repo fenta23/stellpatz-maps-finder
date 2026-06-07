@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchPois, buildQuery, elementToPoiType } from './OverpassClient.js'
-import type { LatLngBounds, OsmElement } from './OverpassClient.js'
+import { fetchPois, buildQuery, elementToPoiType, isPrivateParking } from './OverpassClient.js'
+import type { LatLngBounds, OsmElement, OsmPoi } from './OverpassClient.js'
 
 const BOUNDS: LatLngBounds = { south: 48.0, west: 11.0, north: 48.5, east: 11.5 }
 
@@ -84,6 +84,34 @@ describe('elementToPoiType', () => {
 
   it('defaults to parking', () => {
     expect(elementToPoiType({ ...base, tags: { amenity: 'parking' } })).toBe('parking')
+  })
+})
+
+describe('isPrivateParking', () => {
+  const parking = (access?: string): OsmPoi => ({
+    id: 1, type: 'parking', lat: 48, lon: 11,
+    tags: access !== undefined ? { access } : {},
+  })
+
+  it('treats parking without access tag as public', () => {
+    expect(isPrivateParking(parking())).toBe(false)
+  })
+
+  it('treats access=private as private', () => {
+    expect(isPrivateParking(parking('private'))).toBe(true)
+  })
+
+  it('treats access=no as private', () => {
+    expect(isPrivateParking(parking('no'))).toBe(true)
+  })
+
+  it.each(['yes', 'public', 'permissive', 'customers'])('treats access=%s as public', (a) => {
+    expect(isPrivateParking(parking(a))).toBe(false)
+  })
+
+  it('returns false for non-parking POIs even with access=private', () => {
+    const campsite: OsmPoi = { id: 2, type: 'campsite', lat: 48, lon: 11, tags: { access: 'private' } }
+    expect(isPrivateParking(campsite)).toBe(false)
   })
 })
 

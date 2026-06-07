@@ -90,6 +90,17 @@ export function elementToPoiType(el: OsmElement): PoiType {
   return 'parking'
 }
 
+// OSM access values that mark parking as restricted. Everything else —
+// yes/public/permissive/customers or no access tag — counts as public.
+const PRIVATE_ACCESS_VALUES = new Set(['private', 'no'])
+
+/** True only for parking POIs whose `access` tag is `private` or `no`. */
+export function isPrivateParking(poi: OsmPoi): boolean {
+  if (poi.type !== 'parking') return false
+  const access = poi.tags['access']
+  return access !== undefined && PRIVATE_ACCESS_VALUES.has(access)
+}
+
 function elementToLatLon(el: OsmElement): { lat: number; lon: number } | null {
   if (el.lat !== undefined && el.lon !== undefined) {
     return { lat: el.lat, lon: el.lon }
