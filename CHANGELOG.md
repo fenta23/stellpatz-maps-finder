@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.9] - 2026-06-06
 
+### Changed
+- **Filterleiste kompakter**: POI-Buttons zeigen nur noch Icons (🅿️ 🚐 ⛺ 🚿 🚰) statt Icon + Text — Klartext bleibt als `title`/`aria-label` erhalten
+- **Routenmodus als Dropdown**: Auto/Fahrrad/Fußweg sind statt drei Buttons jetzt ein icon-only `<select>` (🚗/🚲/🚶, Klartext als `title`) — spart Platz, Mobile-Filterleiste passt jetzt in **eine** Zeile
+- Dropdown ist immer rechtsbündig (`margin-left: auto`, Desktop + Mobile); `.filter-spacer`-Hilfs-Div entfernt
+- **Status-Anzeige als schwebendes Toast**: „Lade Stellplätze…" / „Bitte weiter reinzoomen…" liegt jetzt als absolut positioniertes Pill oben mittig über der Karte statt im Flex-Flow — schiebt die Karte beim Ein-/Ausblenden nicht mehr nach unten (kein Layout-Shift)
+
 ### Fixed
 - **Mobile-Filterleiste**: POI- und Routing-Buttons liefen am rechten Rand aus dem Bild (`flex-wrap: nowrap`) — auf Mobilgeräten war die Routing-Auswahl (Auto/Fahrrad/Fußweg) gar nicht erreichbar. Jetzt bricht die Leiste um: POI-Chips in eigene(r) Zeile(n), Routing-Modus darunter, kompaktere Buttons
 - **Mobile-Detail-Panel war nie sichtbar** — zwei zusammenwirkende Bugs:

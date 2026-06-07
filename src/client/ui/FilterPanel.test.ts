@@ -32,6 +32,15 @@ describe('FilterPanel', () => {
     expect(panel.getActiveTypes().size).toBe(5)
   })
 
+  it('renders icon-only buttons with label in title + aria-label', () => {
+    const el = makeContainer()
+    new FilterPanel(el)
+    const btn = el.querySelector<HTMLButtonElement>('[data-type="parking"]')!
+    expect(btn.textContent).toBe('🅿️') // icon only, no text label
+    expect(btn.title).toBe('Parkplatz')
+    expect(btn.getAttribute('aria-label')).toBe('Parkplatz')
+  })
+
   it('toggles a type off on click', () => {
     const el = makeContainer()
     const panel = new FilterPanel(el)

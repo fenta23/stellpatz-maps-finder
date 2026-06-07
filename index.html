@@ -28,15 +28,28 @@
       flex-shrink: 0;
     }
 
-    /* ── Status bar ── */
+    /* ── Status toast ── */
+    /* Floats over the map (absolute, not in flex flow) so showing/hiding it
+       never pushes the map down. Anchored to the top-center of #content. */
     #status {
       display: none;
-      font-size: 0.75rem;
-      padding: 3px 12px;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      max-width: 86%;
+      font-size: 0.78rem;
+      padding: 5px 14px;
+      border-radius: 16px;
       background: #E3F2FD;
       color: #1565C0;
       text-align: center;
-      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
     }
     #status.status-loading { display: block; }
     #status.status-error { display: block; background: #FFEBEE; color: #c62828; }
@@ -112,15 +125,14 @@
       gap: 6px;
     }
 
-    .filter-spacer { flex: 1; }
-
     .filter-btn {
-      padding: 5px 12px;
+      padding: 6px 11px;
       border: 2px solid #ccc;
       border-radius: 20px;
       background: #fff;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 1.15rem; /* icon-only — bigger emoji, no text label */
+      line-height: 1;
       transition: all 0.15s;
     }
 
@@ -131,29 +143,18 @@
       font-weight: 600;
     }
 
-    /* ── Routing mode selector ── */
+    /* ── Routing mode selector (dropdown) ── */
     #routing-mode {
-      display: flex;
-      gap: 3px;
-      align-items: center;
-    }
-
-    .mode-btn {
-      padding: 4px 10px;
-      border: 2px solid #ccc;
+      margin-left: auto; /* always pushed to the right edge, desktop + mobile */
+      padding: 6px 10px;
+      border: 2px solid #1565C0;
       border-radius: 20px;
       background: #fff;
-      cursor: pointer;
-      font-size: 0.82rem;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-
-    .mode-btn.active {
-      border-color: #1565C0;
-      background: #E3F2FD;
       color: #1565C0;
+      font-size: 0.85rem;
       font-weight: 600;
+      cursor: pointer;
+      outline: none;
     }
 
     /* ── Map + detail layout ── */
@@ -491,19 +492,8 @@
         gap: 6px;
         padding: 6px 8px;
       }
-      .filter-spacer { display: none; }
       #poi-filter {
         flex-wrap: wrap;
-        flex-basis: 100%;
-      }
-      #routing-mode {
-        flex-basis: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-      }
-      .filter-btn, .mode-btn {
-        padding: 5px 10px;
-        font-size: 0.8rem;
       }
 
       /* fixed (not absolute): the #detail-panel host collapses to 0 width on
@@ -532,17 +522,16 @@
     <h1>🅿️ Stellpatz Finder</h1>
     <div id="search-bar"></div>
   </div>
-  <div id="status"></div>
   <div id="filter-panel">
     <div id="poi-filter"></div>
-    <div class="filter-spacer"></div>
-    <div id="routing-mode">
-      <button class="mode-btn active" data-mode="driving" title="Auto">🚗 Auto</button>
-      <button class="mode-btn" data-mode="cycling" title="Fahrrad">🚲 Fahrrad</button>
-      <button class="mode-btn" data-mode="foot" title="Fußweg">🚶 Fußweg</button>
-    </div>
+    <select id="routing-mode" aria-label="Routenmodus" title="Routenmodus">
+      <option value="driving" title="Auto">🚗</option>
+      <option value="cycling" title="Fahrrad">🚲</option>
+      <option value="foot" title="Fußweg">🚶</option>
+    </select>
   </div>
   <div id="content">
+    <div id="status"></div>
     <div id="map"></div>
     <div id="detail-panel"></div>
   </div>

@@ -66,15 +66,11 @@ async function init() {
   let routingMode: RoutingMode = 'driving'
   let selectedPoi: OsmPoi | null = null
 
-  const routingModeEl = document.getElementById('routing-mode')!
-  routingModeEl.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.mode-btn')
-    if (!btn?.dataset['mode']) return
-    const newMode = btn.dataset['mode'] as RoutingMode
+  const routingModeEl = document.getElementById('routing-mode') as HTMLSelectElement
+  routingModeEl.addEventListener('change', () => {
+    const newMode = routingModeEl.value as RoutingMode
     if (newMode === routingMode) return
     routingMode = newMode
-    routingModeEl.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'))
-    btn.classList.add('active')
     if (selectedPoi && currentUserPos) {
       void directionsService
         .route(currentUserPos, { lat: selectedPoi.lat, lon: selectedPoi.lon }, routingMode)
