@@ -2,8 +2,15 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Stellpatz Finder</title>
+  <meta name="description" content="Parkplätze, Camper-Stellplätze und Campingplätze auf der Karte finden" />
+  <meta name="theme-color" content="#1565C0" />
+  <!-- iOS standalone / add-to-home-screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Stellpatz" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,7 +28,8 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 12px;
+      /* safe-area: clear the notch/status bar on installed iOS (black-translucent) */
+      padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left));
       background: #1565C0;
       color: #fff;
       z-index: 10;
@@ -58,6 +66,36 @@
       font-size: 1rem;
       font-weight: 600;
       white-space: nowrap;
+    }
+
+    /* ── Install button + hint ── */
+    #btn-install {
+      flex-shrink: 0;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 7px 10px;
+      cursor: pointer;
+    }
+    #btn-install:hover { background: rgba(255,255,255,0.3); }
+
+    .install-hint {
+      position: fixed;
+      left: 50%;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      z-index: 1200;
+      max-width: 90%;
+      background: #263238;
+      color: #fff;
+      font-size: 0.82rem;
+      padding: 10px 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      text-align: center;
     }
 
     #search-bar {
@@ -513,6 +551,8 @@
         border-radius: 12px 12px 0 0;
         box-shadow: 0 -4px 16px rgba(0,0,0,0.18);
         z-index: 1100;
+        /* keep action buttons clear of the home indicator */
+        padding-bottom: env(safe-area-inset-bottom);
       }
     }
   </style>
@@ -521,6 +561,7 @@
   <div id="topbar">
     <h1>🅿️ Stellpatz Finder</h1>
     <div id="search-bar"></div>
+    <button id="btn-install" type="button" title="App installieren" aria-label="App installieren" hidden>⬇️</button>
   </div>
   <div id="filter-panel">
     <div id="poi-filter"></div>

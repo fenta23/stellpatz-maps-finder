@@ -61,6 +61,29 @@ Das Projekt enthält eine `render.yaml` — einfach das GitHub-Repo bei Render v
 
 Bei jedem `git push` auf `main` deployed Render automatisch neu.
 
+## Als App installieren (PWA)
+
+Die App ist eine **Progressive Web App** — installierbar auf Handy & Desktop, lädt die Oberfläche offline (besuchte Karten-Kacheln werden gecacht).
+
+- **Android / Chrome / Edge:** „Installieren"-Button oben rechts oder Browser-Menü → „App installieren".
+- **iOS / Safari:** Teilen-Symbol → „Zum Home-Bildschirm".
+
+Der Service Worker ist nur im Production-Build aktiv. Lokal testen:
+
+```bash
+npm run build          # erzeugt sw.js + manifest.webmanifest in dist/client/
+node dist/server/index.js   # Express serviert den Build inkl. SW
+```
+
+App-Icon ändern: `public/logo.svg` anpassen, dann `npm run generate-pwa-assets`.
+
+## Später: native App via Capacitor (ohne Rewrite)
+
+Die Codebase ist darauf vorbereitet, die PWA in eine native iOS/Android-Shell zu wrappen:
+
+- Alle API-Aufrufe laufen über `apiUrl()` (`src/client/config.ts`). Im Web ist die Basis leer (relativ); für einen nativen Build `VITE_API_BASE=https://<dein-render-service>.onrender.com` setzen, damit die App den gehosteten Server trifft.
+- Dann: `npm i -D @capacitor/cli @capacitor/core`, `npx cap init`, `webDir` auf `dist/client` zeigen, `npx cap add ios` / `add android`. Die helmet-CSP (`connectSrc`) muss um die API-Origin erweitert werden.
+
 ## Architektur
 
 ```

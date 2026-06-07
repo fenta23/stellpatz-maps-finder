@@ -1,4 +1,5 @@
 import { notNullUndefined } from '../../shared/common.js'
+import { apiUrl } from '../config.js'
 
 export type PoiType = 'parking' | 'camper' | 'campsite' | 'dump' | 'water'
 
@@ -131,7 +132,7 @@ export async function fetchPois(
   if (types.size === 0) return []
 
   const query = buildQuery(bounds, types)
-  const res = await fetch('/api/overpass', {
+  const res = await fetch(apiUrl('/api/overpass'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `data=${encodeURIComponent(query)}`,

@@ -1,4 +1,5 @@
 import type { LatLngBounds } from '../poi/OverpassClient.js'
+import { apiUrl } from '../config.js'
 
 export type PlaceSelectedEvent = {
   readonly lat: number
@@ -68,7 +69,7 @@ export class SearchBar {
     }
 
     try {
-      const res = await fetch(`/api/geocode?${params}`)
+      const res = await fetch(apiUrl(`/api/geocode?${params}`))
       if (!res.ok) { this.hideDropdown(); return }
       const results = await res.json() as NominatimResult[]
       this.showDropdown(results)
