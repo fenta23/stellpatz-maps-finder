@@ -4,7 +4,12 @@ import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { createCache } from './cache.js'
+import { createInMemoryCache } from './cache.js'
+import { createSupabaseCache } from './supabaseCache.js'
+import {
+  CACHE_TTL_MS, CACHE_MAX_ENTRIES,
+  POI_CACHE_TTL_MS, SUPABASE_URL, SUPABASE_SERVICE_KEY,
+} from './config.js'
 import { createHealthRouter } from './routes/health.js'
 import { createOverpassRouter } from './routes/overpass.js'
 import { createGeocodeRouter } from './routes/geocode.js'
@@ -57,8 +62,11 @@ export function createApp() {
   app.use(helmetConfig)
   app.use('/api', apiLimiter)
 
-  // Cache is created per app instance so tests start clean
-  const cache = createCache<unknown>()
+  // Persistent Supabase cache when configured, else in-memory fallback.
+  // Created per app instance so tests start clean.
+  const cache = SUPABASE_URL && SUPABASE_SERVICE_KEY
+    ? createSupabaseCache({ url: SUPABASE_URL, serviceKey: SUPABASE_SERVICE_KEY, ttlMs: POI_CACHE_TTL_MS })
+    : createInMemoryCache(CACHE_TTL_MS, CACHE_MAX_ENTRIES)
 
   app.use('/api', createHealthRouter())
   app.use('/api/overpass', createOverpassRouter(cache))

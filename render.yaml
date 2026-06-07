@@ -11,3 +11,7 @@ services:
         value: production
       - key: MAPILLARY_ACCESS_TOKEN
         sync: false   # In Render Dashboard manuell setzen
+      - key: SUPABASE_URL
+        sync: false   # optional — persistenter POI-Cache
+      - key: SUPABASE_SERVICE_KEY
+        sync: false   # service_role key, nur serverseitig

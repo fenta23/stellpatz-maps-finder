@@ -1,11 +1,10 @@
 import express, { Router } from 'express'
-import type { Cache } from '../cache.js'
-import { getCached, setCached } from '../cache.js'
+import type { PoiCache } from '../cache.js'
 import { snapBboxInQuery } from '../geo.js'
-import { OVERPASS_ENDPOINTS, USER_AGENT, CACHE_TTL_MS, CACHE_MAX_ENTRIES } from '../config.js'
+import { OVERPASS_ENDPOINTS, USER_AGENT } from '../config.js'
 
 // Round-robin index lives in the closure — fresh per createApp() call (tests stay isolated).
-export function createOverpassRouter(cache: Cache<unknown>): Router {
+export function createOverpassRouter(cache: PoiCache): Router {
   const router = Router()
   let endpointIdx = 0
 
@@ -17,7 +16,7 @@ export function createOverpassRouter(cache: Cache<unknown>): Router {
       const rawQuery = decodeURIComponent(rawBody.startsWith('data=') ? rawBody.slice(5) : rawBody)
       const snappedQuery = snapBboxInQuery(rawQuery)
 
-      const cached = getCached(cache, snappedQuery)
+      const cached = await cache.get(snappedQuery)
       if (cached !== null) {
         res.json(cached)
         return
@@ -48,7 +47,7 @@ export function createOverpassRouter(cache: Cache<unknown>): Router {
           }
 
           const data = await upstream.json() as unknown
-          setCached(cache, snappedQuery, data, CACHE_TTL_MS, CACHE_MAX_ENTRIES)
+          await cache.set(snappedQuery, data)
           res.json(data)
           return
         } catch {
