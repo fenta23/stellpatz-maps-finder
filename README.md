@@ -4,31 +4,33 @@
 
 Kartenbasierte Web-App zur Routenplanung mit automatischer Anzeige von **Parkplätzen**, **Camper-Stellplätzen** und **Campingplätzen** im aktuellen Kartenausschnitt — alles auf Basis von OpenStreetMap, ohne proprietäre APIs.
 
-![Stellpatz Finder Screenshot](https://placehold.co/900x500/1565C0/fff?text=Stellpatz+Finder)
+![Stellpatz Finder Screenshot](https://placehold.co/900x500/4B5640/fff?text=Stellpatz+Finder)
 
 ## Features
 
-- 🗺️ **Interaktive Karte** (Leaflet + OSM-Tiles) mit automatischem POI-Laden beim Scrollen/Zoomen
-- 🅿️ **Parkplätze**, 🚐 **Camper-Stellplätze**, ⛺ **Campingplätze**, 🚿 **Entsorgungsstationen**, 🚰 **Frischwasserpunkte**
+- 🗺️ **Interaktive Karte** (Leaflet) mit automatischem POI-Laden beim Scrollen/Zoomen — Kartenstil **CARTO Voyager** (clean, erdig) + umschaltbarer **Satelliten-Layer** (Esri)
+- 🅿️ **Parkplätze** (öffentlich vs. privat unterschieden), 🚐 **Camper-Stellplätze**, ⛺ **Campingplätze**, 🚿 **Entsorgungsstationen**, 🚰 **Frischwasserpunkte**
 - 🔍 **Suche** mit Nominatim-Autocomplete (viewport-basiert)
-- 🗺️ **Routing** (Auto / Fahrrad / Fußweg) via Valhalla — mit Distanz, Fahrtzeit und Detour-Faktor
-- ❤️ **Favoriten** — Herz-Button im Panel, Herz-Badge auf dem Marker, localStorage-persistent
+- 🧭 **Routing** (Auto / Fahrrad / Fußweg) via Valhalla — mit Distanz, Fahrtzeit und Detour-Faktor
+- ❤️ **Favoriten** — Herz-Button im Panel, Herz-Badge auf dem Marker, localStorage-persistent (Server-Sync geplant)
 - 📸 **Bilder** aus OSM-Tags, Wikimedia Commons und Mapillary
 - 📍 **In der Nähe**: Tankstelle, Supermarkt, Apotheke, Bäckerei, Frischwasser, Entsorgung (bis 2 km)
 - 📝 **Community-Hinweise** aus der OSM Notes API
 - 🕐 **Öffnungsstatus-Badge** (parst `opening_hours`-Tag live)
-- 🔒 Kein Google, kein API-Key erforderlich
+- 📱 **Installierbare PWA** — Home-Bildschirm, Offline-Shell, „Cache leeren"-Eintrag im Menü
+- 🔒 Kein Google; läuft ohne API-Keys (Mapillary & Supabase optional)
 
 ## Tech Stack
 
 | Schicht | Technologie |
 |---|---|
-| Karte | [Leaflet](https://leafletjs.com) + [leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) |
+| Karte | [Leaflet](https://leafletjs.com) + [markercluster](https://github.com/Leaflet/Leaflet.markercluster) · [CARTO Voyager](https://carto.com) / [Esri](https://www.esri.com) Tiles |
 | POI-Daten | [Overpass API](https://overpass-api.de) (OpenStreetMap) |
 | Geocoding | [Nominatim](https://nominatim.org) |
 | Routing | [Valhalla](https://valhalla.github.io/valhalla/) (openstreetmap.de) |
-| Frontend | Vanilla TypeScript, Vite |
-| Backend | Node.js + Express (Proxy, Caching) |
+| Frontend | Vanilla TypeScript, [Vite](https://vite.dev), PWA ([vite-plugin-pwa](https://vite-pwa-org.netlify.app)) |
+| Backend | Node.js + Express (Proxy + Cache) |
+| Persistenz | [Supabase](https://supabase.com) Postgres — optionaler persistenter POI-Cache (Auth + Server-Favoriten geplant) |
 | Deployment | [Render.com](https://render.com) |
 
 ## Lokale Entwicklung
@@ -46,9 +48,11 @@ npm test
 
 Öffne [http://localhost:5173](http://localhost:5173) im Browser.
 
-**Optionale Umgebungsvariable** (`.env` aus `.env.example` kopieren):
+**Optionale Umgebungsvariablen** (`.env` aus `.env.example` kopieren):
 ```
 MAPILLARY_ACCESS_TOKEN=   # Mapillary Street-Level-Fotos aktivieren
+SUPABASE_URL=             # persistenter POI-Cache (sonst In-Memory-Fallback)
+SUPABASE_SERVICE_KEY=     # service_role key — nur serverseitig, nie im Client
 ```
 
 ## Deployment auf Render.com
@@ -99,7 +103,15 @@ Browser
                             └── /api/notes      → OSM Notes API
 ```
 
-Der Express-Server cached Overpass-Antworten (25 min TTL, BBox-Snapping auf 0,05°-Raster) und setzt Security-Header via [helmet](https://helmetjs.github.io).
+Der Express-Server cached Overpass-Antworten (BBox-Snapping auf 0,05°-Raster) und setzt Security-Header via [helmet](https://helmetjs.github.io). Der POI-Cache ist **pluggable**: mit gesetzten Supabase-Variablen persistent in Postgres (TTL 7 Tage, überlebt Render-Kaltstarts), sonst In-Memory-Fallback.
+
+### Supabase (optional, persistenter POI-Cache)
+
+1. Supabase-Projekt anlegen → **Project Settings → API**: Project URL + `service_role`-Key holen
+2. SQL aus `supabase/migrations/0001_poi_cache.sql` im **SQL Editor** ausführen
+3. `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` als Env-Vars setzen (Render-Dashboard / lokale `.env`)
+
+Ohne diese Variablen läuft alles unverändert mit dem In-Memory-Cache.
 
 ## Datenquellen & Lizenzen
 
