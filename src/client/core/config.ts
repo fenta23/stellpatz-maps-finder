@@ -3,7 +3,7 @@
 // Web + PWA: served same-origin by Express → base is empty, calls stay relative
 // (`/api/...`). Packaged builds (Capacitor) run from a non-HTTP origin
 // (`capacitor://`, `file://`), so relative calls would miss the server — set
-// VITE_API_BASE to the deployed origin (e.g. https://stellpatz-finder.onrender.com)
+// VITE_API_BASE to the deployed origin (e.g. https://stellplatz-maps-finder.onrender.com)
 // at build time and every call is rewritten to an absolute URL.
 
 /** Joins an API base with a path, tolerating a trailing slash on the base. */
