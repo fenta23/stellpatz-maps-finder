@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-07
+
+### Added
+- **PWA (installierbare App)**: `vite-plugin-pwa` (Workbox) erzeugt Service Worker + Web-App-Manifest. App ist auf iOS/Android/Desktop zum Home-Bildschirm hinzufügbar und lädt die Shell offline.
+  - Caching-Strategien: App-Shell precache · OSM-/Esri-Tiles `CacheFirst` (gedeckelt, nur besuchte — tile-policy-freundlich) · `/api/*` `NetworkFirst` (kurz offline-resilient)
+  - Grafisches App-Icon (Camper-Van + Mond, Camping/Overnighter-Thema) auf Markenblau — generiert aus `public/logo.svg` via `@vite-pwa/assets-generator` (`npm run generate-pwa-assets`)
+  - iOS-Meta-Tags (`apple-mobile-web-app-*`, apple-touch-icon), `theme-color`, `viewport-fit=cover` + Safe-Area-Insets (Notch/Home-Indicator)
+  - „Installieren"-Button (Chrome/Android via `beforeinstallprompt`) bzw. iOS-Hinweis „Teilen → Zum Home-Bildschirm"
+- **Capacitor-Vorbereitung**: `apiUrl()` / `VITE_API_BASE` entkoppelt den Client vom Same-Origin-API — relativ im Web/PWA, absolut (Render-URL) für spätere native Builds. Alle API-Fetches umgestellt.
+- 13 neue Tests (`apiUrl`-Auflösung, Install-Affordance + Plattform-Erkennung)
+
+### Changed
+- `.claude/launch.json` — Production-Launch-Config (`stellpatz-prod`, `node dist/server/index.js`) für PWA-/SW-Tests gegen den echten Express-Build
+
 ## [0.3.9] - 2026-06-06
 
 ### Changed

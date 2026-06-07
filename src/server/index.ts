@@ -23,13 +23,17 @@ const helmetConfig = helmet({
       styleSrc: ["'self'", "'unsafe-inline'"], // Leaflet needs inline styles
       imgSrc: [
         "'self'", 'data:', 'blob:',
-        'https://*.tile.openstreetmap.org',
+        'https://*.tile.openstreetmap.org', // OSM map tiles (<img>)
+        'https://server.arcgisonline.com',  // Esri satellite tiles (<img>)
         'https://upload.wikimedia.org',
         'https://commons.wikimedia.org',
         'https://images.mapillary.com',
         'https://graph.mapillary.com',
       ],
-      connectSrc: ["'self'"],
+      // 'self' for the API proxy; commons for the client-side Wikimedia
+      // image-info lookup (a fetch, not an <img>). Map tiles load as <img>
+      // (see img-src) — not via fetch — so they need no connect-src entry.
+      connectSrc: ["'self'", 'https://commons.wikimedia.org'],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],

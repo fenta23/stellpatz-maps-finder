@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import { apiUrl } from '../config.js'
 
 export type RoutingMode = 'driving' | 'cycling' | 'foot'
 
@@ -90,7 +91,7 @@ export class DirectionsService {
 
   async route(from: LatLon, to: LatLon, mode: RoutingMode = 'driving'): Promise<RouteResult> {
     const res = await fetch(
-      `/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}&mode=${mode}`,
+      apiUrl(`/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}&mode=${mode}`),
     )
     if (!res.ok) throw new Error(`Route API error: ${res.status}`)
     const data = await res.json() as OsrmResponse

@@ -12,7 +12,13 @@ npm run test:watch   # watch mode
 npm run build        # production build → dist/client/ (Vite) + dist/server/ (tsc)
 npm run build:client # only Vite frontend build
 npm run build:server # only TypeScript server compilation
+npm run generate-pwa-assets # regenerate PWA icons from public/logo.svg
 ```
+
+## PWA
+- `vite-plugin-pwa` (Workbox) erzeugt Service Worker + Manifest beim Build (nur Production, nicht im Dev-Server)
+- SW-Test lokal: `npm run build && node dist/server/index.js` (Launch-Config `stellpatz-prod`)
+- API-Aufrufe gehen über `apiUrl()` (`src/client/config.ts`) — relativ im Web, absolut (`VITE_API_BASE`) für spätere Capacitor-Builds. **Neue API-Fetches immer über `apiUrl()`.**
 
 ## Deployment (Render.com)
 1. Repo auf GitHub pushen

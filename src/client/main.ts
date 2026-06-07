@@ -12,6 +12,8 @@ import { FilterPanel } from './ui/FilterPanel.js'
 import { PoiDetailPanel } from './ui/PoiDetailPanel.js'
 import { SearchBar } from './ui/SearchBar.js'
 import { LocalFavoritesStore } from './favorites/FavoritesStore.js'
+import { apiUrl } from './config.js'
+import { setupInstall } from './pwa/installPrompt.js'
 
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447] // Germany center
 
@@ -36,6 +38,9 @@ async function init() {
   const detailContainer = document.getElementById('detail-panel')!
   const searchContainer = document.getElementById('search-bar')!
   const statusEl = document.getElementById('status')!
+
+  const installBtn = document.getElementById('btn-install')
+  if (installBtn) setupInstall(installBtn)
 
   function setStatus(msg: string, isError = false) {
     statusEl.textContent = msg
@@ -321,7 +326,7 @@ async function init() {
     if (selectedPoi?.id === poi.id) detailPanel.updateImages(images)
 
     try {
-      const resp = await fetch(`/api/mapillary?lat=${poi.lat}&lon=${poi.lon}`)
+      const resp = await fetch(apiUrl(`/api/mapillary?lat=${poi.lat}&lon=${poi.lon}`))
       if (resp.ok) {
         const mapillaryImages = await resp.json() as PoiImage[]
         if (selectedPoi?.id === poi.id) detailPanel.updateImages([...images, ...mapillaryImages])
@@ -330,14 +335,14 @@ async function init() {
   }
 
   function loadNearbyFor(poi: { id: number; lat: number; lon: number }) {
-    fetch(`/api/nearby?lat=${poi.lat}&lon=${poi.lon}`)
+    fetch(apiUrl(`/api/nearby?lat=${poi.lat}&lon=${poi.lon}`))
       .then(r => r.json() as Promise<NearbyItem[]>)
       .then(items => { if (selectedPoi?.id === poi.id) detailPanel.updateNearby(items) })
       .catch(() => { if (selectedPoi?.id === poi.id) detailPanel.updateNearby([]) })
   }
 
   function loadNotesFor(poi: { id: number; lat: number; lon: number }) {
-    fetch(`/api/notes?lat=${poi.lat}&lon=${poi.lon}`)
+    fetch(apiUrl(`/api/notes?lat=${poi.lat}&lon=${poi.lon}`))
       .then(r => r.json() as Promise<OsmNote[]>)
       .then(notes => {
         if (selectedPoi?.id === poi.id) detailPanel.updateNotes(notes)
