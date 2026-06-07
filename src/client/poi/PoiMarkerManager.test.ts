@@ -28,12 +28,12 @@ function makeAdapter(): MapAdapter & { handles: ReturnType<typeof makeHandle>[] 
   }
 }
 
-const poi = (id: number, type: OsmPoi['type'] = 'parking'): OsmPoi => ({
+const poi = (id: number, type: OsmPoi['type'] = 'parking', access?: string): OsmPoi => ({
   id,
   type,
   lat: 48 + id * 0.01,
   lon: 11 + id * 0.01,
-  tags: { name: `POI ${id}` },
+  tags: access !== undefined ? { name: `POI ${id}`, access } : { name: `POI ${id}` },
 })
 
 describe('PoiMarkerManager', () => {
@@ -137,6 +137,30 @@ describe('buildIcon', () => {
       expect(buildIcon(type, true)).toContain('♥')
     }
   })
+
+  it('uses the blue icon for public parking', () => {
+    const svg = buildIcon('parking', false, false)
+    expect(svg).toContain('#1565C0')
+    expect(svg).not.toContain('#616161')
+  })
+
+  it('uses the grey icon plus lock badge for private parking', () => {
+    const svg = buildIcon('parking', false, true)
+    expect(svg).toContain('#616161') // grey fill + lock
+    expect(svg).not.toContain('#1565C0')
+  })
+
+  it('combines lock and heart badges for a favorited private parking', () => {
+    const svg = buildIcon('parking', true, true)
+    expect(svg).toContain('♥')
+    expect(svg).toContain('#616161')
+  })
+
+  it('ignores isPrivate for non-parking types', () => {
+    const svg = buildIcon('campsite', false, true)
+    expect(svg).toContain('#E65100') // unchanged campsite colour
+    expect(svg).not.toContain('#616161')
+  })
 })
 
 describe('PoiMarkerManager.setFavorites', () => {
@@ -154,6 +178,19 @@ describe('PoiMarkerManager.setFavorites', () => {
     const mgr = new PoiMarkerManager(adapter, vi.fn())
     mgr.setFavorites(new Set(['1']))
     mgr.updatePois([poi(1)])
+    expect(adapter.handles[0]?.icon).toContain('%E2%99%A5')
+  })
+
+  it('renders private parking with the grey icon and keeps it through favorite toggle', () => {
+    const adapter = makeAdapter()
+    const mgr = new PoiMarkerManager(adapter, vi.fn())
+    mgr.updatePois([poi(1, 'parking', 'private'), poi(2, 'parking', 'yes')])
+    expect(adapter.handles[0]?.icon).toContain('%23616161') // #616161 URL-encoded
+    expect(adapter.handles[1]?.icon).not.toContain('%23616161')
+
+    // toggling a favorite must not lose the private (grey) styling
+    mgr.setFavorites(new Set(['1']))
+    expect(adapter.handles[0]?.icon).toContain('%23616161')
     expect(adapter.handles[0]?.icon).toContain('%E2%99%A5')
   })
 })

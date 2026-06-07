@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.6] - 2026-06-06
+## [0.3.7] - 2026-06-06
+
+### Added
+- **Private Parkplätze visuell unterscheidbar**: Parkplätze mit `access=private`/`no` erhalten ein graues Marker-Icon mit Schloss-Badge (unten links), öffentliche bleiben blau
+- `isPrivateParking()` — pure Klassifizierer in `OverpassClient.ts` (öffentlich = `yes`/`public`/`permissive`/`customers` oder kein Tag; privat = `private`/`no`)
+- 13 neue Tests (Klassifizierer + Icon-Varianten + Persistenz durch Favoriten-Toggle)
+
+### Changed
+- `buildIcon(type, isFavorite, isPrivate?)` — dritter Parameter; Schloss- und Herz-Badge kombinierbar ohne Kollision (Schloss unten links, Herz oben rechts)
 
 ### Added
 - **Satelliten-Ansicht**: Layer-Switcher oben rechts (Leaflet `L.control.layers`) schaltet zwischen „Karte" (OSM) und „Satellit" (Esri World Imagery) um — Marker bleiben in beiden Ansichten sichtbar
