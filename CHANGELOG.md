@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-07
+
+### Changed
+- **Client auf Vertical Slices umgestellt** — Organisation nach Feature statt technischer Schicht: `app/` (Composition Root), `core/`, `features/{map,pois,poi-detail,routing,search,filters,favorites,install}`. Pfad-Aliase `@/` → `src/client/`, `@shared/` → `src/shared/` (Vite + tsconfig).
+- **`main.ts` von 364 → ~150 Zeilen** (reines Wiring). Aus der God-`init()` extrahiert:
+  - `app/session.ts` — expliziter UI-State statt verstreuter Closure-`let`s
+  - `app/selection.ts` — der zuvor 3-fach duplizierte „select → route → show → load"-Flow (Marker-Klick / Navigate / Routing-Wechsel) an einer Stelle
+  - `app/poiRefresher.ts` — Bounds → Overpass → Marker → Status (Abort/Slow-Hint/Zoom-Guard gekapselt)
+  - `features/map/leafletAdapter.ts` — Leaflet-`MapAdapter`-Implementierung (war inline)
+  - `features/map/locationMarker.ts`, `features/map/panIntoView.ts` (pure Pan-Mathematik)
+  - `features/pois/statusMessages.ts` (pure Overpass-Fehler-/Count-Texte)
+  - `features/poi-detail/poiData.ts` (Wikimedia/Mapillary/Nearby/Notes-Lader + pure Helpers)
+- 24 neue Unit-Tests für die extrahierten Pure-Units + Selection-Controller (258 gesamt). Verhalten unverändert (Browser-Smoke verifiziert).
+
 ## [0.4.0] - 2026-06-07
 
 ### Added
