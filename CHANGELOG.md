@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-07
+
+### Added
+- **Persistenter POI-Cache (Supabase Postgres)** — Phase 1 der Server-Erweiterung:
+  - Pluggable async `PoiCache`-Interface mit zwei Implementierungen: `createSupabaseCache` (persistent, via PostgREST + `fetch` — **keine neue Server-Dependency**) und `createInMemoryCache` (Fallback).
+  - Aktiv, sobald `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` gesetzt sind; sonst In-Memory-Fallback → **PR sofort sicher mergebar**, der Cache überlebt dann Render-Restarts.
+  - TTL 7 Tage (OSM-POIs ändern sich langsam). Cache-Fehler werden geschluckt — nie im Request-Pfad.
+  - SQL-Migration `supabase/migrations/0001_poi_cache.sql` (Tabelle `poi_cache`, RLS an, service-role-only).
+  - `render.yaml` + `.env.example` um `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` erweitert.
+  - 10 neue Tests (In-Memory-TTL/Eviction, Supabase get/set inkl. Stale-/Fehlerfälle).
+
+### Changed
+- Overpass-Route nutzt jetzt das async `PoiCache`-Interface (`await cache.get/set`) statt der synchronen `getCached/setCached`.
+
 ## [0.5.0] - 2026-06-07
 
 ### Changed

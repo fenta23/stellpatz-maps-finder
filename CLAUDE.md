@@ -34,8 +34,9 @@ Client-Dateien aus `dist/client/` — ein einziger Service für alles.
 ### Backend (`src/server/`)
 - `index.ts` — Express server, `createApp()` für Tests + Produktion exportiert
 - Proxies: Overpass, Nominatim, Valhalla routing, Mapillary, OSM Notes
-- In-memory Overpass cache (TTL 5 min, BBox-Snapping auf 0,05°-Raster)
+- **POI-Cache (pluggable, async `PoiCache`):** `createSupabaseCache` (persistent, Postgres via PostgREST, TTL 7 Tage) wenn `SUPABASE_URL`+`SUPABASE_SERVICE_KEY` gesetzt; sonst `createInMemoryCache` (Fallback). BBox-Snapping auf 0,05°-Raster. Cache wirft nie in den Request-Pfad.
 - Security: helmet (CSP, X-Frame-Options …), trust proxy, rate limiting
+- **Supabase (optional):** Migration `supabase/migrations/0001_poi_cache.sql`; Env `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (service_role, nur serverseitig). Zugriff dependency-frei über PostgREST + `fetch`.
 
 ### Frontend (`src/client/`) — **vertical slices**
 Organisiert nach Feature, nicht nach technischer Schicht. Pfad-Aliase: `@/` → `src/client/`, `@shared/` → `src/shared/`.
