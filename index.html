@@ -231,20 +231,7 @@
     .auth-msg-ok { color: var(--accent-strong); }
     .auth-msg-error { color: var(--danger); }
 
-    /* ── Install button + hint ── */
-    #btn-install {
-      flex-shrink: 0;
-      border: none;
-      border-radius: var(--radius-sm);
-      background: rgba(255, 255, 255, 0.18);
-      color: #fff;
-      font-size: 1rem;
-      line-height: 1;
-      padding: 8px 11px;
-      cursor: pointer;
-    }
-    #btn-install:hover { background: rgba(255, 255, 255, 0.32); }
-
+    /* ── Install hint (iOS add-to-home; surfaced later via Help) ── */
     .install-hint {
       position: fixed;
       left: 50%;
@@ -584,7 +571,6 @@
     <button id="btn-menu" type="button" title="Menü" aria-label="Menü">☰</button>
     <h1>🅿️ Stellpatz Finder</h1>
     <div id="search-bar"></div>
-    <button id="btn-install" type="button" title="App installieren" aria-label="App installieren" hidden>⬇️</button>
   </div>
   <div id="filter-panel">
     <div id="poi-filter"></div>

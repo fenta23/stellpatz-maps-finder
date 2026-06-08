@@ -14,7 +14,6 @@ import { FilterPanel } from '@/features/filters/FilterPanel.js'
 import { SearchBar } from '@/features/search/SearchBar.js'
 import { LocalFavoritesStore } from '@/features/favorites/FavoritesStore.js'
 import { SyncedFavoritesStore, createSupabaseFavoritesBackend } from '@/features/favorites/RemoteFavoritesStore.js'
-import { setupInstall } from '@/features/install/installPrompt.js'
 import { SideMenu, type MenuItem } from '@/features/menu/SideMenu.js'
 import { clearAppCache } from '@/features/menu/clearAppCache.js'
 import { getSupabaseClient } from '@/features/auth/authClient.js'
@@ -42,10 +41,8 @@ function requestLocation(statusEl: HTMLElement): Promise<[number, number] | null
 async function init() {
   // ── DOM ────────────────────────────────────────────────────────────────────
   const mapContainer = document.getElementById('map')!
-  const installBtn = document.getElementById('btn-install')
   const statusEl = document.getElementById('status')!
   const routingModeEl = document.getElementById('routing-mode') as HTMLSelectElement
-  if (installBtn) setupInstall(installBtn)
 
   // Side menu items — account entry only when Supabase auth is configured
   const menuItems: MenuItem[] = []
