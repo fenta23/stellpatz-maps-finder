@@ -14,6 +14,8 @@ import { FilterPanel } from '@/features/filters/FilterPanel.js'
 import { SearchBar } from '@/features/search/SearchBar.js'
 import { LocalFavoritesStore } from '@/features/favorites/FavoritesStore.js'
 import { SyncedFavoritesStore, createSupabaseFavoritesBackend } from '@/features/favorites/RemoteFavoritesStore.js'
+import { FavoritesListPanel } from '@/features/favorites/FavoritesListPanel.js'
+import { toFavoritePoi, favoriteToPoi } from '@/features/favorites/poiLabel.js'
 import { SideMenu, type MenuItem } from '@/features/menu/SideMenu.js'
 import { clearAppCache } from '@/features/menu/clearAppCache.js'
 import { getSupabaseClient } from '@/features/auth/authClient.js'
@@ -44,22 +46,15 @@ async function init() {
   const statusEl = document.getElementById('status')!
   const routingModeEl = document.getElementById('routing-mode') as HTMLSelectElement
 
-  // Side menu items — account entry only when Supabase auth is configured
-  const menuItems: MenuItem[] = []
+  // Auth (only when Supabase is configured) — panel built here, menu assembled
+  // further down once the services it links to (favorites list, map) exist.
   const supabase = getSupabaseClient()
   let auth: Auth | null = null
+  let authPanel: AuthPanel | null = null
   if (supabase) {
     auth = createAuth(supabase)
-    const authPanel = new AuthPanel(document.body, auth)
-    menuItems.push({ icon: '👤', label: 'Konto', onSelect: () => authPanel.open() })
+    authPanel = new AuthPanel(document.body, auth)
   }
-  menuItems.push({
-    icon: '🗑️',
-    label: 'Cache leeren & neu laden',
-    onSelect: () => void clearAppCache().then(() => location.reload()),
-  })
-  const menu = new SideMenu(document.body, menuItems)
-  document.getElementById('btn-menu')?.addEventListener('click', () => menu.toggle())
 
   const setStatus = (msg: string, isError = false) => {
     statusEl.textContent = msg
@@ -177,11 +172,40 @@ async function init() {
   detailPanel.onClose(() => selection.clear())
   detailPanel.onFavoriteToggle(() => {
     if (!session.selectedPoi) return
-    favorites.toggle(String(session.selectedPoi.id))
+    favorites.toggle(toFavoritePoi(session.selectedPoi))
     markerManager.setFavorites(favorites.getAll())
   })
 
   searchBar.onPlaceSelected(({ lat, lng }) => mapService.setCenter(lat, lng, 14))
+
+  // ── Favorites list overlay + side menu ───────────────────────────────────────
+  const favoritesPanel = new FavoritesListPanel(document.body, {
+    getFavorites: () => favorites.list(),
+    onSelect: fav => {
+      mapService.setCenter(fav.lat, fav.lon, 14)
+      void selection.select(favoriteToPoi(fav))
+    },
+    onRemove: fav => {
+      favorites.toggle(fav) // present → removes it
+      markerManager.setFavorites(favorites.getAll())
+    },
+  })
+  favorites.onChange(() => favoritesPanel.refresh())
+
+  const menuItems: MenuItem[] = [
+    { icon: '🗺️', label: 'Karte', onSelect: () => favoritesPanel.close() },
+    { icon: '⭐', label: 'Favoriten', onSelect: () => favoritesPanel.open() },
+  ]
+  if (authPanel) {
+    menuItems.push({ icon: '👤', label: 'Konto', onSelect: () => authPanel!.open() })
+  }
+  menuItems.push({
+    icon: '🗑️',
+    label: 'Cache leeren & neu laden',
+    onSelect: () => void clearAppCache().then(() => location.reload()),
+  })
+  const menu = new SideMenu(document.body, menuItems)
+  document.getElementById('btn-menu')?.addEventListener('click', () => menu.toggle())
 }
 
 init().catch(err => {
