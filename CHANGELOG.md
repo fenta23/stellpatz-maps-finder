@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Favoriten-Liste** als Vollbild-Overlay über der Karte, erreichbar über zwei neue Menüeinträge **„🗺️ Karte"** und **„⭐ Favoriten"**:
+  - Paginierte Liste (8/Seite) aller Favoriten mit Typ-Icon, Name (bzw. Typ als Fallback) und Entfernen-Button.
+  - Klick auf einen Favoriten → Overlay schließt, Karte zentriert auf den POI und startet die Route vom Standort (`selection.select`).
+  - Neue Pure-Helfer `paginate`, `poiLabel` (Typ-Icon/Label, `toFavoritePoi`/`favoriteToPoi`); neue `FavoritesListPanel`-Komponente.
+  - 27 neue Tests (Store-Snapshots inkl. Legacy-Migration, Panel-Rendering/Pagination/Select/Remove, `paginate`, `poiLabel`).
+
 ### Changed
+- **Favoriten speichern jetzt einen POI-Snapshot** (Name + Koordinaten + Typ) statt nur der ID — damit die Liste ohne Live-Overpass-Abfrage funktioniert (auch offline / außerhalb des aktuellen Ausschnitts). `IFavoritesStore.toggle` nimmt nun ein `FavoritePoi`, neue `list()`-Methode; Migration `0003_favorites_snapshot.sql` ergänzt die Supabase-Spalten (nullable → alte Zeilen bleiben gültig). Alt-Favoriten (nur IDs) im localStorage werden migriert: Herz am Marker bleibt, in der Liste erscheinen sie erst nach erneutem Favorisieren.
 - Install-Button (⬇️) aus der Topbar entfernt — auf iOS war er nur ein Hinweis, kein echter Install-Trigger. Der `install`-Slice (`installPrompt.ts`) bleibt erhalten und wird später als Hilfe-Eintrag im Seitenmenü wiederverwendet.
 
 ## [0.9.0] - 2026-06-07

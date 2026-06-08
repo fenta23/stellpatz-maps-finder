@@ -1,11 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { IFavoritesStore } from './FavoritesStore.js'
+import type { PoiType } from '@/features/pois/OverpassClient.js'
+import type { FavoritePoi, IFavoritesStore } from './FavoritesStore.js'
 import { LocalFavoritesStore } from './FavoritesStore.js'
 
 /** Remote persistence for favorites. All ops are async and may reject. */
 export interface FavoritesBackend {
-  load(): Promise<readonly string[]>
-  add(id: string): Promise<void>
+  load(): Promise<readonly FavoritePoi[]>
+  add(poi: FavoritePoi): Promise<void>
   remove(id: string): Promise<void>
 }
 
@@ -28,15 +29,19 @@ export class SyncedFavoritesStore implements IFavoritesStore {
     return this.local.getAll()
   }
 
+  list(): readonly FavoritePoi[] {
+    return this.local.list()
+  }
+
   onChange(cb: () => void): () => void {
     return this.local.onChange(cb)
   }
 
-  toggle(id: string): boolean {
-    const isFavorite = this.local.toggle(id)
+  toggle(poi: FavoritePoi): boolean {
+    const isFavorite = this.local.toggle(poi)
     const backend = this.backend
     if (backend) {
-      const op = isFavorite ? backend.add(id) : backend.remove(id)
+      const op = isFavorite ? backend.add(poi) : backend.remove(poi.id)
       void op.catch(err => console.warn('[favorites] remote sync failed:', err))
     }
     return isFavorite
@@ -49,22 +54,40 @@ export class SyncedFavoritesStore implements IFavoritesStore {
    */
   async connect(backend: FavoritesBackend): Promise<void> {
     this.backend = backend
-    let remote: readonly string[]
+    let remote: readonly FavoritePoi[]
     try {
       remote = await backend.load()
     } catch (err) {
       console.warn('[favorites] remote load failed:', err)
       return
     }
-    const remoteSet = new Set(remote)
-    const guestOnly = [...this.local.getAll()].filter(id => !remoteSet.has(id))
+    const remoteIds = new Set(remote.map(p => p.id))
+    const guestOnly = this.local.list().filter(p => !remoteIds.has(p.id))
     this.local.addMany(remote)
-    await Promise.allSettled(guestOnly.map(id => backend.add(id)))
+    await Promise.allSettled(guestOnly.map(poi => backend.add(poi)))
   }
 
   /** Detach on logout; the local mirror stays as the guest set. */
   disconnect(): void {
     this.backend = null
+  }
+}
+
+interface FavoriteRow {
+  poi_id: unknown
+  type: unknown
+  name: unknown
+  lat: unknown
+  lon: unknown
+}
+
+function rowToFavorite(row: FavoriteRow): FavoritePoi {
+  return {
+    id: String(row.poi_id),
+    type: (row.type as PoiType) ?? 'parking',
+    name: typeof row.name === 'string' ? row.name : '',
+    lat: Number(row.lat),
+    lon: Number(row.lon),
   }
 }
 
@@ -75,14 +98,15 @@ export function createSupabaseFavoritesBackend(
 ): FavoritesBackend {
   return {
     async load() {
-      const { data, error } = await client.from('favorites').select('poi_id')
+      const { data, error } = await client.from('favorites').select('poi_id,type,name,lat,lon')
       if (error) throw new Error(error.message)
-      return (data ?? []).map(row => String((row as { poi_id: unknown }).poi_id))
+      return (data ?? []).map(row => rowToFavorite(row as FavoriteRow))
     },
-    async add(id) {
-      const { error } = await client
-        .from('favorites')
-        .upsert({ user_id: userId, poi_id: id }, { onConflict: 'user_id,poi_id' })
+    async add(poi) {
+      const { error } = await client.from('favorites').upsert(
+        { user_id: userId, poi_id: poi.id, type: poi.type, name: poi.name, lat: poi.lat, lon: poi.lon },
+        { onConflict: 'user_id,poi_id' },
+      )
       if (error) throw new Error(error.message)
     },
     async remove(id) {
