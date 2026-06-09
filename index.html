@@ -231,6 +231,35 @@
     .auth-msg-ok { color: var(--accent-strong); }
     .auth-msg-error { color: var(--danger); }
 
+    /* Google OAuth button */
+    .auth-btn-oauth {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-bottom: 4px;
+    }
+    .auth-oauth-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; color: #4285F4; font-weight: 700; font-size: 0.85rem;
+      border: 1px solid var(--border);
+    }
+    .auth-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 16px 0 12px; color: var(--ink-faint); font-size: 0.75rem;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* Profile overview */
+    .profile { margin: 4px 0 18px; }
+    .profile-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 9px 0; border-bottom: 1px solid var(--border-soft);
+      font-size: 0.9rem;
+    }
+    .profile-row dt { color: var(--ink-muted); }
+    .profile-row dd { color: var(--ink); font-weight: 600; }
+
     /* ── Favorites list overlay ── */
     .fav-panel {
       position: fixed;

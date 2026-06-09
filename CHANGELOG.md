@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Google-Login (OAuth)** als mail-freie Alternative zum Magic-Link: Button „Mit Google anmelden" im Konto-Modal (`auth.signInWithGoogle` → `signInWithOAuth`, voller Redirect, kein Mailversand). Magic-Link bleibt zusätzlich verfügbar.
+- **Profil-Übersicht** im Konto-Modal: E-Mail, Anmeldemethode (Google / E-Mail), „Mitglied seit" und Live-Zähler für Favoriten + Notizen, plus Abmelden. Setup-Doku für den Google-Provider in der README.
+
 ### Changed
 - **Overpass: HPI-Instanz (`osm.hpi.de`) zuerst** + robusterer Fallback. Die Endpoint-Liste wird der Reihe nach probiert; bei **Timeout, 429 und allen 5xx (inkl. 504 Gateway Timeout)** wird jetzt der nächste Endpoint versucht statt den Fehler durchzureichen. Behebt die abbrechenden/langsamen Requests (overpass-api.de lieferte u. a. 504-HTML). Per-Versuch-Timeout auf 15 s.
 - **HTML-Views als `.html`-Partials statt imperativem `createElement`-Code:** Markup lebt jetzt in eigenen `.html`-Dateien pro View (per Vite `?raw` importiert) — kein Dependency, keine Template-Engine, kein Magic, CSP-safe (kein `eval`).
