@@ -28,20 +28,25 @@ export function createOverpassRouter(cache: PoiCache): Router {
       for (let i = 0; i < n; i++) {
         const url = OVERPASS_ENDPOINTS[endpointIdx % n]!
         endpointIdx++
+        const isLast = i === n - 1
         try {
           const upstream = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT },
             body,
-            signal: AbortSignal.timeout(20_000),
+            signal: AbortSignal.timeout(15_000),
           })
 
-          if (upstream.status === 429 || upstream.status === 503) {
-            if (i < n - 1) continue
-            res.status(429).json({ error: 'Overpass rate limited on all endpoints' })
+          // Overloaded / rate-limited / server-side errors (incl. 504 Gateway
+          // Timeout) are transient — try the next endpoint before giving up.
+          if (upstream.status === 429 || upstream.status >= 500) {
+            if (!isLast) continue
+            res.status(upstream.status === 429 ? 429 : 503)
+              .json({ error: 'Overpass unavailable on all endpoints' })
             return
           }
           if (!upstream.ok) {
+            // A genuine client error (bad query) — retrying won't help.
             res.status(upstream.status).json({ error: `Overpass error: ${upstream.statusText}` })
             return
           }
@@ -51,7 +56,8 @@ export function createOverpassRouter(cache: PoiCache): Router {
           res.json(data)
           return
         } catch {
-          if (i < n - 1) continue
+          // Network error or timeout — fall through to the next endpoint.
+          if (!isLast) continue
           res.status(503).json({ error: 'All Overpass endpoints unreachable' })
           return
         }
