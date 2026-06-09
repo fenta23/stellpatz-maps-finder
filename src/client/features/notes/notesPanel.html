@@ -1,0 +1,22 @@
+<div class="fav-panel" role="dialog" aria-label="Notizen">
+  <div class="fav-header">
+    <span class="fav-title">📝 Notizen</span>
+    <button class="fav-close" type="button" aria-label="Schließen">✕</button>
+  </div>
+  <ul class="fav-list" data-ref="list" data-list>
+    <template data-row>
+      <li class="fav-item">
+        <button class="fav-item-main" type="button" data-on="select">
+          <span class="fav-item-icon" data-text="icon"></span>
+          <span class="fav-item-text">
+            <span class="fav-item-name" data-text="name"></span>
+            <span class="fav-item-sub" data-text="sub"></span>
+          </span>
+        </button>
+        <button class="fav-item-remove" type="button" data-on="remove" title="Notiz löschen">🗑️</button>
+      </li>
+    </template>
+    <li class="fav-empty" data-empty>Noch keine Notizen. Öffne einen Ort und schreib unter „📝 Meine Notiz".</li>
+  </ul>
+  <div class="fav-footer" data-ref="footer"></div>
+</div>
