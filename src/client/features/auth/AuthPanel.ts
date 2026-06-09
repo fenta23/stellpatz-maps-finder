@@ -1,12 +1,10 @@
 import type { User } from '@supabase/supabase-js'
 import type { Auth } from './auth.js'
 import { isValidEmail } from './isValidEmail.js'
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag)
-  node.className = cls
-  return node
-}
+import { clone, ref } from '@/core/template.js'
+import panelHtml from './authPanel.html?raw'
+import loggedInHtml from './authLoggedIn.html?raw'
+import loggedOutHtml from './authLoggedOut.html?raw'
 
 /** Modal for passwordless login (magic-link) and logout. Re-renders on auth change. */
 export class AuthPanel {
@@ -16,14 +14,12 @@ export class AuthPanel {
   private user: User | null = null
 
   constructor(container: HTMLElement, private readonly auth: Auth) {
-    this.backdrop = el('div', 'auth-backdrop')
+    this.backdrop = clone('<div class="auth-backdrop"></div>')
     this.backdrop.addEventListener('click', () => this.close())
 
-    this.panel = el('div', 'auth-panel')
-    this.panel.setAttribute('role', 'dialog')
-    this.panel.setAttribute('aria-label', 'Konto')
-    this.body = el('div', 'auth-body')
-    this.panel.appendChild(this.body)
+    this.panel = clone(panelHtml)
+    this.panel.querySelector('.auth-close')?.addEventListener('click', () => this.close())
+    this.body = ref(this.panel, 'body')
 
     container.append(this.backdrop, this.panel)
 
@@ -39,33 +35,21 @@ export class AuthPanel {
 
   private render(): void {
     this.body.innerHTML = ''
-    this.body.appendChild(this.closeButton())
-    if (this.user) this.renderLoggedIn(this.user)
-    else this.renderLoggedOut()
+    this.body.appendChild(this.user ? this.renderLoggedIn(this.user) : this.renderLoggedOut())
   }
 
-  private renderLoggedIn(user: User): void {
-    const title = el('h2', 'auth-title'); title.textContent = 'Konto'
-    const info = el('p', 'auth-info'); info.textContent = `Angemeldet als ${user.email ?? 'unbekannt'}`
-    const out = el('button', 'auth-btn'); out.type = 'button'; out.textContent = 'Abmelden'
-    out.addEventListener('click', () => void this.auth.signOut())
-    this.body.append(title, info, out)
+  private renderLoggedIn(user: User): HTMLElement {
+    const view = clone(loggedInHtml)
+    ref(view, 'info').textContent = `Angemeldet als ${user.email ?? 'unbekannt'}`
+    ref(view, 'logout').addEventListener('click', () => void this.auth.signOut())
+    return view
   }
 
-  private renderLoggedOut(): void {
-    const title = el('h2', 'auth-title'); title.textContent = 'Anmelden'
-    const hint = el('p', 'auth-info')
-    hint.textContent = 'Wir senden dir einen Magic-Link per E-Mail — kein Passwort nötig.'
-
-    const input = el('input', 'auth-input')
-    input.type = 'email'
-    input.placeholder = 'deine@email.de'
-    input.autocomplete = 'email'
-
-    const msg = el('p', 'auth-msg')
-    const send = el('button', 'auth-btn auth-btn-primary')
-    send.type = 'button'
-    send.textContent = 'Magic-Link senden'
+  private renderLoggedOut(): HTMLElement {
+    const view = clone(loggedOutHtml)
+    const input = ref<HTMLInputElement>(view, 'input')
+    const send = ref<HTMLButtonElement>(view, 'send')
+    const msg = ref(view, 'msg')
 
     send.addEventListener('click', async () => {
       const email = input.value.trim()
@@ -88,15 +72,6 @@ export class AuthPanel {
       }
     })
 
-    this.body.append(title, hint, input, send, msg)
-  }
-
-  private closeButton(): HTMLButtonElement {
-    const c = el('button', 'auth-close')
-    c.type = 'button'
-    c.textContent = '✕'
-    c.setAttribute('aria-label', 'Schließen')
-    c.addEventListener('click', () => this.close())
-    return c
+    return view
   }
 }
