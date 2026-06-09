@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML-Views als `.html`-Partials statt imperativem `createElement`-Code:** Markup lebt jetzt in eigenen `.html`-Dateien pro View (per Vite `?raw` importiert) — kein Dependency, keine Template-Engine, kein Magic, CSP-safe (kein `eval`).
   - **Iteration steht im HTML, nicht in TS:** Listen tragen `data-list` + ein `<template data-row>` (die Wiederhol-Einheit) + optional `[data-empty]`; Bindings über `data-text="key"` und `data-on="name"`. TS liefert nur noch Daten + Handler. Neuer Helfer `core/bind.ts` (`renderList`).
   - Helfer `core/template.ts` (`clone`/`ref`/`cloneFragment`) für Shell-Markup + `core/pagination.ts` (gemeinsamer Seiten-Footer beider Listen).
-  - Migriert: `SideMenu`, `AuthPanel`, `FavoritesListPanel`, `NotesListPanel`. 23 neue Tests. *(`PoiDetailPanel` folgt separat.)*
+  - Migriert: `SideMenu`, `AuthPanel`, `FavoritesListPanel`, `NotesListPanel`, **`PoiDetailPanel`** (Shell als Partial, Tag-Tabelle als `<template data-row>`). Das ersetzt die große HTML-Template-String-`renderHtml` und beseitigt deren `esc()`/`innerHTML`-XSS-Fläche (Werte jetzt via `textContent`, Links als echte `<a>` mit `safeUrl`).
 - Favoriten-Liste zeigt die **persönliche Notiz** (mit 📝) als Unterzeile, falls vorhanden — sonst wie bisher den Typ. Macht Favoriten leichter unterscheidbar; aktualisiert sich live beim Speichern einer Notiz.
 
 ### Added

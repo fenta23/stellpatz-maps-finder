@@ -1,0 +1,48 @@
+<div class="poi-detail-content">
+  <div class="panel-header">
+    <h2 data-ref="name"></h2>
+    <button class="btn-favorite" type="button" data-ref="fav" aria-label="Favorit"></button>
+    <button class="btn-close" type="button" data-ref="close" aria-label="Schließen">✕</button>
+  </div>
+
+  <div class="oh-badge" data-ref="ohBadge" hidden></div>
+
+  <div class="route-summary" data-ref="routeSummary" hidden>
+    <span data-ref="routeMain"></span>
+    <span class="detour" data-ref="routeDetour"></span>
+  </div>
+
+  <div data-section="images"></div>
+
+  <table class="poi-tags">
+    <tbody data-ref="tags" data-list>
+      <template data-row>
+        <tr>
+          <th data-text="label"></th>
+          <td data-ref="cell" data-text="value"></td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+
+  <div data-section="nearby"></div>
+
+  <div class="poi-mynote">
+    <h3 class="mynote-heading">📝 Meine Notiz</h3>
+    <textarea class="mynote-input" data-ref="note" rows="3" placeholder="Eigene Notiz zu diesem Ort…"></textarea>
+    <div class="mynote-row">
+      <button class="mynote-save" type="button">Speichern</button>
+      <span class="mynote-status" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <div data-section="notes" class="poi-notes">
+    <p class="notes-loading">Community-Hinweise werden geladen…</p>
+  </div>
+
+  <div class="panel-actions">
+    <button class="btn-navigate btn-primary" type="button">🗺️ Route hierhin</button>
+    <a class="btn-secondary" data-ref="osm" target="_blank" rel="noopener">Auf OpenStreetMap anzeigen ↗</a>
+    <a class="btn-secondary" data-ref="gmaps" target="_blank" rel="noopener">In Google Maps öffnen ↗</a>
+  </div>
+</div>

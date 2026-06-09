@@ -114,6 +114,36 @@ describe('PoiDetailPanel', () => {
     document.body.removeChild(lb)
   })
 
+  it('renders tag rows into the table', () => {
+    const container = document.createElement('div')
+    new PoiDetailPanel(container).show(poi)
+    const rows = container.querySelectorAll('.poi-tags tr')
+    const text = [...rows].map(r => r.textContent?.replace(/\s+/g, ' ').trim())
+    expect(text).toContain('Typ Campingplatz')
+    expect(text.some(t => t?.startsWith('Gebühr'))).toBe(true)
+  })
+
+  it('renders a website tag as a safe anchor', () => {
+    const container = document.createElement('div')
+    new PoiDetailPanel(container).show(poi)
+    const a = container.querySelector<HTMLAnchorElement>('.poi-tags a')
+    expect(a?.getAttribute('href')).toBe('https://example.com')
+    expect(a?.textContent).toContain('Öffnen')
+    expect(a?.target).toBe('_blank')
+  })
+
+  it('neutralises a javascript: URL in a website tag', () => {
+    const container = document.createElement('div')
+    new PoiDetailPanel(container).show({ ...poi, tags: { ...poi.tags, website: 'javascript:alert(1)' } })
+    expect(container.querySelector<HTMLAnchorElement>('.poi-tags a')?.getAttribute('href')).toBe('#')
+  })
+
+  it('prefills the personal note textarea', () => {
+    const container = document.createElement('div')
+    new PoiDetailPanel(container).show(poi, undefined, undefined, false, 'Tor links')
+    expect(container.querySelector<HTMLTextAreaElement>('.mynote-input')?.value).toBe('Tor links')
+  })
+
   it('escapes HTML in tag values', () => {
     const container = document.createElement('div')
     const panel = new PoiDetailPanel(container)
