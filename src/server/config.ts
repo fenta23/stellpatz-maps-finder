@@ -1,7 +1,11 @@
+// Tried in order, with fallback to the next on timeout / 429 / 5xx.
+// HPI (Hasso-Plattner-Institut) first — fast and reliable for our viewport
+// queries; the others stay as fallbacks.
 export const OVERPASS_ENDPOINTS = [
-  'https://overpass.openstreetmap.fr/api/interpreter',
+  'https://osm.hpi.de/overpass/api/interpreter',
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.fr/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ] as const
 

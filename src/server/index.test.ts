@@ -53,6 +53,35 @@ describe('POST /api/overpass', () => {
     expect(calls).toBeGreaterThanOrEqual(2)
   })
 
+  it('retries next endpoint on 504 Gateway Timeout and succeeds', async () => {
+    const payload = { elements: [] }
+    let calls = 0
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
+      calls++
+      return Promise.resolve({
+        status: calls === 1 ? 504 : 200,
+        ok: calls !== 1,
+        statusText: calls === 1 ? 'Gateway Timeout' : 'OK',
+        json: () => Promise.resolve(payload),
+      })
+    }))
+    const res = await request(createApp())
+      .post('/api/overpass')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('data=test')
+    expect(res.status).toBe(200)
+    expect(calls).toBeGreaterThanOrEqual(2)
+  })
+
+  it('returns 503 when all endpoints return 5xx', async () => {
+    mockFetch(502, null)
+    const res = await request(createApp())
+      .post('/api/overpass')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('data=test')
+    expect(res.status).toBe(503)
+  })
+
   it('returns cached result on second identical request without hitting upstream', async () => {
     const payload = { elements: [{ id: 1 }] }
     mockFetch(200, payload)

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Overpass: HPI-Instanz (`osm.hpi.de`) zuerst** + robusterer Fallback. Die Endpoint-Liste wird der Reihe nach probiert; bei **Timeout, 429 und allen 5xx (inkl. 504 Gateway Timeout)** wird jetzt der nächste Endpoint versucht statt den Fehler durchzureichen. Behebt die abbrechenden/langsamen Requests (overpass-api.de lieferte u. a. 504-HTML). Per-Versuch-Timeout auf 15 s.
 - **HTML-Views als `.html`-Partials statt imperativem `createElement`-Code:** Markup lebt jetzt in eigenen `.html`-Dateien pro View (per Vite `?raw` importiert) — kein Dependency, keine Template-Engine, kein Magic, CSP-safe (kein `eval`).
   - **Iteration steht im HTML, nicht in TS:** Listen tragen `data-list` + ein `<template data-row>` (die Wiederhol-Einheit) + optional `[data-empty]`; Bindings über `data-text="key"` und `data-on="name"`. TS liefert nur noch Daten + Handler. Neuer Helfer `core/bind.ts` (`renderList`).
   - Helfer `core/template.ts` (`clone`/`ref`/`cloneFragment`) für Shell-Markup + `core/pagination.ts` (gemeinsamer Seiten-Footer beider Listen).
