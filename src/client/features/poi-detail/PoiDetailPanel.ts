@@ -3,6 +3,9 @@ import { buildOsmPoiLink, buildGoogleMapsLink } from '@/features/routing/Directi
 import type { RouteResult, RoutingMode } from '@/features/routing/DirectionsService.js'
 import { coalesce } from '@shared/fp.js'
 import { strEllipsisLen } from '@shared/str.js'
+import { clone, ref } from '@/core/template.js'
+import { renderList } from '@/core/bind.js'
+import panelHtml from './poiDetailPanel.html?raw'
 
 export type NavigateRequest = { readonly poi: OsmPoi }
 
@@ -24,6 +27,14 @@ export interface NearbyItem {
   readonly name: string
   readonly distance: number
 }
+
+interface TagRow {
+  readonly label: string
+  readonly value: string
+  readonly href?: string
+}
+
+const MODE_ICON: Record<RoutingMode, string> = { driving: '🚗', cycling: '🚲', foot: '🚶' }
 
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
@@ -56,23 +67,69 @@ export class PoiDetailPanel {
     })
   }
 
-  show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode, isFavorite = false, noteText = ''): void {
+  show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = ''): void {
     this.panel.classList.remove('hidden')
-    this.panel.innerHTML = this.renderHtml(poi, route, mode, isFavorite, noteText)
-    this.panel.querySelector('.btn-navigate')?.addEventListener('click', () => {
-      for (const l of this.listeners) l({ poi })
-    })
-    this.panel.querySelector('.btn-close')?.addEventListener('click', () => this.hide())
+    this.panel.innerHTML = ''
+    const view = clone(panelHtml)
+    this.panel.appendChild(view)
 
-    const favBtn = this.panel.querySelector<HTMLButtonElement>('.btn-favorite')
-    favBtn?.addEventListener('click', () => {
-      const nowFav = favBtn.getAttribute('aria-pressed') !== 'true'
-      favBtn.setAttribute('aria-pressed', String(nowFav))
-      favBtn.textContent = nowFav ? '♥' : '♡'
-      favBtn.classList.toggle('active', nowFav)
+    const t = poi.tags
+    ref(view, 'name').textContent = t.name ?? typeLabel(poi.type)
+
+    const fav = ref(view, 'fav')
+    fav.setAttribute('aria-pressed', String(isFavorite))
+    fav.textContent = isFavorite ? '♥' : '♡'
+    fav.classList.toggle('active', isFavorite)
+    fav.addEventListener('click', () => {
+      const nowFav = fav.getAttribute('aria-pressed') !== 'true'
+      fav.setAttribute('aria-pressed', String(nowFav))
+      fav.textContent = nowFav ? '♥' : '♡'
+      fav.classList.toggle('active', nowFav)
       for (const l of this.favListeners) l()
     })
 
+    ref(view, 'close').addEventListener('click', () => this.hide())
+    view.querySelector('.btn-navigate')?.addEventListener('click', () => {
+      for (const l of this.listeners) l({ poi })
+    })
+
+    // Opening-hours badge
+    const oh = t.opening_hours ? parseOpenHours(t.opening_hours) : null
+    if (oh) {
+      const badge = ref(view, 'ohBadge')
+      badge.hidden = false
+      badge.classList.add(oh.open ? 'oh-open' : 'oh-closed')
+      badge.textContent = oh.hint
+    }
+
+    // Route summary
+    if (route) {
+      ref(view, 'routeSummary').hidden = false
+      ref(view, 'routeMain').textContent = `${MODE_ICON[mode]} ${route.distanceText} · ${route.durationText}`
+      ref(view, 'routeDetour').textContent =
+        `Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})`
+    }
+
+    // Tags table (iteration declared in the HTML via <template data-row>)
+    renderList(ref(view, 'tags'), buildTags(poi), {
+      row: r => ({ label: r.label, value: r.href ? '' : r.value }),
+      decorate: (rowEl, r) => {
+        if (!r.href) return
+        const cell = rowEl.querySelector('[data-ref="cell"]')
+        if (!cell) return
+        const a = clone<HTMLAnchorElement>('<a target="_blank" rel="noopener"></a>')
+        a.href = safeUrl(r.href)
+        a.textContent = `${r.value} ↗`
+        cell.appendChild(a)
+      },
+    })
+
+    // External links
+    ref<HTMLAnchorElement>(view, 'osm').href = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
+    ref<HTMLAnchorElement>(view, 'gmaps').href = buildGoogleMapsLink({ lat: poi.lat, lon: poi.lon })
+
+    // Personal note
+    ref<HTMLTextAreaElement>(view, 'note').value = noteText
     this.wireNoteEditor(noteText)
   }
 
@@ -88,7 +145,6 @@ export class PoiDetailPanel {
       for (const l of this.noteListeners) l(text)
       if (status) status.textContent = text ? '✓ gespeichert' : 'gelöscht'
     }
-    // Save on explicit button press and when the field loses focus.
     this.panel.querySelector('.mynote-save')?.addEventListener('click', save)
     input.addEventListener('blur', save)
     input.addEventListener('input', () => { if (status) status.textContent = '' })
@@ -159,125 +215,72 @@ export class PoiDetailPanel {
       if (idx !== -1) this.listeners.splice(idx, 1)
     }
   }
+}
 
-  private renderHtml(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = ''): string {
-    const t = poi.tags
-    const name = t.name ?? typeLabel(poi.type)
-    const osmLink = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
-    const googleLink = buildGoogleMapsLink({ lat: poi.lat, lon: poi.lon })
+function bool(v: string | undefined): string | undefined {
+  return v === 'yes' ? 'Ja' : v === 'no' ? 'Nein' : v === 'limited' ? 'Begrenzt' : v
+}
 
-    const rows: string[] = []
-    const add = (label: string, value: string | undefined) => {
-      if (value) rows.push(`<tr><th>${esc(label)}</th><td>${esc(value)}</td></tr>`)
-    }
-    const addLink = (label: string, href: string, text: string) => {
-      rows.push(`<tr><th>${esc(label)}</th><td><a href="${esc(href)}" target="_blank" rel="noopener">${esc(text)} ↗</a></td></tr>`)
-    }
-    const bool = (v: string | undefined) =>
-      v === 'yes' ? 'Ja' : v === 'no' ? 'Nein' : v === 'limited' ? 'Begrenzt' : v
+/** Build the ordered key/value (and link) rows for a POI's tag table. */
+function buildTags(poi: OsmPoi): TagRow[] {
+  const t = poi.tags
+  const rows: TagRow[] = []
+  const add = (label: string, value: string | undefined) => { if (value) rows.push({ label, value }) }
+  const addLink = (label: string, href: string, value: string) => rows.push({ label, value, href })
 
-    // ── Basic ──────────────────────────────────────────────────────────────────
-    add('Typ', typeLabel(poi.type))
-    add('Zugang', ACCESS_LABELS[t['access'] ?? ''] ?? t['access'])
-    add('Öffnungszeiten', t.opening_hours)
+  add('Typ', typeLabel(poi.type))
+  add('Zugang', ACCESS_LABELS[t['access'] ?? ''] ?? t['access'])
+  add('Öffnungszeiten', t.opening_hours)
 
-    // ── Parking-specific ───────────────────────────────────────────────────────
-    if (poi.type === 'parking') {
-      add('Parkplatztyp', PARKING_LABELS[t['parking'] ?? ''] ?? t['parking'])
-      add('Belag', SURFACE_LABELS[t['surface'] ?? ''] ?? t['surface'])
-      add('Beleuchtet', bool(t['lit']))
-      add('Überdacht', bool(t['covered']))
-      add('Bewacht', bool(t['supervised']))
-      if (t['maxheight']) add('Max. Höhe', t['maxheight'] + ' m')
-      if (t['maxweight']) add('Max. Gewicht', t['maxweight'] + ' t')
-      add('Park & Ride', bool(t['park_ride']))
-      add('E-Ladesäule', bool(t['capacity:charging']))
-    }
-
-    // ── Camper / campsite ──────────────────────────────────────────────────────
-    if (poi.type === 'camper' || poi.type === 'campsite') {
-      add('Strom', bool(t['electricity'] ?? t['power_supply']))
-      add('Trinkwasser', bool(t['drinking_water']))
-      add('Dusche', bool(t['shower']))
-      add('Toilette', bool(t['toilets']))
-      add('Entsorgungsstation', bool(t['sanitary_dump_station'] ?? t['motorhome_dump_station']))
-      add('WLAN', WIFI_LABELS[t['internet_access'] ?? ''] ?? bool(t['internet_access']))
-      add('Hunde', DOG_LABELS[t['dog'] ?? ''] ?? bool(t['dog']))
-      add('Wohnwagen', bool(t['caravans']))
-      add('Zelte', bool(t['tents']))
-      add('Nur Gruppen', bool(t['group_only']))
-      if (t['stars']) add('Sterne', '★'.repeat(Number(t['stars'])))
-    }
-
-    // ── Costs ─────────────────────────────────────────────────────────────────
-    add('Gebühr', t.fee === 'yes' ? 'Ja' : t.fee === 'no' ? 'Nein' : t.fee)
-    add('Preis', t['charge'])
-    add('Max. Aufenthalt', t['maxstay'])
-    add('Kapazität', t.capacity)
-
-    // ── Contact ────────────────────────────────────────────────────────────────
-    if (t.phone) addLink('Telefon', safeUrl(`tel:${t.phone}`), t.phone)
-    if (t.email) addLink('E-Mail', safeUrl(`mailto:${t.email}`), t.email)
-    if (t.website) addLink('Website', safeUrl(t.website), 'Öffnen')
-
-    // ── Address ────────────────────────────────────────────────────────────────
-    const addrParts = [
-      t['addr:street'] && t['addr:housenumber']
-        ? `${t['addr:street']} ${t['addr:housenumber']}`
-        : t['addr:street'],
-      t['addr:postcode'] && t['addr:city']
-        ? `${t['addr:postcode']} ${t['addr:city']}`
-        : t['addr:city'],
-    ].filter(Boolean)
-    if (addrParts.length) add('Adresse', addrParts.join(', '))
-
-    add('Betreiber', t.operator)
-    if (t.description) add('Beschreibung', t.description)
-
-    // ── Opening hours status ───────────────────────────────────────────────────
-    const ohStatus = t.opening_hours ? parseOpenHours(t.opening_hours) : null
-    const ohBadge = ohStatus
-      ? `<div class="oh-badge ${ohStatus.open ? 'oh-open' : 'oh-closed'}">${esc(ohStatus.hint)}</div>`
-      : ''
-
-    // ── Route summary ──────────────────────────────────────────────────────────
-    const modeIcon: Record<RoutingMode, string> = { driving: '🚗', cycling: '🚲', foot: '🚶' }
-    const routeHtml = route
-      ? `<div class="route-summary">
-          <span>${modeIcon[mode]} ${esc(route.distanceText)} · ${esc(route.durationText)}</span>
-          <span class="detour">Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})</span>
-        </div>`
-      : ''
-
-    return `
-      <div class="panel-header">
-        <h2>${esc(name)}</h2>
-        <button class="btn-favorite${isFavorite ? ' active' : ''}" aria-label="Favorit" aria-pressed="${isFavorite}">${isFavorite ? '♥' : '♡'}</button>
-        <button class="btn-close" aria-label="Schließen">✕</button>
-      </div>
-      ${ohBadge}
-      ${routeHtml}
-      <div data-section="images"></div>
-      <table class="poi-tags">${rows.join('')}</table>
-      <div data-section="nearby"></div>
-      <div class="poi-mynote">
-        <h3 class="mynote-heading">📝 Meine Notiz</h3>
-        <textarea class="mynote-input" rows="3" placeholder="Eigene Notiz zu diesem Ort…">${esc(noteText)}</textarea>
-        <div class="mynote-row">
-          <button class="mynote-save" type="button">Speichern</button>
-          <span class="mynote-status" aria-live="polite"></span>
-        </div>
-      </div>
-      <div data-section="notes" class="poi-notes">
-        <p class="notes-loading">Community-Hinweise werden geladen…</p>
-      </div>
-      <div class="panel-actions">
-        <button class="btn-navigate btn-primary">🗺️ Route hierhin</button>
-        <a class="btn-secondary" href="${osmLink}" target="_blank" rel="noopener">Auf OpenStreetMap anzeigen ↗</a>
-        <a class="btn-secondary" href="${googleLink}" target="_blank" rel="noopener">In Google Maps öffnen ↗</a>
-      </div>
-    `
+  if (poi.type === 'parking') {
+    add('Parkplatztyp', PARKING_LABELS[t['parking'] ?? ''] ?? t['parking'])
+    add('Belag', SURFACE_LABELS[t['surface'] ?? ''] ?? t['surface'])
+    add('Beleuchtet', bool(t['lit']))
+    add('Überdacht', bool(t['covered']))
+    add('Bewacht', bool(t['supervised']))
+    if (t['maxheight']) add('Max. Höhe', t['maxheight'] + ' m')
+    if (t['maxweight']) add('Max. Gewicht', t['maxweight'] + ' t')
+    add('Park & Ride', bool(t['park_ride']))
+    add('E-Ladesäule', bool(t['capacity:charging']))
   }
+
+  if (poi.type === 'camper' || poi.type === 'campsite') {
+    add('Strom', bool(t['electricity'] ?? t['power_supply']))
+    add('Trinkwasser', bool(t['drinking_water']))
+    add('Dusche', bool(t['shower']))
+    add('Toilette', bool(t['toilets']))
+    add('Entsorgungsstation', bool(t['sanitary_dump_station'] ?? t['motorhome_dump_station']))
+    add('WLAN', WIFI_LABELS[t['internet_access'] ?? ''] ?? bool(t['internet_access']))
+    add('Hunde', DOG_LABELS[t['dog'] ?? ''] ?? bool(t['dog']))
+    add('Wohnwagen', bool(t['caravans']))
+    add('Zelte', bool(t['tents']))
+    add('Nur Gruppen', bool(t['group_only']))
+    if (t['stars']) add('Sterne', '★'.repeat(Number(t['stars'])))
+  }
+
+  add('Gebühr', t.fee === 'yes' ? 'Ja' : t.fee === 'no' ? 'Nein' : t.fee)
+  add('Preis', t['charge'])
+  add('Max. Aufenthalt', t['maxstay'])
+  add('Kapazität', t.capacity)
+
+  if (t.phone) addLink('Telefon', `tel:${t.phone}`, t.phone)
+  if (t.email) addLink('E-Mail', `mailto:${t.email}`, t.email)
+  if (t.website) addLink('Website', t.website, 'Öffnen')
+
+  const addrParts = [
+    t['addr:street'] && t['addr:housenumber']
+      ? `${t['addr:street']} ${t['addr:housenumber']}`
+      : t['addr:street'],
+    t['addr:postcode'] && t['addr:city']
+      ? `${t['addr:postcode']} ${t['addr:city']}`
+      : t['addr:city'],
+  ].filter(Boolean) as string[]
+  if (addrParts.length) add('Adresse', addrParts.join(', '))
+
+  add('Betreiber', t.operator)
+  if (t.description) add('Beschreibung', t.description)
+
+  return rows
 }
 
 function renderImages(images: PoiImage[]): string {
