@@ -117,6 +117,15 @@ Der Express-Server cached Overpass-Antworten (BBox-Snapping auf 0,05°-Raster) u
 
 Ohne die Server-Variablen läuft der POI-Cache als In-Memory-Fallback; ohne die `VITE_`-Variablen sind Login + Server-Favoriten einfach aus.
 
+#### Login-Methoden
+
+- **Google (OAuth, ohne Mailversand — empfohlen):**
+  1. [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services → Credentials** → „Create OAuth client ID" → Typ **Web application**.
+  2. **Authorized redirect URI**: `https://<project-ref>.supabase.co/auth/v1/callback` (die Callback-URL steht auch in Supabase unter dem Google-Provider).
+  3. Client-ID + Secret in **Supabase → Authentication → Providers → Google** eintragen und aktivieren.
+  4. Die App-Origin(s) (`localhost:5173`, Render-URL) müssen in der Redirect-URL-Allowlist stehen (s. o.) — der Client schickt `redirectTo = window.location.origin`.
+- **Magic-Link (E-Mail):** funktioniert ohne weiteres Setup, hängt aber am Mailversand (Rate-Limit) → für echten Betrieb eigenes SMTP, siehe `supabase/templates/README.md`.
+
 ## Datenquellen & Lizenzen
 
 Alle Kartendaten © [OpenStreetMap-Mitwirkende](https://www.openstreetmap.org/copyright), lizenziert unter [ODbL](https://opendatacommons.org/licenses/odbl/).  

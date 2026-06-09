@@ -5,6 +5,8 @@ export type MagicLinkResult = { ok: true } | { ok: false; error: string }
 export interface Auth {
   /** Sends a passwordless magic-link to the given email. */
   sendMagicLink(email: string): Promise<MagicLinkResult>
+  /** Starts the Google OAuth flow (full-page redirect; no email involved). */
+  signInWithGoogle(): Promise<void>
   signOut(): Promise<void>
   currentUser(): Promise<User | null>
   /** Subscribe to login/logout; returns an unsubscribe fn. */
@@ -20,6 +22,13 @@ export function createAuth(client: SupabaseClient): Auth {
         options: { emailRedirectTo: window.location.origin },
       })
       return error ? { ok: false, error: error.message } : { ok: true }
+    },
+
+    async signInWithGoogle() {
+      await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      })
     },
 
     async signOut() {

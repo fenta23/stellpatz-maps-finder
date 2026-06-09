@@ -56,7 +56,9 @@ async function init() {
   let authPanel: AuthPanel | null = null
   if (supabase) {
     auth = createAuth(supabase)
-    authPanel = new AuthPanel(document.body, auth)
+    authPanel = new AuthPanel(document.body, auth, {
+      getStats: () => ({ favorites: favorites.list().length, notes: notes.list().length }),
+    })
   }
 
   const setStatus = (msg: string, isError = false) => {

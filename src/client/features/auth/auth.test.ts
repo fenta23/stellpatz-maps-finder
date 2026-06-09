@@ -6,6 +6,7 @@ function fakeClient(over: Record<string, unknown> = {}) {
   const unsubscribe = vi.fn()
   const auth = {
     signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
+    signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
     getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
     onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe } } }),
@@ -28,6 +29,16 @@ describe('createAuth.sendMagicLink', () => {
     const { client } = fakeClient({ signInWithOtp: vi.fn().mockResolvedValue({ error: { message: 'rate limited' } }) })
     const res = await createAuth(client).sendMagicLink('me@example.com')
     expect(res).toEqual({ ok: false, error: 'rate limited' })
+  })
+})
+
+describe('createAuth.signInWithGoogle', () => {
+  it('starts the Google OAuth flow', async () => {
+    const { client, auth } = fakeClient()
+    await createAuth(client).signInWithGoogle()
+    expect(auth.signInWithOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'google' }),
+    )
   })
 })
 
