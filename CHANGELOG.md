@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Favoriten-Liste zeigt die **persönliche Notiz** (mit 📝) als Unterzeile, falls vorhanden — sonst wie bisher den Typ. Macht Favoriten leichter unterscheidbar; aktualisiert sich live beim Speichern einer Notiz.
+
 ### Added
 - **Persönliche Notizen pro POI** (Slice `features/notes/`):
   - Block **„📝 Meine Notiz"** im Detailpanel (Textfeld + Speichern), klar getrennt von den Community-OSM-Hinweisen. Speichern beim Klick und beim Verlassen des Felds; leeres Feld löscht die Notiz.

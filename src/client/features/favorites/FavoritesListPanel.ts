@@ -6,6 +6,8 @@ export interface FavoritesListPanelDeps {
   getFavorites: () => readonly FavoritePoi[]
   onSelect: (fav: FavoritePoi) => void
   onRemove: (fav: FavoritePoi) => void
+  /** Personal note for a POI, shown as the row subtitle when present. */
+  getNote?: (id: string) => string
 }
 
 const PAGE_SIZE = 8
@@ -89,8 +91,9 @@ export class FavoritesListPanel {
     const text = el('span', 'fav-item-text')
     const name = el('span', 'fav-item-name')
     name.textContent = favoriteLabel(fav)
+    const note = this.deps.getNote?.(fav.id)?.trim()
     const sub = el('span', 'fav-item-sub')
-    sub.textContent = typeLabel(fav.type)
+    sub.textContent = note ? `📝 ${note}` : typeLabel(fav.type)
     text.append(name, sub)
     main.append(icon, text)
     main.addEventListener('click', () => { this.close(); this.deps.onSelect(fav) })
