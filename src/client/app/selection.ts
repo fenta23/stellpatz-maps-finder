@@ -12,6 +12,8 @@ export interface SelectionDeps {
   readonly panIntoView: (poi: { lat: number; lon: number }) => void
   readonly loadDetails: (poi: OsmPoi) => void
   readonly onNoLocation: () => void
+  /** Current personal note text for a POI (defaults to none). */
+  readonly getNote?: (poi: OsmPoi) => string
 }
 
 export interface Selection {
@@ -33,12 +35,13 @@ export interface Selection {
 export function createSelection(deps: SelectionDeps): Selection {
   const { session, directions, panel, favorites } = deps
   const isFav = (poi: OsmPoi) => favorites.has(String(poi.id))
+  const noteOf = (poi: OsmPoi) => deps.getNote?.(poi) ?? ''
 
   async function routeAndShow(poi: OsmPoi, withDetails: boolean): Promise<void> {
     const route = await directions
       .route(session.userPos!, { lat: poi.lat, lon: poi.lon }, session.routingMode)
       .catch(() => undefined)
-    panel.show(poi, route, session.routingMode, isFav(poi))
+    panel.show(poi, route, session.routingMode, isFav(poi), noteOf(poi))
     if (withDetails) deps.loadDetails(poi)
   }
 
@@ -47,7 +50,7 @@ export function createSelection(deps: SelectionDeps): Selection {
       session.selectedPoi = poi
       deps.panIntoView(poi)
       if (!session.userPos) {
-        panel.show(poi, undefined, undefined, isFav(poi))
+        panel.show(poi, undefined, undefined, isFav(poi), noteOf(poi))
         deps.onNoLocation()
         return
       }

@@ -1,21 +1,8 @@
-import type { OsmPoi, PoiType } from '@/features/pois/OverpassClient.js'
+import type { OsmPoi } from '@/features/pois/OverpassClient.js'
+import { typeLabel } from '@/features/pois/poiMeta.js'
 import type { FavoritePoi } from './FavoritesStore.js'
 
-const TYPE_META: Record<PoiType, { icon: string; label: string }> = {
-  parking: { icon: '🅿️', label: 'Parkplatz' },
-  camper: { icon: '🚐', label: 'Camper-Stellplatz' },
-  campsite: { icon: '⛺', label: 'Campingplatz' },
-  dump: { icon: '🚿', label: 'Entsorgung' },
-  water: { icon: '🚰', label: 'Wasser' },
-}
-
-export function typeIcon(type: PoiType): string {
-  return TYPE_META[type]?.icon ?? '📍'
-}
-
-export function typeLabel(type: PoiType): string {
-  return TYPE_META[type]?.label ?? 'Ort'
-}
+export { typeIcon, typeLabel } from '@/features/pois/poiMeta.js'
 
 /** Display name for a favorite: its OSM name, else a type-based fallback. */
 export function favoriteLabel(fav: FavoritePoi): string {

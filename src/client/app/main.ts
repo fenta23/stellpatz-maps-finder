@@ -16,6 +16,9 @@ import { LocalFavoritesStore } from '@/features/favorites/FavoritesStore.js'
 import { SyncedFavoritesStore, createSupabaseFavoritesBackend } from '@/features/favorites/RemoteFavoritesStore.js'
 import { FavoritesListPanel } from '@/features/favorites/FavoritesListPanel.js'
 import { toFavoritePoi, favoriteToPoi } from '@/features/favorites/poiLabel.js'
+import { LocalNotesStore, toNoteTarget, noteToPoi } from '@/features/notes/NotesStore.js'
+import { SyncedNotesStore, createSupabaseNotesBackend } from '@/features/notes/RemoteNotesStore.js'
+import { NotesListPanel } from '@/features/notes/NotesListPanel.js'
 import { SideMenu, type MenuItem } from '@/features/menu/SideMenu.js'
 import { clearAppCache } from '@/features/menu/clearAppCache.js'
 import { getSupabaseClient } from '@/features/auth/authClient.js'
@@ -73,6 +76,7 @@ async function init() {
   const detailPanel = new PoiDetailPanel(document.getElementById('detail-panel')!)
   const searchBar = new SearchBar(document.getElementById('search-bar')!)
   const favorites = new SyncedFavoritesStore(new LocalFavoritesStore())
+  const notes = new SyncedNotesStore(new LocalNotesStore())
   const directions = new DirectionsService(map)
   const session = createSession(userPos ? { lat: userPos[0], lon: userPos[1] } : null)
 
@@ -110,8 +114,10 @@ async function init() {
         void favorites
           .connect(createSupabaseFavoritesBackend(supabase, user.id))
           .then(() => markerManager.setFavorites(favorites.getAll()))
+        void notes.connect(createSupabaseNotesBackend(supabase, user.id))
       } else {
         favorites.disconnect()
+        notes.disconnect()
       }
     })
   }
@@ -138,6 +144,7 @@ async function init() {
     panIntoView: poi => panPoiIntoView(map, mapContainer, poi),
     loadDetails,
     onNoLocation: () => flashStatus('Standort unbekannt – Route nicht möglich'),
+    getNote: poi => notes.get(String(poi.id)),
   })
 
   // ── POI refresh on map/filter changes ────────────────────────────────────────
@@ -175,6 +182,10 @@ async function init() {
     favorites.toggle(toFavoritePoi(session.selectedPoi))
     markerManager.setFavorites(favorites.getAll())
   })
+  detailPanel.onNoteSave(text => {
+    if (!session.selectedPoi) return
+    notes.set(toNoteTarget(session.selectedPoi), text)
+  })
 
   searchBar.onPlaceSelected(({ lat, lng }) => mapService.setCenter(lat, lng, 14))
 
@@ -192,9 +203,20 @@ async function init() {
   })
   favorites.onChange(() => favoritesPanel.refresh())
 
+  const notesPanel = new NotesListPanel(document.body, {
+    getNotes: () => notes.list(),
+    onSelect: note => {
+      mapService.setCenter(note.lat, note.lon, 14)
+      void selection.select(noteToPoi(note))
+    },
+    onRemove: note => notes.remove(note.id),
+  })
+  notes.onChange(() => notesPanel.refresh())
+
   const menuItems: MenuItem[] = [
-    { icon: '🗺️', label: 'Karte', onSelect: () => favoritesPanel.close() },
-    { icon: '⭐', label: 'Favoriten', onSelect: () => favoritesPanel.open() },
+    { icon: '🗺️', label: 'Karte', onSelect: () => { favoritesPanel.close(); notesPanel.close() } },
+    { icon: '⭐', label: 'Favoriten', onSelect: () => { notesPanel.close(); favoritesPanel.open() } },
+    { icon: '📝', label: 'Notizen', onSelect: () => { favoritesPanel.close(); notesPanel.open() } },
   ]
   if (authPanel) {
     menuItems.push({ icon: '👤', label: 'Konto', onSelect: () => authPanel!.open() })

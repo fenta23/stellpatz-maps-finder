@@ -30,6 +30,7 @@ export class PoiDetailPanel {
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
   private readonly closeListeners: Array<() => void> = []
   private readonly favListeners: Array<() => void> = []
+  private readonly noteListeners: Array<(text: string) => void> = []
 
   constructor(private readonly container: HTMLElement) {
     this.panel = document.createElement('aside')
@@ -55,9 +56,9 @@ export class PoiDetailPanel {
     })
   }
 
-  show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode, isFavorite = false): void {
+  show(poi: OsmPoi, route?: RouteResult, mode?: RoutingMode, isFavorite = false, noteText = ''): void {
     this.panel.classList.remove('hidden')
-    this.panel.innerHTML = this.renderHtml(poi, route, mode, isFavorite)
+    this.panel.innerHTML = this.renderHtml(poi, route, mode, isFavorite, noteText)
     this.panel.querySelector('.btn-navigate')?.addEventListener('click', () => {
       for (const l of this.listeners) l({ poi })
     })
@@ -71,6 +72,26 @@ export class PoiDetailPanel {
       favBtn.classList.toggle('active', nowFav)
       for (const l of this.favListeners) l()
     })
+
+    this.wireNoteEditor(noteText)
+  }
+
+  private wireNoteEditor(initial: string): void {
+    const input = this.panel.querySelector<HTMLTextAreaElement>('.mynote-input')
+    const status = this.panel.querySelector<HTMLElement>('.mynote-status')
+    if (!input) return
+    let saved = initial
+    const save = () => {
+      const text = input.value.trim()
+      if (text === saved) return
+      saved = text
+      for (const l of this.noteListeners) l(text)
+      if (status) status.textContent = text ? '✓ gespeichert' : 'gelöscht'
+    }
+    // Save on explicit button press and when the field loses focus.
+    this.panel.querySelector('.mynote-save')?.addEventListener('click', save)
+    input.addEventListener('blur', save)
+    input.addEventListener('input', () => { if (status) status.textContent = '' })
   }
 
   updateImages(images: PoiImage[]): void {
@@ -122,6 +143,15 @@ export class PoiDetailPanel {
     }
   }
 
+  /** Fires with the new (trimmed) note text when the personal note is saved. */
+  onNoteSave(listener: (text: string) => void): () => void {
+    this.noteListeners.push(listener)
+    return () => {
+      const idx = this.noteListeners.indexOf(listener)
+      if (idx !== -1) this.noteListeners.splice(idx, 1)
+    }
+  }
+
   onNavigate(listener: (r: NavigateRequest) => void): () => void {
     this.listeners.push(listener)
     return () => {
@@ -130,7 +160,7 @@ export class PoiDetailPanel {
     }
   }
 
-  private renderHtml(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false): string {
+  private renderHtml(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = ''): string {
     const t = poi.tags
     const name = t.name ?? typeLabel(poi.type)
     const osmLink = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
@@ -230,6 +260,14 @@ export class PoiDetailPanel {
       <div data-section="images"></div>
       <table class="poi-tags">${rows.join('')}</table>
       <div data-section="nearby"></div>
+      <div class="poi-mynote">
+        <h3 class="mynote-heading">📝 Meine Notiz</h3>
+        <textarea class="mynote-input" rows="3" placeholder="Eigene Notiz zu diesem Ort…">${esc(noteText)}</textarea>
+        <div class="mynote-row">
+          <button class="mynote-save" type="button">Speichern</button>
+          <span class="mynote-status" aria-live="polite"></span>
+        </div>
+      </div>
       <div data-section="notes" class="poi-notes">
         <p class="notes-loading">Community-Hinweise werden geladen…</p>
       </div>
