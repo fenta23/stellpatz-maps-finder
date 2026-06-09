@@ -34,6 +34,26 @@ describe('FavoritesListPanel', () => {
     expect(document.querySelector('.fav-item-name')?.textContent).toBe('Platz 1')
   })
 
+  it('shows the type label as subtitle when there is no note', () => {
+    const { panel } = mount([poi('1')])
+    panel.open()
+    expect(document.querySelector('.fav-item-sub')?.textContent).toBe('Parkplatz')
+  })
+
+  it('shows the note (prefixed) as subtitle when getNote returns one', () => {
+    let items = [poi('1'), poi('2')]
+    const panel = new FavoritesListPanel(document.body, {
+      getFavorites: () => items,
+      getNote: id => (id === '1' ? '  Tor links  ' : ''),
+      onSelect: vi.fn(),
+      onRemove: vi.fn(),
+    })
+    panel.open()
+    const subs = [...document.querySelectorAll('.fav-item-sub')].map(s => s.textContent)
+    expect(subs[0]).toBe('📝 Tor links') // note wins, trimmed
+    expect(subs[1]).toBe('Parkplatz')    // falls back to type label
+  })
+
   it('shows an empty state when there are no favorites', () => {
     const { panel } = mount([])
     panel.open()

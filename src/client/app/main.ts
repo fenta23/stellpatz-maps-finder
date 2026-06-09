@@ -192,6 +192,7 @@ async function init() {
   // ── Favorites list overlay + side menu ───────────────────────────────────────
   const favoritesPanel = new FavoritesListPanel(document.body, {
     getFavorites: () => favorites.list(),
+    getNote: id => notes.get(id),
     onSelect: fav => {
       mapService.setCenter(fav.lat, fav.lon, 14)
       void selection.select(favoriteToPoi(fav))
@@ -202,6 +203,7 @@ async function init() {
     },
   })
   favorites.onChange(() => favoritesPanel.refresh())
+  notes.onChange(() => favoritesPanel.refresh()) // a saved note updates the favorites subtitle
 
   const notesPanel = new NotesListPanel(document.body, {
     getNotes: () => notes.list(),
