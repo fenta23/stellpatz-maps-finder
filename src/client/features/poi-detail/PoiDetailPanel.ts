@@ -26,6 +26,8 @@ export interface NearbyItem {
   readonly icon: string
   readonly name: string
   readonly distance: number
+  readonly lat: number
+  readonly lon: number
 }
 
 interface TagRow {
@@ -42,6 +44,8 @@ export class PoiDetailPanel {
   private readonly closeListeners: Array<() => void> = []
   private readonly favListeners: Array<() => void> = []
   private readonly noteListeners: Array<(text: string) => void> = []
+  private readonly nearbyListeners: Array<(item: NearbyItem) => void> = []
+  private nearbyItems: NearbyItem[] = []
 
   constructor(private readonly container: HTMLElement) {
     this.panel = document.createElement('aside')
@@ -50,10 +54,20 @@ export class PoiDetailPanel {
     this.container.appendChild(this.panel)
 
     this.panel.addEventListener('click', (e) => {
-      const link = (e.target as HTMLElement).closest<HTMLElement>('[data-lightbox]')
+      const target = e.target as HTMLElement
+      const link = target.closest<HTMLElement>('[data-lightbox]')
       if (link?.dataset['lightbox']) {
         e.preventDefault()
         showLightbox(link.dataset['lightbox'])
+        return
+      }
+      const nearby = target.closest<HTMLElement>('[data-nearby-idx]')
+      if (nearby?.dataset['nearbyIdx']) {
+        const item = this.nearbyItems[Number(nearby.dataset['nearbyIdx'])]
+        if (!item) return
+        this.panel.querySelectorAll('.nearby-item.active').forEach(el => el.classList.remove('active'))
+        nearby.classList.add('active')
+        for (const l of this.nearbyListeners) l(item)
       }
     })
 
@@ -160,14 +174,15 @@ export class PoiDetailPanel {
   updateNearby(items: NearbyItem[]): void {
     const section = this.panel.querySelector<HTMLElement>('[data-section="nearby"]')
     if (!section) return
+    this.nearbyItems = items
     if (items.length === 0) { section.innerHTML = ''; return }
-    const rows = items.map(it => {
+    const rows = items.map((it, i) => {
       const dist = it.distance < 1000
         ? `${it.distance} m`
         : `${(it.distance / 1000).toFixed(1).replace('.', ',')} km`
-      return `<li class="nearby-item"><span class="nearby-icon">${it.icon}</span><span class="nearby-name">${esc(it.name)}</span><span class="nearby-dist">${dist}</span></li>`
+      return `<li><button type="button" class="nearby-item" data-nearby-idx="${i}" title="Route von hier zeigen"><span class="nearby-icon">${it.icon}</span><span class="nearby-name">${esc(it.name)}</span><span class="nearby-dist">${dist}</span></button></li>`
     }).join('')
-    section.innerHTML = `<h3 class="nearby-heading">📍 In der Nähe</h3><ul class="nearby-list">${rows}</ul>`
+    section.innerHTML = `<h3 class="nearby-heading">📍 In der Nähe <span class="nearby-hint">· tippen für Route</span></h3><ul class="nearby-list">${rows}</ul>`
   }
 
   updateNotes(notes: OsmNote[]): void {
@@ -205,6 +220,15 @@ export class PoiDetailPanel {
     return () => {
       const idx = this.noteListeners.indexOf(listener)
       if (idx !== -1) this.noteListeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when a nearby POI row is tapped (to draw a secondary route to it). */
+  onNearbySelect(listener: (item: NearbyItem) => void): () => void {
+    this.nearbyListeners.push(listener)
+    return () => {
+      const idx = this.nearbyListeners.indexOf(listener)
+      if (idx !== -1) this.nearbyListeners.splice(idx, 1)
     }
   }
 

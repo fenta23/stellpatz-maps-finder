@@ -177,7 +177,7 @@ describe('GET /api/nearby', () => {
     const res = await request(createApp()).get('/api/nearby?lat=48.1&lon=11.5')
     expect(res.status).toBe(200)
     expect(res.body.length).toBe(2)
-    expect(res.body[0]).toMatchObject({ kind: 'bakery', icon: '🥐', name: 'Bäcker Huber' })
+    expect(res.body[0]).toMatchObject({ kind: 'bakery', icon: '🥐', name: 'Bäcker Huber', lat: 48.102, lon: 11.5 })
     expect(res.body[0].distance).toBeLessThan(res.body[1].distance)
   })
 

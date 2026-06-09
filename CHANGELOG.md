@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Routen zu Nearby-POIs.** Die „In der Nähe"-Einträge im Detailpanel sind jetzt anklickbar: ein Tipp zeichnet einen **zweiten, gestrichelten Track in anderer Farbe** (blau) vom geöffneten POI zum Nearby-POI (zu Fuß) und zeigt Distanz + Zeit als Hinweis. `/api/nearby` liefert dafür jetzt Koordinaten; neue `DirectionsService.routeSecondary`/`clearSecondaryRoute` (getrennt von der Haupt­route); aktiver Eintrag wird hervorgehoben.
 - **Google-Login (OAuth)** als mail-freie Alternative zum Magic-Link: Button „Mit Google anmelden" im Konto-Modal (`auth.signInWithGoogle` → `signInWithOAuth`, voller Redirect, kein Mailversand). Magic-Link bleibt zusätzlich verfügbar.
 - **Profil-Übersicht** im Konto-Modal: E-Mail, Anmeldemethode (Google / E-Mail), „Mitglied seit" und Live-Zähler für Favoriten + Notizen, plus Abmelden. Setup-Doku für den Google-Provider in der README.
 

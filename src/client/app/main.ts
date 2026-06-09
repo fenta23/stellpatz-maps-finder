@@ -66,6 +66,7 @@ async function init() {
     statusEl.className = isError ? 'status-error' : msg ? 'status-loading' : ''
   }
   const flashStatus = (msg: string) => { setStatus(msg, true); setTimeout(() => setStatus(''), 3000) }
+  const flashInfo = (msg: string) => { setStatus(msg); setTimeout(() => setStatus(''), 3500) }
 
   // ── Location bootstrap ───────────────────────────────────────────────────────
   const userPos = await requestLocation(statusEl)
@@ -187,6 +188,14 @@ async function init() {
   detailPanel.onNoteSave(text => {
     if (!session.selectedPoi) return
     notes.set(toNoteTarget(session.selectedPoi), text)
+  })
+  detailPanel.onNearbySelect(item => {
+    const poi = session.selectedPoi
+    if (!poi) return
+    void directions
+      .routeSecondary({ lat: poi.lat, lon: poi.lon }, { lat: item.lat, lon: item.lon })
+      .then(r => flashInfo(`${item.icon} ${item.name} · ${r.distanceText} · ${r.durationText} zu Fuß`))
+      .catch(() => flashStatus('Route zum Ziel nicht möglich'))
   })
 
   searchBar.onPlaceSelected(({ lat, lng }) => mapService.setCenter(lat, lng, 14))

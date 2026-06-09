@@ -88,6 +88,8 @@ export function createNearbyRouter(): Router {
             icon: meta.icon,
             name: el.tags['name'] ?? meta.label,
             distance: Math.round(haversineMeters(lat, lon, pos.lat, pos.lon)),
+            lat: pos.lat,
+            lon: pos.lon,
           }]
         })
         .sort((a, b) => a.distance - b.distance)
