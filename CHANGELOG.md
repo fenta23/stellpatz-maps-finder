@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Persönliche Notizen pro POI** (Slice `features/notes/`):
+  - Block **„📝 Meine Notiz"** im Detailpanel (Textfeld + Speichern), klar getrennt von den Community-OSM-Hinweisen. Speichern beim Klick und beim Verlassen des Felds; leeres Feld löscht die Notiz.
+  - Neuer Menüeintrag **„📝 Notizen"** → Overlay-Liste aller Orte mit Notiz (Notiztext als Vorschau), Tippen → Karte zentrieren + Detail öffnen, Löschen pro Eintrag.
+  - Speicherung lokal (localStorage) + bei Login zu Supabase gesynct (RLS pro Nutzer); Merge bei Login als Union, **lokale Bearbeitung gewinnt** bei Konflikt und beide Seiten werden konsistent. Migration `0004_notes.sql`.
+  - 31 neue Tests (`NotesStore` inkl. Persist/Merge, `SyncedNotesStore`-Sync/Write-Through/Disconnect, `NotesListPanel`, `poiMeta`).
 - **Favoriten-Liste** als Vollbild-Overlay über der Karte, erreichbar über zwei neue Menüeinträge **„🗺️ Karte"** und **„⭐ Favoriten"**:
   - Paginierte Liste (8/Seite) aller Favoriten mit Typ-Icon, Name (bzw. Typ als Fallback) und Entfernen-Button.
   - Klick auf einen Favoriten → Overlay schließt, Karte zentriert auf den POI und startet die Route vom Standort (`selection.select`).
@@ -15,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 27 neue Tests (Store-Snapshots inkl. Legacy-Migration, Panel-Rendering/Pagination/Select/Remove, `paginate`, `poiLabel`).
 
 ### Changed
+- POI-Metadaten (Typ-Icon/Label) nach `features/pois/poiMeta.ts` und `paginate` nach `src/shared/paginate.ts` ausgelagert — von Favoriten- und Notizen-Liste gemeinsam genutzt (DRY).
 - **Favoriten speichern jetzt einen POI-Snapshot** (Name + Koordinaten + Typ) statt nur der ID — damit die Liste ohne Live-Overpass-Abfrage funktioniert (auch offline / außerhalb des aktuellen Ausschnitts). `IFavoritesStore.toggle` nimmt nun ein `FavoritePoi`, neue `list()`-Methode; Migration `0003_favorites_snapshot.sql` ergänzt die Supabase-Spalten (nullable → alte Zeilen bleiben gültig). Alt-Favoriten (nur IDs) im localStorage werden migriert: Herz am Marker bleibt, in der Liste erscheinen sie erst nach erneutem Favorisieren.
 - Install-Button (⬇️) aus der Topbar entfernt — auf iOS war er nur ein Hinweis, kein echter Install-Trigger. Der `install`-Slice (`installPrompt.ts`) bleibt erhalten und wird später als Hilfe-Eintrag im Seitenmenü wiederverwendet.
 

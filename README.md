@@ -13,6 +13,7 @@ Kartenbasierte Web-App zur Routenplanung mit automatischer Anzeige von **Parkpl�
 - 🔍 **Suche** mit Nominatim-Autocomplete (viewport-basiert)
 - 🧭 **Routing** (Auto / Fahrrad / Fußweg) via Valhalla — mit Distanz, Fahrtzeit und Detour-Faktor
 - ❤️ **Favoriten** — Herz-Button im Panel, Herz-Badge auf dem Marker; paginierte Favoriten-Liste im Menü („⭐ Favoriten") mit Tippen → zentrieren + Route. Lokal in localStorage, bei Login zu Supabase synchronisiert (geräteübergreifend)
+- 📝 **Persönliche Notizen** — eigenes Notizfeld pro Ort im Detailpanel; paginierte Notizen-Liste im Menü („📝 Notizen"). Lokal + bei Login zu Supabase synchronisiert
 - 📸 **Bilder** aus OSM-Tags, Wikimedia Commons und Mapillary
 - 📍 **In der Nähe**: Tankstelle, Supermarkt, Apotheke, Bäckerei, Frischwasser, Entsorgung (bis 2 km)
 - 📝 **Community-Hinweise** aus der OSM Notes API
@@ -108,7 +109,7 @@ Der Express-Server cached Overpass-Antworten (BBox-Snapping auf 0,05°-Raster) u
 ### Supabase (optional: persistenter Cache, Login, Server-Favoriten)
 
 1. Supabase-Projekt anlegen → **Project Settings → API**: Project URL + `service_role`-Key (Server) + `anon`-Key (Client) holen
-2. Migrationen im **SQL Editor** ausführen: `supabase/migrations/0001_poi_cache.sql` (POI-Cache), `0002_favorites.sql` (Server-Favoriten, RLS) und `0003_favorites_snapshot.sql` (Name/Koordinaten-Spalten für die Favoriten-Liste)
+2. Migrationen im **SQL Editor** ausführen: `0001_poi_cache.sql` (POI-Cache), `0002_favorites.sql` (Server-Favoriten, RLS), `0003_favorites_snapshot.sql` (Name/Koordinaten für die Favoriten-Liste) und `0004_notes.sql` (persönliche Notizen, RLS) — alle unter `supabase/migrations/`
 3. Env-Vars setzen (Render-Dashboard / lokale `.env`):
    - Server: `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (service_role, **nur serverseitig**)
    - Client (Login + Favoriten): `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (anon, öffentlich; zur Build-Zeit gebacken)

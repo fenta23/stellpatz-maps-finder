@@ -1,11 +1,11 @@
-import type { FavoritePoi } from './FavoritesStore.js'
-import { favoriteLabel, typeIcon, typeLabel } from './poiLabel.js'
+import type { PoiNote } from './NotesStore.js'
+import { typeIcon, typeLabel } from '@/features/pois/poiMeta.js'
 import { paginate } from '@shared/paginate.js'
 
-export interface FavoritesListPanelDeps {
-  getFavorites: () => readonly FavoritePoi[]
-  onSelect: (fav: FavoritePoi) => void
-  onRemove: (fav: FavoritePoi) => void
+export interface NotesListPanelDeps {
+  getNotes: () => readonly PoiNote[]
+  onSelect: (note: PoiNote) => void
+  onRemove: (note: PoiNote) => void
 }
 
 const PAGE_SIZE = 8
@@ -16,17 +16,18 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string): HTMLEle
   return node
 }
 
-/** Full-screen overlay listing favorited POIs, paginated, click to navigate. */
-export class FavoritesListPanel {
+// Reuses the `.fav-*` list-overlay styles (shared visual language for the
+// menu's full-screen list views).
+export class NotesListPanel {
   private readonly panel: HTMLElement
   private readonly listEl: HTMLElement
   private readonly footer: HTMLElement
   private page = 1
 
-  constructor(container: HTMLElement, private readonly deps: FavoritesListPanelDeps) {
+  constructor(container: HTMLElement, private readonly deps: NotesListPanelDeps) {
     this.panel = el('div', 'fav-panel')
     this.panel.setAttribute('role', 'dialog')
-    this.panel.setAttribute('aria-label', 'Favoriten')
+    this.panel.setAttribute('aria-label', 'Notizen')
 
     this.listEl = el('ul', 'fav-list')
     this.footer = el('div', 'fav-footer')
@@ -46,13 +47,12 @@ export class FavoritesListPanel {
 
   close(): void { this.panel.classList.remove('open') }
 
-  /** Re-render in place (e.g. after a favorite was removed or synced). */
   refresh(): void { if (this.isOpen()) this.render() }
 
   private buildHeader(): HTMLElement {
     const header = el('div', 'fav-header')
     const title = el('span', 'fav-title')
-    title.textContent = '⭐ Favoriten'
+    title.textContent = '📝 Notizen'
     const close = el('button', 'fav-close')
     close.type = 'button'
     close.textContent = '✕'
@@ -63,44 +63,44 @@ export class FavoritesListPanel {
   }
 
   private render(): void {
-    const all = this.deps.getFavorites()
+    const all = this.deps.getNotes()
     const { items, page, pages, total } = paginate(all, this.page, PAGE_SIZE)
     this.page = page
 
     this.listEl.innerHTML = ''
     if (total === 0) {
       const empty = el('li', 'fav-empty')
-      empty.textContent = 'Noch keine Favoriten. Tippe auf das Herz in der Detailansicht eines Ortes.'
+      empty.textContent = 'Noch keine Notizen. Öffne einen Ort und schreib unter „📝 Meine Notiz".'
       this.listEl.appendChild(empty)
     } else {
-      for (const fav of items) this.listEl.appendChild(this.buildRow(fav))
+      for (const note of items) this.listEl.appendChild(this.buildRow(note))
     }
 
     this.renderFooter(page, pages, total)
   }
 
-  private buildRow(fav: FavoritePoi): HTMLElement {
+  private buildRow(note: PoiNote): HTMLElement {
     const li = el('li', 'fav-item')
 
     const main = el('button', 'fav-item-main')
     main.type = 'button'
     const icon = el('span', 'fav-item-icon')
-    icon.textContent = typeIcon(fav.type)
+    icon.textContent = typeIcon(note.type)
     const text = el('span', 'fav-item-text')
     const name = el('span', 'fav-item-name')
-    name.textContent = favoriteLabel(fav)
+    name.textContent = note.name.trim() || typeLabel(note.type)
     const sub = el('span', 'fav-item-sub')
-    sub.textContent = typeLabel(fav.type)
+    sub.textContent = note.text
     text.append(name, sub)
     main.append(icon, text)
-    main.addEventListener('click', () => { this.close(); this.deps.onSelect(fav) })
+    main.addEventListener('click', () => { this.close(); this.deps.onSelect(note) })
 
     const remove = el('button', 'fav-item-remove')
     remove.type = 'button'
     remove.textContent = '🗑️'
-    remove.title = 'Aus Favoriten entfernen'
-    remove.setAttribute('aria-label', `${favoriteLabel(fav)} entfernen`)
-    remove.addEventListener('click', () => { this.deps.onRemove(fav); this.refresh() })
+    remove.title = 'Notiz löschen'
+    remove.setAttribute('aria-label', `Notiz zu ${name.textContent} löschen`)
+    remove.addEventListener('click', () => { this.deps.onRemove(note); this.refresh() })
 
     li.append(main, remove)
     return li
