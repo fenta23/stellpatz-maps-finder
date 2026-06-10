@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { haversineMeters } from '../geo.js'
+import { haversineMeters, parseLatLon } from '../geo.js'
 import { OVERPASS_ENDPOINTS, USER_AGENT } from '../config.js'
 
 const SEARCH_RADIUS_M = 2000
@@ -53,13 +53,12 @@ export function createNearbyRouter(): Router {
   const router = Router()
 
   router.get('/', async (req, res) => {
-    const lat = parseFloat(String(req.query['lat'] ?? ''))
-    const lon = parseFloat(String(req.query['lon'] ?? ''))
-
-    if (isNaN(lat) || isNaN(lon)) {
+    const coords = parseLatLon(req.query['lat'], req.query['lon'])
+    if (!coords) {
       res.status(400).json({ error: 'lat and lon required' })
       return
     }
+    const { lat, lon } = coords
 
     try {
       const upstream = await fetch(OVERPASS_ENDPOINTS[0]!, {

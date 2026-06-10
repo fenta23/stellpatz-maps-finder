@@ -21,6 +21,29 @@ describe('GET /api/health', () => {
   })
 })
 
+describe('origin guard on /api', () => {
+  it('rejects cross-site browser requests (foreign Origin)', async () => {
+    const res = await request(createApp())
+      .get('/api/health')
+      .set('Origin', 'https://evil.example')
+    expect(res.status).toBe(403)
+  })
+
+  it('rejects cross-site browser requests (Sec-Fetch-Site)', async () => {
+    const res = await request(createApp())
+      .get('/api/health')
+      .set('Sec-Fetch-Site', 'cross-site')
+    expect(res.status).toBe(403)
+  })
+
+  it('allows same-origin browser requests', async () => {
+    const res = await request(createApp())
+      .get('/api/health')
+      .set('Sec-Fetch-Site', 'same-origin')
+    expect(res.status).toBe(200)
+  })
+})
+
 describe('POST /api/overpass', () => {
   it('proxies query to Overpass and returns JSON', async () => {
     const payload = { elements: [] }
@@ -165,6 +188,15 @@ describe('GET /api/nearby', () => {
   it('returns 400 when lat/lon missing', async () => {
     const res = await request(createApp()).get('/api/nearby')
     expect(res.status).toBe(400)
+  })
+
+  it('returns 400 for non-finite or out-of-range coordinates', async () => {
+    const app = createApp()
+    mockFetch(200, { elements: [] })
+    expect((await request(app).get('/api/nearby?lat=1e999&lon=11.5')).status).toBe(400)
+    expect((await request(app).get('/api/nearby?lat=Infinity&lon=11.5')).status).toBe(400)
+    expect((await request(app).get('/api/nearby?lat=91&lon=11.5')).status).toBe(400)
+    expect((await request(app).get('/api/nearby?lat=48.1&lon=181')).status).toBe(400)
   })
 
   it('returns sorted nearby items with distance and icon', async () => {

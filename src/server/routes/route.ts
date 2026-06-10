@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { decodeValhallaPolyline } from '../geo.js'
+import { decodeValhallaPolyline, parseLatLon } from '../geo.js'
 import { USER_AGENT } from '../config.js'
 
 const VALHALLA_URL = 'https://valhalla1.openstreetmap.de/route'
@@ -21,11 +21,8 @@ interface ValhallaResponse {
 
 function parseCoordPair(raw: string): [number, number] | null {
   const [latStr, lonStr] = raw.split(',')
-  const lat = Number(latStr)
-  const lon = Number(lonStr)
-  if (!isFinite(lat) || !isFinite(lon)) return null
-  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null
-  return [lat, lon]
+  const coords = parseLatLon(latStr, lonStr)
+  return coords ? [coords.lat, coords.lon] : null
 }
 
 export function createRouteRouter(): Router {
