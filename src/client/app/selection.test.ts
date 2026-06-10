@@ -34,14 +34,15 @@ describe('createSelection.select', () => {
     expect(deps.loadDetails).toHaveBeenCalledWith(poi)
   })
 
-  it('without location: shows panel without routing, signals no-location, no details', async () => {
+  it('without location: shows panel + loads details without routing, signals no-location', async () => {
     const { deps, directions, panel } = makeDeps(null)
     const sel = createSelection(deps)
     await sel.select(poi)
     expect(directions.route).not.toHaveBeenCalled()
     expect(panel.show).toHaveBeenCalledOnce()
     expect(deps.onNoLocation).toHaveBeenCalledOnce()
-    expect(deps.loadDetails).not.toHaveBeenCalled()
+    // details (images / nearby / notes) load even without a location/route
+    expect(deps.loadDetails).toHaveBeenCalledWith(poi)
   })
 })
 

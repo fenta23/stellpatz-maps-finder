@@ -50,7 +50,9 @@ export function createSelection(deps: SelectionDeps): Selection {
       session.selectedPoi = poi
       deps.panIntoView(poi)
       if (!session.userPos) {
+        // No location → no route, but still load details (images / nearby / notes).
         panel.show(poi, undefined, undefined, isFav(poi), noteOf(poi))
+        deps.loadDetails(poi)
         deps.onNoLocation()
         return
       }
