@@ -24,6 +24,9 @@ const MODE_COLORS: Record<RoutingMode, string> = {
   foot: '#B5562F',    // terracotta
 }
 
+// Distinct, dashed line for the secondary "POI → nearby" track
+const SECONDARY_COLOR = '#2F6FB5' // blue — clearly different from the travel route
+
 interface OsrmRoute {
   readonly distance: number
   readonly duration: number
@@ -85,29 +88,52 @@ export function buildRouteResult(
   }
 }
 
+async function fetchOsrmRoute(from: LatLon, to: LatLon, mode: RoutingMode): Promise<OsrmRoute> {
+  const res = await fetch(
+    apiUrl(`/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}&mode=${mode}`),
+  )
+  if (!res.ok) throw new Error(`Route API error: ${res.status}`)
+  const data = await res.json() as OsrmResponse
+  if (data.code !== 'Ok' || !data.routes[0]) throw new Error('No route found')
+  return data.routes[0]
+}
+
+// OSRM returns [lon, lat] — Leaflet needs [lat, lon]
+function toLeafletCoords(route: OsrmRoute): L.LatLngTuple[] {
+  return route.geometry.coordinates.map(([lon, lat]) => [lat, lon] as L.LatLngTuple)
+}
+
 export class DirectionsService {
   private routeLine: L.Polyline | null = null
+  private secondaryLine: L.Polyline | null = null
 
   constructor(private readonly map: L.Map) {}
 
+  /** Main travel route (current location → selected POI). */
   async route(from: LatLon, to: LatLon, mode: RoutingMode = 'driving'): Promise<RouteResult> {
-    const res = await fetch(
-      apiUrl(`/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}&mode=${mode}`),
-    )
-    if (!res.ok) throw new Error(`Route API error: ${res.status}`)
-    const data = await res.json() as OsrmResponse
-
-    if (data.code !== 'Ok' || !data.routes[0]) throw new Error('No route found')
-    const osrmRoute = data.routes[0]
-
-    this.clearRoute()
-    // OSRM returns [lon, lat] — Leaflet needs [lat, lon]
-    const coords = osrmRoute.geometry.coordinates.map(
-      ([lon, lat]) => [lat, lon] as L.LatLngTuple,
-    )
-    this.routeLine = L.polyline(coords, { color: MODE_COLORS[mode], weight: 5, opacity: 0.75 }).addTo(this.map)
-
+    const osrmRoute = await fetchOsrmRoute(from, to, mode)
+    this.clearRoute() // also drops any secondary track from a previous selection
+    this.routeLine = L.polyline(toLeafletCoords(osrmRoute), {
+      color: MODE_COLORS[mode], weight: 5, opacity: 0.75,
+    }).addTo(this.map)
     return buildRouteResult(osrmRoute.distance, osrmRoute.duration, from, to)
+  }
+
+  /** Secondary track (selected POI → a nearby POI), drawn dashed in a distinct color. */
+  async routeSecondary(from: LatLon, to: LatLon, mode: RoutingMode = 'foot'): Promise<RouteResult> {
+    const osrmRoute = await fetchOsrmRoute(from, to, mode)
+    this.clearSecondaryRoute()
+    this.secondaryLine = L.polyline(toLeafletCoords(osrmRoute), {
+      color: SECONDARY_COLOR, weight: 4, opacity: 0.9, dashArray: '6 8',
+    }).addTo(this.map)
+    return buildRouteResult(osrmRoute.distance, osrmRoute.duration, from, to)
+  }
+
+  clearSecondaryRoute(): void {
+    if (this.secondaryLine) {
+      this.secondaryLine.remove()
+      this.secondaryLine = null
+    }
   }
 
   clearRoute(): void {
@@ -115,5 +141,6 @@ export class DirectionsService {
       this.routeLine.remove()
       this.routeLine = null
     }
+    this.clearSecondaryRoute()
   }
 }

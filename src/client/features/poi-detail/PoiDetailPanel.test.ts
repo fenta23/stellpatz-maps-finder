@@ -144,6 +144,21 @@ describe('PoiDetailPanel', () => {
     expect(container.querySelector<HTMLTextAreaElement>('.mynote-input')?.value).toBe('Tor links')
   })
 
+  it('renders nearby items as clickable rows and fires onNearbySelect', () => {
+    const container = document.createElement('div')
+    const panel = new PoiDetailPanel(container)
+    const cb = vi.fn()
+    panel.onNearbySelect(cb)
+    panel.show(poi)
+    const item = { kind: 'bakery', icon: '🥐', name: 'Bäcker', distance: 300, lat: 48.2, lon: 11.3 }
+    panel.updateNearby([item])
+    const row = container.querySelector<HTMLButtonElement>('.nearby-item')
+    expect(row).not.toBeNull()
+    row!.click()
+    expect(cb).toHaveBeenCalledWith(item)
+    expect(row!.classList.contains('active')).toBe(true)
+  })
+
   it('escapes HTML in tag values', () => {
     const container = document.createElement('div')
     const panel = new PoiDetailPanel(container)

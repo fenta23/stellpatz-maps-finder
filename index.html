@@ -589,8 +589,17 @@
       letter-spacing: 0.6px;
       padding: 12px 18px 4px;
     }
-    .nearby-list { list-style: none; padding: 0 18px 10px; border-bottom: 1px solid var(--border-soft); }
-    .nearby-item { display: flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 0.83rem; }
+    .nearby-hint { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
+    .nearby-list { list-style: none; padding: 0 12px 10px; border-bottom: 1px solid var(--border-soft); }
+    .nearby-item {
+      display: flex; align-items: center; gap: 7px; width: 100%;
+      padding: 6px 6px; font-size: 0.83rem;
+      border: none; background: none; cursor: pointer; text-align: left;
+      border-radius: var(--radius-sm); color: inherit;
+    }
+    .nearby-item:hover { background: var(--surface-2); }
+    .nearby-item.active { background: var(--accent-soft); }
+    .nearby-item.active .nearby-name { color: var(--accent-strong); font-weight: 600; }
     .nearby-icon { flex-shrink: 0; font-size: 1rem; }
     .nearby-name { flex: 1; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .nearby-dist { flex-shrink: 0; color: var(--ink-faint); font-size: 0.78rem; }
