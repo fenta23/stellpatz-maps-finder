@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Such-Dropdown wurde hinter der Karte gerendert** (z-index): `#map` bekommt einen eigenen Stacking-Context unter der Topbar, damit Leaflets Marker-/Control-Panes nicht mehr über die Autocomplete-Vorschläge gezeichnet werden.
+
 ### Changed
 - POI-Details (Bilder / „In der Nähe" / Community-Hinweise) laden jetzt **auch ohne Standortfreigabe** — bisher hingen sie am Routing-Pfad und blieben ohne Standort leer. Dadurch funktionieren u. a. die anklickbaren Nearby-Routen auch ohne aktive Geolocation.
 
