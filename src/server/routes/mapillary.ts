@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { parseLatLon } from '../geo.js'
 import { USER_AGENT } from '../config.js'
 
 const MAPILLARY_API = 'https://graph.mapillary.com/images'
@@ -8,13 +9,12 @@ export function createMapillaryRouter(): Router {
   const router = Router()
 
   router.get('/', async (req, res) => {
-    const lat = parseFloat(String(req.query['lat'] ?? ''))
-    const lon = parseFloat(String(req.query['lon'] ?? ''))
-
-    if (isNaN(lat) || isNaN(lon)) {
+    const coords = parseLatLon(req.query['lat'], req.query['lon'])
+    if (!coords) {
       res.status(400).json({ error: 'lat and lon required' })
       return
     }
+    const { lat, lon } = coords
 
     const token = process.env['MAPILLARY_ACCESS_TOKEN']
     if (!token) {

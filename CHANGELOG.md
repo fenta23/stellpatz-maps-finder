@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **API-Härtung nach Security-Audit** (Audit-Ergebnis: keine kritischen Lücken; npm audit 0, RLS live verifiziert, Service-Key nicht im Bundle, Header/CSP stark):
+  - **Origin-Guard für `/api/*`**: Cross-Site-Browser-Traffic (fremde `Origin`- bzw. `Sec-Fetch-Site`-Header) wird mit 403 abgewiesen — fremde Websites können die Proxies nicht mehr als Relay missbrauchen bzw. per no-cors-Spray Upstream-Quotas (v. a. Mapillary-Token) verbrennen. Header-lose Clients (curl, alte Browser) passieren weiter; Backstop bleibt das Rate-Limit. Zusätzliche Origins (z. B. `capacitor://localhost` für native Builds) via `ALLOWED_ORIGINS`-Env.
+  - **Eigenes, engeres Rate-Limit für `/api/mapillary`** (20/min) — schützt das Token-Budget.
+  - **Strikte Koordinaten-Validierung** überall: gemeinsamer `parseLatLon`-Helper (`Number.isFinite` + Range-Check) ersetzt das laxe `parseFloat`/`isNaN` in `nearby`/`mapillary`/`notes`; `route` nutzt ihn ebenfalls.
+  - Dev-Fix: Vite-Proxy mit `changeOrigin: false`, damit Same-Origin-POSTs den Origin-Guard passieren (Host = Origin-Host).
+  - Rate-Limiter jetzt pro App-Instanz (hermetische Tests). 12 neue Tests.
+
 ### Fixed
 - **Such-Dropdown wurde hinter der Karte gerendert** (z-index): `#map` bekommt einen eigenen Stacking-Context unter der Topbar, damit Leaflets Marker-/Control-Panes nicht mehr über die Autocomplete-Vorschläge gezeichnet werden.
 

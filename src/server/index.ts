@@ -9,7 +9,9 @@ import { createSupabaseCache } from './supabaseCache.js'
 import {
   CACHE_TTL_MS, CACHE_MAX_ENTRIES,
   POI_CACHE_TTL_MS, SUPABASE_URL, SUPABASE_SERVICE_KEY,
+  ALLOWED_ORIGINS,
 } from './config.js'
+import { originGuard } from './originGuard.js'
 import { createHealthRouter } from './routes/health.js'
 import { createOverpassRouter } from './routes/overpass.js'
 import { createGeocodeRouter } from './routes/geocode.js'
@@ -53,20 +55,18 @@ const helmetConfig = helmet({
   },
 })
 
-const apiLimiter = rateLimit({
-  windowMs: 60_000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-})
-
 export function createApp() {
   const app = express()
 
   // Behind Render / load balancer — req.ip is the LB IP without this
   app.set('trust proxy', 1)
   app.use(helmetConfig)
-  app.use('/api', apiLimiter)
+  // Cross-site browser traffic is rejected before it can burn upstream quotas.
+  app.use('/api', originGuard(ALLOWED_ORIGINS))
+  // Limiters per app instance so tests get fresh counters.
+  app.use('/api', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }))
+  // Mapillary calls spend our API token — keep its budget tight.
+  app.use('/api/mapillary', rateLimit({ windowMs: 60_000, max: 20, standardHeaders: true, legacyHeaders: false }))
 
   // Persistent Supabase cache when configured, else in-memory fallback.
   // Always in-memory under test so the suite stays hermetic (no real Supabase

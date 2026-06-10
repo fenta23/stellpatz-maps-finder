@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { notNullUndefined } from '../../shared/common.js'
+import { parseLatLon } from '../geo.js'
 import { USER_AGENT } from '../config.js'
 
 const OSM_NOTES_API = 'https://api.openstreetmap.org/api/0.6/notes.json'
@@ -9,13 +10,12 @@ export function createNotesRouter(): Router {
   const router = Router()
 
   router.get('/', async (req, res) => {
-    const lat = parseFloat(String(req.query['lat'] ?? ''))
-    const lon = parseFloat(String(req.query['lon'] ?? ''))
-
-    if (isNaN(lat) || isNaN(lon)) {
+    const coords = parseLatLon(req.query['lat'], req.query['lon'])
+    if (!coords) {
       res.status(400).json({ error: 'lat and lon required' })
       return
     }
+    const { lat, lon } = coords
 
     const bbox = `${lon - RADIUS_DEG},${lat - RADIUS_DEG},${lon + RADIUS_DEG},${lat + RADIUS_DEG}`
     const url = `${OSM_NOTES_API}?bbox=${bbox}&limit=5&closed=0`

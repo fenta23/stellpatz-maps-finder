@@ -20,3 +20,10 @@ export const BBOX_SNAP_DEG = 0.05
 export const POI_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 export const SUPABASE_URL = process.env['SUPABASE_URL'] ?? ''
 export const SUPABASE_SERVICE_KEY = process.env['SUPABASE_SERVICE_KEY'] ?? ''
+
+// Extra origins allowed to call /api cross-origin (comma-separated), e.g.
+// 'capacitor://localhost' for future native builds. Same-origin is always allowed.
+export const ALLOWED_ORIGINS: readonly string[] = (process.env['ALLOWED_ORIGINS'] ?? '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)

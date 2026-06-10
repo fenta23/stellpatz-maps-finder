@@ -66,7 +66,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:3000',
+      // changeOrigin:false keeps Host = localhost:5173 so it matches the
+      // browser's Origin header on POSTs — required by the API origin guard.
+      '/api': { target: 'http://localhost:3000', changeOrigin: false },
     },
   },
   test: {

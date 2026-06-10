@@ -19,6 +19,24 @@ export function snapBboxInQuery(query: string): string {
   )
 }
 
+// ── Coordinate parsing ────────────────────────────────────────────────────────
+// Strict: rejects empty strings (Number('') === 0!), non-finite values
+// (Infinity, NaN, '1e999') and out-of-range coordinates.
+
+export function parseLatLon(latRaw: unknown, lonRaw: unknown): { lat: number; lon: number } | null {
+  const lat = toFiniteNumber(latRaw)
+  const lon = toFiniteNumber(lonRaw)
+  if (lat === null || lon === null) return null
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null
+  return { lat, lon }
+}
+
+function toFiniteNumber(raw: unknown): number | null {
+  if (typeof raw !== 'string' || raw.trim() === '') return null
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : null
+}
+
 // ── Haversine distance ────────────────────────────────────────────────────────
 
 const EARTH_RADIUS_M = 6_371_000
