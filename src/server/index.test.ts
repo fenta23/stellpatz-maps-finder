@@ -44,14 +44,31 @@ describe('origin guard on /api', () => {
   })
 })
 
+// A minimal query in the app's shape — anything else is rejected by the
+// query validator before reaching the upstream fetch.
+const VALID_QUERY = 'data=' + encodeURIComponent(
+  '[out:json][timeout:30];(node["amenity"="parking"](48.10,11.50,48.20,11.60););out center tags;',
+)
+
 describe('POST /api/overpass', () => {
+  it('rejects arbitrary Overpass QL with 400 without hitting upstream', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await request(createApp())
+      .post('/api/overpass')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('data=' + encodeURIComponent('[out:json];(node["amenity"="parking"](around:5000,48.1,11.5););out body;'))
+    expect(res.status).toBe(400)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('proxies query to Overpass and returns JSON', async () => {
     const payload = { elements: [] }
     mockFetch(200, payload)
     const res = await request(createApp())
       .post('/api/overpass')
       .set('Content-Type', 'application/x-www-form-urlencoded')
-      .send('data=test')
+      .send(VALID_QUERY)
     expect(res.status).toBe(200)
     expect(res.body).toEqual(payload)
   })
@@ -71,7 +88,7 @@ describe('POST /api/overpass', () => {
     const res = await request(createApp())
       .post('/api/overpass')
       .set('Content-Type', 'application/x-www-form-urlencoded')
-      .send('data=test')
+      .send(VALID_QUERY)
     expect(res.status).toBe(200)
     expect(calls).toBeGreaterThanOrEqual(2)
   })
@@ -91,7 +108,7 @@ describe('POST /api/overpass', () => {
     const res = await request(createApp())
       .post('/api/overpass')
       .set('Content-Type', 'application/x-www-form-urlencoded')
-      .send('data=test')
+      .send(VALID_QUERY)
     expect(res.status).toBe(200)
     expect(calls).toBeGreaterThanOrEqual(2)
   })
@@ -101,7 +118,7 @@ describe('POST /api/overpass', () => {
     const res = await request(createApp())
       .post('/api/overpass')
       .set('Content-Type', 'application/x-www-form-urlencoded')
-      .send('data=test')
+      .send(VALID_QUERY)
     expect(res.status).toBe(503)
   })
 
@@ -126,7 +143,7 @@ describe('POST /api/overpass', () => {
     const res = await request(createApp())
       .post('/api/overpass')
       .set('Content-Type', 'application/x-www-form-urlencoded')
-      .send('data=test')
+      .send(VALID_QUERY)
     expect(res.status).toBe(429)
   })
 
@@ -135,7 +152,7 @@ describe('POST /api/overpass', () => {
     const res = await request(createApp())
       .post('/api/overpass')
       .set('Content-Type', 'application/x-www-form-urlencoded')
-      .send('data=test')
+      .send(VALID_QUERY)
     expect(res.status).toBe(503)
   })
 })

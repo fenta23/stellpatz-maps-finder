@@ -1,6 +1,7 @@
 import express, { Router } from 'express'
 import type { PoiCache } from '../cache.js'
 import { snapBboxInQuery } from '../geo.js'
+import { isValidPoiQuery } from '../overpassQuery.js'
 import { OVERPASS_ENDPOINTS, USER_AGENT } from '../config.js'
 
 // Round-robin index lives in the closure — fresh per createApp() call (tests stay isolated).
@@ -14,6 +15,14 @@ export function createOverpassRouter(cache: PoiCache): Router {
     async (req, res) => {
       const rawBody = req.body as string
       const rawQuery = decodeURIComponent(rawBody.startsWith('data=') ? rawBody.slice(5) : rawBody)
+
+      // Only the app's bbox'd POI-query shape is proxied — this is not a
+      // general Overpass relay (expensive arbitrary QL gets rejected).
+      if (!isValidPoiQuery(rawQuery)) {
+        res.status(400).json({ error: 'Unsupported query shape' })
+        return
+      }
+
       const snappedQuery = snapBboxInQuery(rawQuery)
 
       const cached = await cache.get(snappedQuery)

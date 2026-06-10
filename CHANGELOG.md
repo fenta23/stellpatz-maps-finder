@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **Overpass-Query-Validierung** (`/api/overpass`): Nur noch die App-eigene Query-Form (bbox-begrenzte `node`/`way`/`relation`-Tag-Filter, `out center tags`, Timeout ≤ 30 s, ≤ 40 Statements) wird zum Upstream durchgereicht — beliebiges Overpass-QL (around-Filter, Rekursion `>;`, `out body`-Dumps ohne bbox, Riesen-Timeouts) → 400, bevor Cache oder Upstream berührt werden. Grammatik-Allowlist statt Tag-Allowlist: neue POI-Typen funktionieren ohne Server-Anpassung (per Property-Test gegen den echten Client-`buildQuery` abgesichert).
 - **API-Härtung nach Security-Audit** (Audit-Ergebnis: keine kritischen Lücken; npm audit 0, RLS live verifiziert, Service-Key nicht im Bundle, Header/CSP stark):
   - **Origin-Guard für `/api/*`**: Cross-Site-Browser-Traffic (fremde `Origin`- bzw. `Sec-Fetch-Site`-Header) wird mit 403 abgewiesen — fremde Websites können die Proxies nicht mehr als Relay missbrauchen bzw. per no-cors-Spray Upstream-Quotas (v. a. Mapillary-Token) verbrennen. Header-lose Clients (curl, alte Browser) passieren weiter; Backstop bleibt das Rate-Limit. Zusätzliche Origins (z. B. `capacitor://localhost` für native Builds) via `ALLOWED_ORIGINS`-Env.
   - **Eigenes, engeres Rate-Limit für `/api/mapillary`** (20/min) — schützt das Token-Budget.
