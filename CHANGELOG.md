@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **POI-Laden kachel-basiert + Client-Cache (Performance).** Statt „ein Viewport = eine große Overpass-Query" wird der Ausschnitt in feste 0,05°-Gitter-Kacheln zerlegt (zoom-abhängige Kachelgröße, ≤16 Kacheln). Jede Kachel ist eine kleine, einzeln cachebare Query; ein In-Memory-**Client-Cache** hält geladene Kacheln. Effekt: **Zoom/Pan/Revisit bereits gesehener Flächen kommen ohne Netz aus** (live verifiziert: Rückkehr in einen gesehenen View = 0 Overpass-Requests, sofortiges Rendern). Bereits geladene Kacheln werden progressiv sofort gezeichnet, nur fehlende nachgeladen (max. 4 parallel). Neues pures Modul `features/pois/tiles.ts`.
+  - Kacheln tragen **alle POI-Typen** → Filter-Umschalten ist jetzt reine Marker-Sichtbarkeit, **kein Refetch** mehr.
+  - Hinweis: Der Service Worker cached Overpass nie (POST + im Dev aus) — das war nie die Cache-Schicht; relevant sind Server-Cache (Supabase/In-Memory) + dieser neue Kachel-Client-Cache.
+
 ### Security
 - **Overpass-Query-Validierung** (`/api/overpass`): Nur noch die App-eigene Query-Form (bbox-begrenzte `node`/`way`/`relation`-Tag-Filter, `out center tags`, Timeout ≤ 30 s, ≤ 40 Statements) wird zum Upstream durchgereicht — beliebiges Overpass-QL (around-Filter, Rekursion `>;`, `out body`-Dumps ohne bbox, Riesen-Timeouts) → 400, bevor Cache oder Upstream berührt werden. Grammatik-Allowlist statt Tag-Allowlist: neue POI-Typen funktionieren ohne Server-Anpassung (per Property-Test gegen den echten Client-`buildQuery` abgesichert).
 - **API-Härtung nach Security-Audit** (Audit-Ergebnis: keine kritischen Lücken; npm audit 0, RLS live verifiziert, Service-Key nicht im Bundle, Header/CSP stark):

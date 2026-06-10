@@ -150,12 +150,12 @@ async function init() {
     getNote: poi => notes.get(String(poi.id)),
   })
 
-  // ── POI refresh on map/filter changes ────────────────────────────────────────
+  // ── POI refresh on map changes ───────────────────────────────────────────────
+  // Tiles always carry all POI types, so filter toggles are pure visibility —
+  // no refetch needed.
   const { refresh } = createPoiRefresher({
     getBounds: () => mapService.getBounds(),
-    getActiveTypes: () => filterPanel.getActiveTypes(),
     setMarkers: pois => markerManager.updatePois(pois),
-    clearMarkers: () => markerManager.clear(),
     setStatus,
   })
 
@@ -168,7 +168,6 @@ async function init() {
 
   filterPanel.onChange(({ type, active }) => {
     markerManager.setTypeVisible(type, active)
-    void refresh()
   })
 
   routingModeEl.addEventListener('change', () => {
