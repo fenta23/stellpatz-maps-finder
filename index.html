@@ -451,7 +451,9 @@
 
     /* ── Map + detail layout ── */
     #content { flex: 1; display: flex; overflow: hidden; position: relative; }
-    #map { flex: 1; background: var(--surface-2); }
+    /* Own stacking context below the topbar (z-index 10) so Leaflet's marker/
+       control panes can't render above the topbar's search dropdown. */
+    #map { flex: 1; background: var(--surface-2); position: relative; z-index: 0; }
 
     /* ── Detail panel ── */
     #detail-panel { position: relative; }
