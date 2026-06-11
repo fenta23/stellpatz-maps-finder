@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **POI-Laden: eine Query pro neuem Gebiet + Client-Akkumulation (Performance).** Das Problem war, dass der Cache-Key der *exakte* (gesnappte) Viewport-BBox war — Zoom/Pan erzeugten neue Keys und verwendeten bereits gesehene Flächen nicht wieder. Jetzt:
+  - Jeder geladene POI landet in einem **Client-Store**; die geladenen 0,05°-Rasterzellen werden als „covered" markiert (`features/pois/coverage.ts`).
+  - Ein Refresh zeichnet den Store, auf den Viewport zugeschnitten. Dadurch: **gesehener Viewport → 0 Requests, sofort** (Zoom-in/Pan-zurück/Revisit); **teils neuer Viewport → genau eine Query, nur über die Bounding-Box der noch nicht gesehenen Zellen** (ein dünner Streifen beim Pannen); **kalter Viewport → eine einzige Query** (wie vor der Umstellung, kein Kaltstart-Regress).
+  - Höchstens **eine** Overpass-Query gleichzeitig: die vorige In-Flight-Query wird bei einem neueren Refresh abgebrochen → schnelles Pannen flutet den Upstream nicht (löst die 429s).
+  - 250-ms-Debounce auf Karten-Bewegungen. POIs werden für **alle Typen** geladen → Filter-Umschalten ist reine Marker-Sichtbarkeit, **kein Refetch**.
+  - Server-Rate-Limit `/api` 60 → 300/min (Headroom; Origin-Guard bleibt der Missbrauchsschutz).
+  - Hinweis: Der Service Worker cached Overpass nie (POST + im Dev aus) — relevant sind Server-Cache (Supabase/In-Memory) + dieser neue Client-Store.
+
 ### Security
 - **Overpass-Query-Validierung** (`/api/overpass`): Nur noch die App-eigene Query-Form (bbox-begrenzte `node`/`way`/`relation`-Tag-Filter, `out center tags`, Timeout ≤ 30 s, ≤ 40 Statements) wird zum Upstream durchgereicht — beliebiges Overpass-QL (around-Filter, Rekursion `>;`, `out body`-Dumps ohne bbox, Riesen-Timeouts) → 400, bevor Cache oder Upstream berührt werden. Grammatik-Allowlist statt Tag-Allowlist: neue POI-Typen funktionieren ohne Server-Anpassung (per Property-Test gegen den echten Client-`buildQuery` abgesichert).
 - **API-Härtung nach Security-Audit** (Audit-Ergebnis: keine kritischen Lücken; npm audit 0, RLS live verifiziert, Service-Key nicht im Bundle, Header/CSP stark):

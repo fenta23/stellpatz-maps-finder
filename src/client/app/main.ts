@@ -150,25 +150,31 @@ async function init() {
     getNote: poi => notes.get(String(poi.id)),
   })
 
-  // ── POI refresh on map/filter changes ────────────────────────────────────────
+  // ── POI refresh on map changes ───────────────────────────────────────────────
+  // Tiles always carry all POI types, so filter toggles are pure visibility —
+  // no refetch needed.
   const { refresh } = createPoiRefresher({
     getBounds: () => mapService.getBounds(),
-    getActiveTypes: () => filterPanel.getActiveTypes(),
     setMarkers: pois => markerManager.updatePois(pois),
-    clearMarkers: () => markerManager.clear(),
     setStatus,
   })
 
   // ── Wiring ───────────────────────────────────────────────────────────────────
+  // Debounce refresh: a pan/zoom burst settles into one tile load for the final
+  // viewport instead of firing tile batches for every intermediate one.
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined
+  const refreshDebounced = () => {
+    clearTimeout(refreshTimer)
+    refreshTimer = setTimeout(() => void refresh(), 250)
+  }
   mapService.onBoundsChanged(bounds => {
     searchBar.updateBounds(bounds)
-    void refresh()
+    refreshDebounced()
   })
   setTimeout(() => void refresh(), 800)
 
   filterPanel.onChange(({ type, active }) => {
     markerManager.setTypeVisible(type, active)
-    void refresh()
   })
 
   routingModeEl.addEventListener('change', () => {
