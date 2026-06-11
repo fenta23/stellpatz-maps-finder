@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Slice `features/custom-pois/` (lokaler + synchronisierter Store, Editor, MarkerManager, Modell) inkl. Unit-Tests.
 
 ### Fixed
+- **PWA-Update-Benachrichtigung erscheint jetzt zuverlässig.** Ursache war ein Widerspruch zwischen `registerType: 'autoUpdate'` (skipWaiting + automatischer Reload) und dem manuellen Update-Banner, das auf `updatefound` lauschte — Races (Listener zu spät angehängt; schon-wartender SW feuert nicht erneut) und der Auto-Reload überholte das Banner. Umstellung auf den **Prompt-Flow**: `registerType: 'prompt'`, SW-Registrierung selbst über `virtual:pwa-register` (im Bundle → `script-src 'self'`-konform, `injectRegister: null`), Banner an `onNeedRefresh` gekoppelt (feuert auch bei bereits wartendem SW), Button ruft `updateSW(true)` (skipWaiting + Reload). Zusätzlich Re-Check auf neue Version bei Tab-Fokus für lang laufende (installierte) Sessions.
 - **Custom-POI-Editor: Layout & Mobil.** Icon-Picker + Name liegen jetzt voller Breite oben, darunter zwei balancierte Spalten (Adresse/Kontakt | Details/Notiz) statt einer überlangen linken Spalte mit Loch unten rechts. Auf Mobil (`max-width: 639px`) öffnet der Editor **vollflächig** und überdeckt den Detail-View korrekt (Editor-`z-index` von 1000 → 1900, über dem mobilen Detail-Bottom-Sheet `1100`); Overlay mit Dim-Hintergrund.
 
 ### Changed

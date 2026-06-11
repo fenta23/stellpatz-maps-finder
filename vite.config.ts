@@ -14,9 +14,14 @@ export default defineConfig({
   },
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
-      // External register script (not inline) so helmet's `script-src 'self'` CSP allows it.
-      injectRegister: 'script',
+      // Prompt mode: a new SW stays waiting until the user clicks "update" in the
+      // banner (see features/update/UpdateBanner.ts). autoUpdate would silently
+      // skipWaiting + auto-reload, which raced the banner and made updates
+      // inconsistent.
+      registerType: 'prompt',
+      // We register the SW ourselves from the app bundle via `virtual:pwa-register`
+      // (bundled JS = script-src 'self', CSP-safe) so we can wire onNeedRefresh.
+      injectRegister: null,
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'logo.svg'],
       manifest: {
         name: 'Stellpatz Finder',
