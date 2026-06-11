@@ -8,7 +8,7 @@ import { panPoiIntoView } from '@/features/map/panIntoView.js'
 import { PoiMarkerManager } from '@/features/pois/PoiMarkerManager.js'
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 import { DirectionsService, type RoutingMode } from '@/features/routing/DirectionsService.js'
-import { PoiDetailPanel } from '@/features/poi-detail/PoiDetailPanel.js'
+import { PoiDetailPanel, customPoiToOsmPoi } from '@/features/poi-detail/PoiDetailPanel.js'
 import { collectTagImages, loadMapillaryImages, loadNearby, loadNotes } from '@/features/poi-detail/poiData.js'
 import { FilterPanel } from '@/features/filters/FilterPanel.js'
 import { SearchBar } from '@/features/search/SearchBar.js'
@@ -28,6 +28,9 @@ import { AuthPanel } from '@/features/auth/AuthPanel.js'
 import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
+import { LocalCustomPoiStore } from '@/features/custom-pois/CustomPoiStore.js'
+import { CustomPoiMarkerManager } from '@/features/custom-pois/CustomPoiMarkerManager.js'
+import { CustomPoiEditor } from '@/features/custom-pois/CustomPoiEditor.js'
 
 const SVG_MAP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>'
 const SVG_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>'
@@ -82,7 +85,10 @@ async function init() {
   // ── Services + state ─────────────────────────────────────────────────────────
   const mapService = new MapService(mapContainer, userPos ?? DEFAULT_CENTER, userPos ? 13 : 6)
   const map = mapService.getMap()
-  const filterPanel = new FilterPanel(document.getElementById('poi-filter')!)
+  const filterPanel = new FilterPanel(
+    document.getElementById('poi-filter')!,
+    () => mapService.startPlacement(),
+  )
   const detailPanel = new PoiDetailPanel(document.getElementById('detail-panel')!)
   const searchBar = new SearchBar(document.getElementById('search-bar')!)
   const favorites = new SyncedFavoritesStore(new LocalFavoritesStore())
@@ -115,6 +121,77 @@ async function init() {
   )
   markerManager.setFavorites(favorites.getAll())
   markerManager.setNotes(new Set(notes.list().map(n => n.id)))
+
+  // ── Custom POIs ──────────────────────────────────────────────────────────────
+  const customPoiStore = new LocalCustomPoiStore()
+  const customPoiEditor = new CustomPoiEditor(document.body)
+
+  let currentCustomPoi: import('@/features/custom-pois/CustomPoi.js').CustomPoi | undefined
+
+  const refreshCustomMarkers = () => {
+    customMarkerManager.updatePois(customPoiStore.getAll())
+  }
+
+  const editCustomPoi = () => {
+    const p = currentCustomPoi
+    if (!p) return
+    void customPoiEditor.openEdit(p).then(updated => {
+      if (!updated) return
+      customPoiStore.put(updated)
+      currentCustomPoi = updated
+      refreshCustomMarkers()
+      const osm = customPoiToOsmPoi(updated)
+      void selection.select(osm)
+    })
+  }
+
+  const deleteCustomPoi = () => {
+    const p = currentCustomPoi
+    if (!p) return
+    if (!confirm('Diesen POI wirklich löschen?')) return
+    customPoiStore.remove(p.id)
+    currentCustomPoi = undefined
+    refreshCustomMarkers()
+    selection.clear()
+  }
+
+  const customMarkerManager = new CustomPoiMarkerManager(
+    createLeafletMarkerAdapter(map),
+    poi => {
+      currentCustomPoi = poi
+      const osm = customPoiToOsmPoi(poi)
+      void selection.select(osm)
+    },
+  )
+  customMarkerManager.setVisible(filterPanel.isCustomVisible())
+  refreshCustomMarkers()
+
+  customPoiStore.onChange(() => refreshCustomMarkers())
+
+  // Placement mode ("+" button)
+  filterPanel.onCustomToggle(({ active }) => {
+    customMarkerManager.setVisible(active)
+  })
+
+  // Long-press / context menu → editor
+  mapService.onContextMenu((lat, lng) => {
+    void customPoiEditor.openNew(lat, lng).then(poi => {
+      if (!poi) return
+      customPoiStore.put(poi)
+      refreshCustomMarkers()
+      mapService.setCenter(poi.lat, poi.lon, 16)
+    })
+  })
+
+  // Placement mode handler
+  mapService.onPlacement((lat, lng) => {
+    void customPoiEditor.openNew(lat, lng).then(poi => {
+      if (!poi) return
+      customPoiStore.put(poi)
+      refreshCustomMarkers()
+      mapService.setCenter(poi.lat, poi.lon, 16)
+    })
+  })
 
   // ── Favorites sync on login/logout ───────────────────────────────────────────
   // Supabase emits the initial session on subscribe, so this also covers the
@@ -156,6 +233,8 @@ async function init() {
     loadDetails,
     onNoLocation: () => flashStatus('Standort unbekannt – Route nicht möglich'),
     getNote: poi => notes.get(String(poi.id)),
+    onEditCustomPoi: editCustomPoi,
+    onDeleteCustomPoi: deleteCustomPoi,
   })
 
   // ── POI refresh on map changes ───────────────────────────────────────────────
