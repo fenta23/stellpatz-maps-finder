@@ -1,6 +1,6 @@
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 import type { DirectionsService } from '@/features/routing/DirectionsService.js'
-import type { PoiDetailPanel } from '@/features/poi-detail/PoiDetailPanel.js'
+import type { PoiDetailPanel, PanelConfig } from '@/features/poi-detail/PoiDetailPanel.js'
 import type { IFavoritesStore } from '@/features/favorites/FavoritesStore.js'
 import type { Session } from './session.js'
 
@@ -12,37 +12,39 @@ export interface SelectionDeps {
   readonly panIntoView: (poi: { lat: number; lon: number }) => void
   readonly loadDetails: (poi: OsmPoi) => void
   readonly onNoLocation: () => void
-  /** Current personal note text for a POI (defaults to none). */
   readonly getNote?: (poi: OsmPoi) => string
+  /** For custom POIs: open the edit dialog. */
+  readonly onEditCustomPoi?: () => void
+  /** For custom POIs: delete the POI and close panel. */
+  readonly onDeleteCustomPoi?: () => void
 }
 
 export interface Selection {
-  /** A marker was clicked: pan it into view, show the panel, route + load details. */
   select(poi: OsmPoi): Promise<void>
-  /** "Route hierhin" pressed in the panel: route + load details (panel already open). */
   navigate(poi: OsmPoi): Promise<void>
-  /** Routing mode changed: re-route the current selection (no detail reload). */
   reroute(): Promise<void>
-  /** Panel closed: drop selection and clear the route line. */
   clear(): void
 }
 
-/**
- * Owns the "selected POI" flow that was previously duplicated across the marker
- * click handler, the navigate button, and the routing-mode change. One place,
- * three entry points.
- */
 export function createSelection(deps: SelectionDeps): Selection {
   const { session, directions, panel, favorites } = deps
   const isFav = (poi: OsmPoi) => favorites.has(String(poi.id))
   const noteOf = (poi: OsmPoi) => deps.getNote?.(poi) ?? ''
 
+  const isCustom = (poi: OsmPoi) => poi.id < 0
+
+  function buildConfig(poi: OsmPoi): PanelConfig | undefined {
+    return isCustom(poi)
+      ? { isCustom: true, onEdit: () => deps.onEditCustomPoi?.(), onDelete: () => deps.onDeleteCustomPoi?.() }
+      : undefined
+  }
+
   async function routeAndShow(poi: OsmPoi, withDetails: boolean): Promise<void> {
     const route = await directions
       .route(session.userPos!, { lat: poi.lat, lon: poi.lon }, session.routingMode)
       .catch(() => undefined)
-    panel.show(poi, route, session.routingMode, isFav(poi), noteOf(poi))
-    if (withDetails) deps.loadDetails(poi)
+    panel.show(poi, route, session.routingMode, isFav(poi), noteOf(poi), buildConfig(poi))
+    if (withDetails && !isCustom(poi)) deps.loadDetails(poi)
   }
 
   return {
@@ -50,9 +52,8 @@ export function createSelection(deps: SelectionDeps): Selection {
       session.selectedPoi = poi
       deps.panIntoView(poi)
       if (!session.userPos) {
-        // No location → no route, but still load details (images / nearby / notes).
-        panel.show(poi, undefined, undefined, isFav(poi), noteOf(poi))
-        deps.loadDetails(poi)
+        panel.show(poi, undefined, undefined, isFav(poi), noteOf(poi), buildConfig(poi))
+        if (!isCustom(poi)) deps.loadDetails(poi)
         deps.onNoLocation()
         return
       }

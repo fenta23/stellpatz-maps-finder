@@ -1,0 +1,109 @@
+<div class="modal-backdrop"></div>
+<div class="custom-poi-editor" role="dialog" aria-label="POI bearbeiten">
+  <div class="editor-scroll">
+    <h2 data-ref="editorTitle">POI hinzufügen</h2>
+    <div data-ref="positionDisplay" class="editor-position" style="display:none">
+      <span class="editor-position-label">Position</span>
+      <span class="editor-position-coords"><span data-ref="posLat"></span>, <span data-ref="posLon"></span></span>
+    </div>
+
+    <div class="editor-primary">
+      <label class="editor-field">
+        <span class="field-label">Icon <span class="field-required">*</span></span>
+        <div class="icon-picker" data-ref="iconPicker"></div>
+      </label>
+
+      <label class="editor-field">
+        <span class="field-label">Name <span class="field-required">*</span></span>
+        <input type="text" data-ref="name" placeholder="z. B. Wohnmobilstellplatz am See" maxlength="200" />
+      </label>
+    </div>
+
+    <div class="editor-columns">
+      <div class="editor-col editor-col--left">
+
+        <fieldset class="editor-section">
+          <legend>Adresse</legend>
+          <div class="editor-row">
+            <label class="editor-field editor-field--grow">
+              <span class="field-label">Straße</span>
+              <input type="text" data-ref="street" placeholder="Musterstraße" maxlength="200" />
+            </label>
+            <label class="editor-field editor-field--narrow">
+              <span class="field-label">Nr.</span>
+              <input type="text" data-ref="housenumber" placeholder="42" maxlength="20" />
+            </label>
+          </div>
+          <div class="editor-row">
+            <label class="editor-field editor-field--narrow">
+              <span class="field-label">PLZ</span>
+              <input type="text" data-ref="postcode" placeholder="12345" maxlength="10" />
+            </label>
+            <label class="editor-field editor-field--grow">
+              <span class="field-label">Ort</span>
+              <input type="text" data-ref="city" placeholder="Berlin" maxlength="200" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="editor-section">
+          <legend>Kontakt</legend>
+          <label class="editor-field">
+            <span class="field-label">Telefon</span>
+            <input type="tel" data-ref="phone" placeholder="+49 30 12345678" maxlength="50" />
+          </label>
+          <label class="editor-field">
+            <span class="field-label">E-Mail</span>
+            <input type="email" data-ref="email" placeholder="info@beispiel.de" maxlength="200" />
+          </label>
+          <label class="editor-field">
+            <span class="field-label">Website</span>
+            <input type="url" data-ref="website" placeholder="https://beispiel.de" maxlength="500" />
+          </label>
+        </fieldset>
+
+      </div>
+      <div class="editor-col editor-col--right">
+
+        <fieldset class="editor-section">
+          <legend>Details</legend>
+          <div class="editor-row">
+            <label class="editor-field editor-field--grow">
+              <span class="field-label">Gebühr</span>
+              <input type="text" data-ref="fee" placeholder="5 € / Nacht" maxlength="100" />
+            </label>
+            <label class="editor-field editor-field--narrow">
+              <span class="field-label">Kapazität</span>
+              <input type="text" data-ref="capacity" placeholder="10" maxlength="20" />
+            </label>
+          </div>
+          <label class="editor-field">
+            <span class="field-label">Öffnungszeiten</span>
+            <input type="text" data-ref="openingHours" placeholder="Mo-Fr 09:00-18:00" maxlength="200" />
+          </label>
+          <label class="editor-field">
+            <span class="field-label">Betreiber</span>
+            <input type="text" data-ref="operator" placeholder="Stadtwerke Musterstadt" maxlength="200" />
+          </label>
+          <label class="editor-field editor-field--grow-area">
+            <span class="field-label">Beschreibung</span>
+            <textarea data-ref="description" placeholder="Eigene Beschreibung…" maxlength="1000"></textarea>
+          </label>
+        </fieldset>
+
+        <fieldset class="editor-section editor-section--grow">
+          <legend>Eigene Notiz</legend>
+          <label class="editor-field editor-field--grow-area">
+            <textarea data-ref="note" placeholder="Persönliche Notiz zu diesem Ort…" maxlength="2000"></textarea>
+          </label>
+        </fieldset>
+
+      </div>
+    </div>
+
+    <div class="editor-actions">
+      <button class="btn-cancel" type="button" data-ref="cancelBtn">Abbrechen</button>
+      <button class="btn-primary" type="button" data-ref="saveBtn">Speichern</button>
+    </div>
+  </div>
+</div>

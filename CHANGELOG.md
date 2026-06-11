@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Eigene POIs (Custom POIs)** — Nutzer können eigene Punkte auf der Karte anlegen, bearbeiten und löschen:
+  - Anlegen über den **„+"-Button** (Platzierungs-Modus) oder **Rechtsklick / Long-press** auf die Karte.
+  - **Editor-Modal** mit Lucide-**Icon-Picker** (20 Icons), Name, Adresse, Kontakt, Details (Gebühr/Kapazität/Öffnungszeiten/Betreiber/Beschreibung) und eigener Notiz.
+  - Eigene Marker mit dem gewählten Icon; Klick öffnet den Detail-View, von dort **Bearbeiten/Löschen**. Über den Filter ein-/ausblendbar.
+  - Speicherung aktuell **lokal** (`LocalCustomPoiStore`, localStorage). Supabase-Migration `0005_custom_pois.sql` (Tabelle + RLS, `user_id = auth.uid()`) ist für späteren Per-User-Sync vorbereitet.
+  - Slice `features/custom-pois/` (Store, Editor, MarkerManager, Modell) inkl. Unit-Tests.
+
+### Fixed
+- **Custom-POI-Editor: Layout & Mobil.** Icon-Picker + Name liegen jetzt voller Breite oben, darunter zwei balancierte Spalten (Adresse/Kontakt | Details/Notiz) statt einer überlangen linken Spalte mit Loch unten rechts. Auf Mobil (`max-width: 639px`) öffnet der Editor **vollflächig** und überdeckt den Detail-View korrekt (Editor-`z-index` von 1000 → 1900, über dem mobilen Detail-Bottom-Sheet `1100`); Overlay mit Dim-Hintergrund.
+
 ### Changed
 - **Alle Emojis durch Lucide-SVG-Icons ersetzt** — konsistentes, modernes Erscheinungsbild ohne System-Emojis:
   - POI-Typen (Parkplatz, Stellplatz, Camping, Entsorgung, Wasser) via `typeIcon()` in `poiMeta.ts`

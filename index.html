@@ -436,7 +436,27 @@
     .filter-btn.active {
       border-color: var(--accent);
       background: var(--accent-soft);
-      font-weight: 600;
+    }
+
+    .filter-add {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .filter-add:hover { background: var(--accent); color: #fff; }
+
+    .filter-sep {
+      width: 1.5px;
+      background: var(--border);
+      margin: 4px 2px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    .filter-custom { color: #FF8F00; }
+    .filter-custom.active {
+      border-color: #FF8F00;
+      background: #FFF3E0;
     }
 
     /* ── Routing mode toggle ── */
@@ -478,6 +498,106 @@
     .layer-btn:hover { background: var(--surface-2); color: var(--accent); }
     .layer-btn.active { background: var(--accent-soft); color: var(--accent); }
     .layer-btn svg { width: 20px; height: 20px; display: block; }
+
+    /* ── Placement mode (adding custom POI) ── */
+    .placing-poi,
+    .placing-poi * { cursor: crosshair !important; }
+
+    /* ── Custom POI Editor modal ── */
+    .custom-poi-editor {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1900;
+      display: flex; align-items: flex-start; justify-content: center;
+      overflow-y: auto; padding: 20px;
+      background: rgba(44, 40, 34, 0.45);
+    }
+    .custom-poi-editor .editor-scroll {
+      background: #fff; border-radius: 12px; max-width: 520px; width: 100%;
+      padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); position: relative;
+      margin: auto;
+    }
+    .custom-poi-editor h2 { font-size: 1.2rem; margin: 0 0 16px; color: var(--ink); }
+    .custom-poi-editor fieldset { border: none; padding: 0; margin: 0 0 16px; }
+    .custom-poi-editor legend {
+      font-size: 0.85rem; font-weight: 600; color: var(--ink-muted);
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .editor-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .editor-row { display: flex; gap: 10px; }
+    .editor-field--grow { flex: 1; }
+    .editor-field--narrow { flex: 0 0 100px; }
+    .field-label { font-size: 0.8rem; color: var(--ink-muted); }
+    .field-required { color: var(--accent); }
+    .custom-poi-editor input,
+    .custom-poi-editor textarea {
+      padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.95rem; font-family: inherit; color: var(--ink);
+      background: var(--surface); transition: border-color 0.15s;
+    }
+    .custom-poi-editor input:focus,
+    .custom-poi-editor textarea:focus { outline: none; border-color: var(--accent); }
+    .custom-poi-editor textarea { resize: vertical; min-height: 60px; }
+    .editor-position {
+      font-size: 0.8rem; color: var(--ink-muted); margin-bottom: 16px;
+      background: var(--surface); padding: 8px 12px; border-radius: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .editor-position-label {
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      font-size: 0.75rem; color: var(--ink-muted);
+    }
+    .editor-position-coords {
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+      color: var(--ink); font-size: 0.85rem;
+    }
+    .editor-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    .editor-error { color: var(--accent); font-size: 0.85rem; margin: 0 0 12px; }
+
+    .editor-primary { margin-bottom: 6px; }
+    .editor-columns { display: grid; grid-template-columns: 1fr; gap: 0 24px; align-items: stretch; }
+    .editor-col { display: flex; flex-direction: column; }
+    /* The right column's last section + its textarea grow to absorb any height
+       difference, so both columns bottom-align cleanly instead of leaving a hole. */
+    .editor-section--grow { flex: 1; display: flex; flex-direction: column; }
+    .editor-field--grow-area { flex: 1; }
+    .editor-field--grow-area textarea { flex: 1; height: 100%; }
+    @media (min-width: 640px) {
+      .custom-poi-editor .editor-scroll { max-width: 900px; }
+      .editor-columns { grid-template-columns: 1fr 1fr; }
+      .editor-col .editor-section:last-child { margin-bottom: 0; }
+    }
+    /* Mobile: full-screen sheet covering the detail view, no floating card. */
+    @media (max-width: 639px) {
+      .custom-poi-editor { padding: 0; }
+      .custom-poi-editor .editor-scroll {
+        border-radius: 0; max-width: none; width: 100%;
+        min-height: 100%; margin: 0; padding: 16px;
+        box-shadow: none;
+      }
+    }
+
+    /* Icon picker grid */
+    .icon-picker {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+      gap: 6px; max-height: 200px; overflow-y: auto;
+      padding: 4px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--surface);
+    }
+    .icon-opt {
+      display: flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; border: 2px solid transparent; border-radius: 8px;
+      background: none; cursor: pointer; padding: 4px; transition: all 0.15s;
+    }
+    .icon-opt svg { width: 24px; height: 24px; color: var(--ink); }
+    .icon-opt:hover { border-color: var(--accent-soft); background: var(--surface-2); }
+    .icon-opt.selected { border-color: #FF8F00; background: #FFF3E0; }
+    .icon-opt.selected svg { color: #FF8F00; }
+
+    .btn-cancel {
+      padding: 8px 20px; border-radius: 8px; border: 1.5px solid var(--border);
+      background: var(--surface); cursor: pointer; font-size: 0.95rem;
+      color: var(--ink-muted); transition: all 0.15s;
+    }
+    .btn-cancel:hover { border-color: var(--ink-muted); }
 
     /* ── Map + detail layout ── */
     #content { flex: 1; display: flex; overflow: hidden; position: relative; }
@@ -604,6 +724,14 @@
       display: block;
     }
     .btn-secondary:hover { background: var(--accent-soft); }
+
+    .btn-edit svg,
+    .btn-delete svg { width: 16px; height: 16px; vertical-align: middle; margin-right: 4px; }
+    .btn-delete {
+      border-color: #E53935;
+      color: #E53935;
+    }
+    .btn-delete:hover { background: #FFEBEE; }
 
     /* ── Opening hours badge ── */
     .oh-badge {

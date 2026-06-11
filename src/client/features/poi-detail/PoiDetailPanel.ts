@@ -1,6 +1,8 @@
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 import { buildOsmPoiLink, buildGoogleMapsLink } from '@/features/routing/DirectionsService.js'
 import type { RouteResult, RoutingMode } from '@/features/routing/DirectionsService.js'
+import type { CustomPoi } from '@/features/custom-pois/CustomPoi.js'
+import { customIdToNumber } from '@/features/custom-pois/CustomPoi.js'
 import { coalesce } from '@shared/fp.js'
 import { strEllipsisLen } from '@shared/str.js'
 import { clone, ref } from '@/core/template.js'
@@ -55,6 +57,12 @@ const MODE_ICON: Record<RoutingMode, string> = {
 
 const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>'
 
+export interface PanelConfig {
+  readonly isCustom?: boolean
+  readonly onEdit?: () => void
+  readonly onDelete?: () => void
+}
+
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
@@ -98,30 +106,44 @@ export class PoiDetailPanel {
     })
   }
 
-  show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = ''): void {
+  show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig): void {
     this.panel.classList.remove('hidden')
     this.panel.innerHTML = ''
     const view = clone(panelHtml)
     this.panel.appendChild(view)
 
+    const isCustom = config?.isCustom ?? false
     const t = poi.tags
     ref(view, 'name').textContent = t.name ?? typeLabel(poi.type)
 
+    // Favorite button (hidden for custom POIs)
     const fav = ref(view, 'fav')
-    fav.setAttribute('aria-pressed', String(isFavorite))
-    fav.innerHTML = HEART_SVG
-    fav.classList.toggle('active', isFavorite)
-    fav.addEventListener('click', () => {
-      const nowFav = fav.getAttribute('aria-pressed') !== 'true'
-      fav.setAttribute('aria-pressed', String(nowFav))
-      fav.classList.toggle('active', nowFav)
-      for (const l of this.favListeners) l()
-    })
+    if (isCustom) {
+      fav.hidden = true
+    } else {
+      fav.setAttribute('aria-pressed', String(isFavorite))
+      fav.innerHTML = HEART_SVG
+      fav.classList.toggle('active', isFavorite)
+      fav.addEventListener('click', () => {
+        const nowFav = fav.getAttribute('aria-pressed') !== 'true'
+        fav.setAttribute('aria-pressed', String(nowFav))
+        fav.classList.toggle('active', nowFav)
+        for (const l of this.favListeners) l()
+      })
+    }
 
     ref(view, 'close').addEventListener('click', () => this.hide())
     view.querySelector('.btn-navigate')?.addEventListener('click', () => {
       for (const l of this.listeners) l({ poi })
     })
+
+    // Custom POI actions (edit / delete)
+    const customActions = ref(view, 'customActions')
+    if (isCustom) {
+      customActions.hidden = false
+      ref(view, 'editBtn').addEventListener('click', () => config?.onEdit?.())
+      ref(view, 'deleteBtn').addEventListener('click', () => config?.onDelete?.())
+    }
 
     // Opening-hours badge
     const oh = t.opening_hours ? parseOpenHours(t.opening_hours) : null
@@ -140,7 +162,7 @@ export class PoiDetailPanel {
         `Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})`
     }
 
-    // Tags table (iteration declared in the HTML via <template data-row>)
+    // Tags table
     renderList(ref(view, 'tags'), buildTags(poi), {
       row: r => ({ label: r.label, value: r.href ? '' : r.value }),
       decorate: (rowEl, r) => {
@@ -157,6 +179,12 @@ export class PoiDetailPanel {
     // External links
     ref<HTMLAnchorElement>(view, 'osm').href = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
     ref<HTMLAnchorElement>(view, 'gmaps').href = buildGoogleMapsLink({ lat: poi.lat, lon: poi.lon })
+
+    // Hide data sections for custom POIs (no nearby, images, OSM notes)
+    if (isCustom) {
+      const sections = view.querySelectorAll<HTMLElement>('[data-section]')
+      for (const s of sections) s.hidden = true
+    }
 
     // Personal note
     ref<HTMLTextAreaElement>(view, 'note').value = noteText
@@ -255,6 +283,30 @@ export class PoiDetailPanel {
       const idx = this.listeners.indexOf(listener)
       if (idx !== -1) this.listeners.splice(idx, 1)
     }
+  }
+}
+
+export function customPoiToOsmPoi(cp: CustomPoi): OsmPoi {
+  return {
+    id: customIdToNumber(cp.id),
+    type: 'parking',
+    lat: cp.lat,
+    lon: cp.lon,
+    tags: {
+      name: cp.name || undefined,
+      phone: cp.phone,
+      email: cp.email,
+      website: cp.website,
+      fee: cp.fee,
+      capacity: cp.capacity,
+      opening_hours: cp.openingHours,
+      operator: cp.operator,
+      description: cp.description,
+      'addr:street': cp.street,
+      'addr:housenumber': cp.housenumber,
+      'addr:postcode': cp.postcode,
+      'addr:city': cp.city,
+    },
   }
 }
 

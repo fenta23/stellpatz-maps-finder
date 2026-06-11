@@ -74,7 +74,10 @@ function createLayerSwitcher(baseLayers: Record<string, L.TileLayer>, map: L.Map
 export class MapService {
   private readonly map: L.Map
   private readonly boundsListeners: Array<(b: LatLngBounds) => void> = []
+  private readonly contextMenuListeners: Array<(lat: number, lng: number) => void> = []
+  private readonly placementListeners: Array<(lat: number, lng: number) => void> = []
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
+  private _isPlacing = false
 
   constructor(
     container: HTMLElement,
@@ -84,13 +87,17 @@ export class MapService {
     this.map = L.map(container, { zoomControl: true }).setView(center, zoom)
 
     const baseLayers = buildBaseLayers()
-    // First config is the default base layer shown on load
     baseLayers[BASE_LAYER_CONFIGS[0]!.label]!.addTo(this.map)
     createLayerSwitcher(baseLayers, this.map).addTo(this.map)
 
     this.map.on('moveend', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
       this.debounceTimer = setTimeout(() => this.emit(), 1200)
+    })
+
+    this.map.on('contextmenu', (e: L.LeafletMouseEvent) => {
+      if (this._isPlacing) return
+      for (const l of this.contextMenuListeners) l(e.latlng.lat, e.latlng.lng)
     })
   }
 
@@ -116,6 +123,52 @@ export class MapService {
       const idx = this.boundsListeners.indexOf(listener)
       if (idx !== -1) this.boundsListeners.splice(idx, 1)
     }
+  }
+
+  onContextMenu(listener: (lat: number, lng: number) => void): () => void {
+    this.contextMenuListeners.push(listener)
+    return () => {
+      const idx = this.contextMenuListeners.indexOf(listener)
+      if (idx !== -1) this.contextMenuListeners.splice(idx, 1)
+    }
+  }
+
+  /** Enter placement mode — next map click places a POI. */
+  startPlacement(): void {
+    if (this._isPlacing) return
+    this._isPlacing = true
+    this.map.getContainer().classList.add('placing-poi')
+    const handler = (e: L.LeafletMouseEvent) => {
+      if (!this._isPlacing) return
+      this.cancelPlacement()
+      for (const l of this.placementListeners) l(e.latlng.lat, e.latlng.lng)
+    }
+    this.map.once('click', handler)
+    const escHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { this.cancelPlacement(); document.removeEventListener('keydown', escHandler) }
+    }
+    document.addEventListener('keydown', escHandler)
+    const cancelClick = () => this.cancelPlacement() // right-click cancels
+    this.map.once('contextmenu', cancelClick)
+  }
+
+  /** Exit placement mode without placing. */
+  cancelPlacement(): void {
+    if (!this._isPlacing) return
+    this._isPlacing = false
+    this.map.getContainer().classList.remove('placing-poi')
+  }
+
+  onPlacement(listener: (lat: number, lng: number) => void): () => void {
+    this.placementListeners.push(listener)
+    return () => {
+      const idx = this.placementListeners.indexOf(listener)
+      if (idx !== -1) this.placementListeners.splice(idx, 1)
+    }
+  }
+
+  get isPlacing(): boolean {
+    return this._isPlacing
   }
 
   getMap(): L.Map {
