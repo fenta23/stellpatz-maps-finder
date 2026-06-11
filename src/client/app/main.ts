@@ -21,6 +21,7 @@ import { SyncedNotesStore, createSupabaseNotesBackend } from '@/features/notes/R
 import { NotesListPanel } from '@/features/notes/NotesListPanel.js'
 import { SideMenu, type MenuItem } from '@/features/menu/SideMenu.js'
 import { clearAppCache } from '@/features/menu/clearAppCache.js'
+import { UpdateBanner, watchServiceWorkerUpdates } from '@/features/update/UpdateBanner.js'
 import { getSupabaseClient } from '@/features/auth/authClient.js'
 import { createAuth, type Auth } from '@/features/auth/auth.js'
 import { AuthPanel } from '@/features/auth/AuthPanel.js'
@@ -262,6 +263,10 @@ async function init() {
   })
   const menu = new SideMenu(document.body, menuItems)
   document.getElementById('btn-menu')?.addEventListener('click', () => menu.toggle())
+
+  // ── Update banner (new PWA version available) ────────────────────────────────
+  const updateBanner = new UpdateBanner()
+  watchServiceWorkerUpdates(updateBanner)
 }
 
 init().catch(err => {

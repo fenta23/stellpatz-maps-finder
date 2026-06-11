@@ -704,6 +704,39 @@
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
     }
 
+    /* ── Update banner (new version available) ── */
+    .update-banner {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .update-banner.visible { display: flex; }
+    .update-banner-text { flex: 1; }
+    .update-banner-btn {
+      border: 1.5px solid rgba(255,255,255,0.6);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .update-banner-btn:hover { background: rgba(255,255,255,0.15); }
+    .update-banner-close {
+      background: none; border: none; color: #fff; cursor: pointer;
+      padding: 2px; opacity: 0.7; display: inline-flex; align-items: center;
+    }
+    .update-banner-close:hover { opacity: 1; }
+    .update-banner-close svg { width: 18px; height: 18px; display: block; }
+
     /* ── SVG icon sizing for inline Lucide icons ── */
     .side-menu-icon svg { width: 1.15rem; height: 1.15rem; display: block; }
     .side-menu-close svg, .fav-close svg, .btn-close svg { width: 1.1rem; height: 1.1rem; display: block; }
