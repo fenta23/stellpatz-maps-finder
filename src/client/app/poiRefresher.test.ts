@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
-import { coveringTiles } from '@/features/pois/tiles.js'
 
-// One shared mock fn referenced by both the module mock and the tests.
+// Shared mock fn referenced by both the module mock and the tests.
 const { fetchPoisMock } = vi.hoisted(() => ({ fetchPoisMock: vi.fn() }))
 
 vi.mock('@/features/pois/OverpassClient.js', async (orig) => ({
@@ -12,15 +11,16 @@ vi.mock('@/features/pois/OverpassClient.js', async (orig) => ({
 
 import { createPoiRefresher } from './poiRefresher.js'
 
-// Default: each tile returns one POI, id derived from its bbox corner.
-function oneePoiPerTile(b: { south: number; west: number }): OsmPoi[] {
+// Each fetched area returns one POI placed at the SW corner of the queried
+// region (so distinct areas → distinct ids).
+function poiAt(b: { south: number; west: number }): OsmPoi[] {
   const id = Math.round(b.south * 100) * 100000 + Math.round(b.west * 100)
-  return [{ id, type: 'parking', lat: b.south, lon: b.west, tags: {} }]
+  return [{ id, type: 'parking', lat: b.south + 0.01, lon: b.west + 0.01, tags: {} }]
 }
 
 beforeEach(() => {
   fetchPoisMock.mockReset()
-  fetchPoisMock.mockImplementation(async (b: { south: number; west: number }) => oneePoiPerTile(b))
+  fetchPoisMock.mockImplementation(async (b: { south: number; west: number }) => poiAt(b))
 })
 
 function makeDeps(bounds: { south: number; west: number; north: number; east: number } | null) {
@@ -30,64 +30,73 @@ function makeDeps(bounds: { south: number; west: number; north: number; east: nu
 }
 
 const flush = () => new Promise(r => setTimeout(r, 0))
-const CITY = { south: 48.12, west: 11.56, north: 48.14, east: 11.58 } // 1 tile
+const CITY = { south: 48.10, west: 11.55, north: 48.15, east: 11.60 }
 
-describe('createPoiRefresher (tiled)', () => {
-  it('fetches each covering tile once and paints the assembled POIs', async () => {
-    const { deps, setMarkers } = makeDeps({ south: 48.13, west: 11.56, north: 48.17, east: 11.58 })
-    const tileCount = coveringTiles(deps.getBounds()!).length
-    expect(tileCount).toBe(2)
-    await createPoiRefresher(deps).refresh()
-    await flush()
-    expect(fetchPoisMock).toHaveBeenCalledTimes(tileCount)
-    expect(setMarkers.mock.calls.at(-1)![0]).toHaveLength(tileCount)
+describe('createPoiRefresher (single-query + accumulation)', () => {
+  it('cold viewport → exactly one query, paints the result', async () => {
+    const { deps, setMarkers } = makeDeps(CITY)
+    await createPoiRefresher(deps).refresh(); await flush()
+    expect(fetchPoisMock).toHaveBeenCalledTimes(1)
+    expect(setMarkers.mock.calls.at(-1)![0].length).toBeGreaterThanOrEqual(1)
   })
 
-  it('serves a revisited viewport entirely from cache (no new fetches)', async () => {
+  it('revisiting a fully-seen viewport makes no request', async () => {
     const { deps } = makeDeps(CITY)
     const r = createPoiRefresher(deps)
     await r.refresh(); await flush()
     expect(fetchPoisMock).toHaveBeenCalledTimes(1)
     fetchPoisMock.mockClear()
     await r.refresh(); await flush()
-    expect(fetchPoisMock).not.toHaveBeenCalled()
+    expect(fetchPoisMock).not.toHaveBeenCalled() // served from the store
   })
 
-  it('only fetches the newly revealed tiles when panning', async () => {
-    let bounds = { south: 48.12, west: 11.56, north: 48.14, east: 11.58 }
+  it('panning into new area queries only the uncovered strip (once)', async () => {
+    let bounds = { ...CITY }
     const r = createPoiRefresher({ getBounds: () => bounds, setMarkers: vi.fn(), setStatus: vi.fn() })
     await r.refresh(); await flush()
     expect(fetchPoisMock).toHaveBeenCalledTimes(1)
     fetchPoisMock.mockClear()
-    bounds = { south: 48.13, west: 11.56, north: 48.17, east: 11.58 } // + one new row
+    // pan north: lower half already covered
+    bounds = { south: 48.10, west: 11.55, north: 48.25, east: 11.60 }
     await r.refresh(); await flush()
     expect(fetchPoisMock).toHaveBeenCalledTimes(1)
+    const queried = fetchPoisMock.mock.calls[0]![0] as { south: number; north: number }
+    expect(queried.south).toBeGreaterThanOrEqual(48.15) // only the new northern strip
   })
 
-  it('dedupes POIs shared across tiles', async () => {
-    fetchPoisMock.mockImplementation(async () => [{ id: 42, type: 'parking', lat: 48, lon: 11, tags: {} } as OsmPoi])
-    const { deps, setMarkers } = makeDeps({ south: 48.13, west: 11.56, north: 48.17, east: 11.58 })
-    await createPoiRefresher(deps).refresh(); await flush()
-    expect(setMarkers.mock.calls.at(-1)![0]).toHaveLength(1)
+  it('accumulates POIs across areas and clips render to the viewport', async () => {
+    let bounds = { ...CITY }
+    const setMarkers = vi.fn<(p: readonly OsmPoi[]) => void>()
+    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers, setStatus: vi.fn() })
+    await r.refresh(); await flush()
+    bounds = { south: 48.20, west: 11.55, north: 48.25, east: 11.60 } // disjoint north area
+    await r.refresh(); await flush()
+    // viewport now only over the northern area → southern POI clipped out
+    const lastMarkers = setMarkers.mock.calls.at(-1)![0]
+    expect(lastMarkers.every(p => p.lat >= 48.20)).toBe(true)
   })
 
-  it('keeps painting when one tile fails (partial result, no throw)', async () => {
-    // 2-tile viewport (rows 48.10 + 48.15); fail the upper tile only
-    fetchPoisMock.mockImplementation(async (b: { south: number; west: number }) => {
-      if (b.south === 48.15) throw new Error('Overpass proxy error: 429')
-      return oneePoiPerTile(b)
-    })
-    const { deps, setMarkers, setStatus } = makeDeps({ south: 48.13, west: 11.56, north: 48.17, east: 11.58 })
-    await createPoiRefresher(deps).refresh(); await flush()
-    expect(setMarkers.mock.calls.at(-1)![0]).toHaveLength(1) // the one good tile
-    expect(setStatus).not.toHaveBeenCalledWith(expect.any(String), true) // not an error
-  })
-
-  it('shows an error only when every tile fails', async () => {
-    fetchPoisMock.mockImplementation(async () => { throw new Error('Overpass proxy error: 429') })
+  it('shows an error when the fetch fails', async () => {
+    fetchPoisMock.mockImplementation(async () => { throw new Error('Overpass proxy error: 503') })
     const { deps, setStatus } = makeDeps(CITY)
     await createPoiRefresher(deps).refresh(); await flush()
-    expect(setStatus).toHaveBeenCalledWith(expect.stringMatching(/überlastet/), true)
+    expect(setStatus).toHaveBeenCalledWith(expect.any(String), true)
+  })
+
+  it('aborting (superseded refresh) does not surface an error', async () => {
+    // first refresh hangs; second supersedes and aborts it
+    let abortErr: Error | undefined
+    fetchPoisMock.mockImplementationOnce((_b: unknown, _t: unknown, signal: AbortSignal) =>
+      new Promise((_res, rej) => signal.addEventListener('abort', () => {
+        abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' }); rej(abortErr)
+      })))
+    let bounds = { ...CITY }
+    const { setStatus } = { setStatus: vi.fn() }
+    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers: vi.fn(), setStatus })
+    const p1 = r.refresh()
+    bounds = { south: 48.20, west: 11.55, north: 48.25, east: 11.60 }
+    await r.refresh(); await p1; await flush()
+    expect(setStatus).not.toHaveBeenCalledWith(expect.any(String), true)
   })
 
   it('refuses an over-wide viewport without fetching', async () => {

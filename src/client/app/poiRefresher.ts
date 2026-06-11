@@ -1,14 +1,12 @@
 import { fetchPois, type LatLngBounds, type OsmPoi, type PoiType } from '@/features/pois/OverpassClient.js'
-import { coveringTiles, tileBounds, tileKey, type Tile } from '@/features/pois/tiles.js'
+import { markCovered, uncoveredBounds, withinBounds } from '@/features/pois/coverage.js'
 import { overpassErrorMessage, poiCountMessage } from '@/features/pois/statusMessages.js'
 
 const MAX_SPAN_DEG = 1.5 // refuse to query an over-wide viewport
 const SLOW_HINT_MS = 8000
-// Overpass instances allow only a couple of concurrent slots per client — keep
-// the upstream pressure low (one shared gate across all refreshes), otherwise
-// rapid panning stacks parallel tile queries and trips upstream 429s.
-const MAX_INFLIGHT = 2
 
+// All POI types are fetched so a region is fetched once regardless of active
+// filters; toggling filters is then pure marker visibility (no refetch).
 const ALL_TYPES: ReadonlySet<PoiType> = new Set<PoiType>(['parking', 'camper', 'campsite', 'dump', 'water'])
 
 export interface PoiRefresherDeps {
@@ -18,26 +16,25 @@ export interface PoiRefresherDeps {
 }
 
 /**
- * Tile-based, cached bounds → Overpass → markers flow. The viewport is split
- * into grid tiles; cached tiles paint instantly, only missing tiles are
- * fetched through a shared concurrency gate (≤ MAX_INFLIGHT upstream calls at
- * once, across overlapping refreshes). When a newer refresh supersedes this
- * one, still-queued tiles are dropped before they hit Overpass — so fast
- * panning doesn't flood the upstream. A single tile failing (e.g. 429) doesn't
- * fail the whole refresh; that tile is simply left uncached and retried later.
+ * One Overpass query per genuinely-new area, with client-side accumulation.
+ *
+ * Every fetched POI is kept in a store and the 0.05° cells it came from are
+ * marked covered. A refresh renders the store clipped to the viewport, so:
+ *   • a viewport of already-seen cells → instant, no network;
+ *   • a partially-new viewport → a single query over just the uncovered strip;
+ *   • a cold viewport → a single full query (same as before tiling).
+ * The previous in-flight query is aborted when a newer refresh starts, so
+ * rapid panning issues at most one upstream query at a time.
  */
 export function createPoiRefresher(deps: PoiRefresherDeps): { refresh(): Promise<void> } {
-  const cache = new Map<string, readonly OsmPoi[]>()
-  const gate = createGate(MAX_INFLIGHT)
+  const store = new Map<number, OsmPoi>()
+  const covered = new Set<string>()
+  let inFlight: AbortController | null = null
   let generation = 0
 
-  function assemble(tiles: readonly Tile[]): number {
-    const byId = new Map<number, OsmPoi>()
-    for (const t of tiles) {
-      const pois = cache.get(tileKey(t))
-      if (pois) for (const p of pois) byId.set(p.id, p)
-    }
-    const pois = [...byId.values()]
+  function render(bounds: LatLngBounds): number {
+    const pois: OsmPoi[] = []
+    for (const p of store.values()) if (withinBounds(p, bounds)) pois.push(p)
     deps.setMarkers(pois)
     return pois.length
   }
@@ -52,64 +49,39 @@ export function createPoiRefresher(deps: PoiRefresherDeps): { refresh(): Promise
     }
 
     const myGen = ++generation
-    const tiles = coveringTiles(bounds)
-    const missing = tiles.filter(t => !cache.has(tileKey(t)))
+    const fetchArea = uncoveredBounds(bounds, covered)
 
-    if (missing.length === 0) {
-      deps.setStatus(poiCountMessage(assemble(tiles)))
+    // Whole viewport already seen → paint from the store, no request.
+    if (!fetchArea) {
+      deps.setStatus(poiCountMessage(render(bounds)))
       setTimeout(() => { if (generation === myGen) deps.setStatus('') }, 2000)
       return
     }
 
-    assemble(tiles) // paint cached tiles immediately
+    render(bounds) // show what we already have while the new strip loads
+    inFlight?.abort()
+    inFlight = new AbortController()
     deps.setStatus('Lade Stellplätze…')
     const slowTimer = setTimeout(() => {
       if (generation === myGen) deps.setStatus('Warte auf Overpass-Server – kann etwas dauern…')
     }, SLOW_HINT_MS)
 
-    let failures = 0
-    await Promise.all(missing.map(t => gate(async () => {
-      // Superseded by a newer viewport while queued → don't bother Overpass.
+    try {
+      const pois = await fetchPois(fetchArea, ALL_TYPES, inFlight.signal)
+      clearTimeout(slowTimer)
       if (generation !== myGen) return
-      try {
-        const pois = await fetchPois(tileBounds(t), ALL_TYPES)
-        cache.set(tileKey(t), pois)
-        if (generation === myGen) assemble(tiles)
-      } catch (err) {
-        failures++
-        if ((err as Error).name !== 'AbortError') console.warn('POI tile failed:', err)
-      }
-    })))
-
-    clearTimeout(slowTimer)
-    if (generation !== myGen) return
-    if (failures === missing.length) {
-      deps.setStatus('Overpass überlastet – bitte kurz warten', true)
-      return
+      for (const p of pois) store.set(p.id, p)
+      markCovered(bounds, covered)
+      deps.setStatus(poiCountMessage(render(bounds)))
+      setTimeout(() => { if (generation === myGen) deps.setStatus('') }, 3000)
+    } catch (err) {
+      clearTimeout(slowTimer)
+      if ((err as Error).name === 'AbortError') return
+      if (generation !== myGen) return
+      console.error('POI fetch failed:', err)
+      deps.setStatus(overpassErrorMessage(err), true)
     }
-    deps.setStatus(poiCountMessage(assemble(tiles)))
-    setTimeout(() => { if (generation === myGen) deps.setStatus('') }, 3000)
   }
 
   return { refresh }
-}
-
-/** A concurrency gate: at most `limit` tasks run at once; the rest queue. */
-function createGate(limit: number): <T>(task: () => Promise<T>) => Promise<T> {
-  let active = 0
-  const queue: Array<() => void> = []
-  const release = () => {
-    active--
-    queue.shift()?.()
-  }
-  const acquire = () =>
-    new Promise<void>(resolve => {
-      if (active < limit) { active++; resolve() }
-      else queue.push(() => { active++; resolve() })
-    })
-  return async <T>(task: () => Promise<T>): Promise<T> => {
-    await acquire()
-    try { return await task() }
-    finally { release() }
-  }
 }
