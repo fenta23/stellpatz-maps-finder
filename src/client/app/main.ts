@@ -160,9 +160,16 @@ async function init() {
   })
 
   // ── Wiring ───────────────────────────────────────────────────────────────────
+  // Debounce refresh: a pan/zoom burst settles into one tile load for the final
+  // viewport instead of firing tile batches for every intermediate one.
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined
+  const refreshDebounced = () => {
+    clearTimeout(refreshTimer)
+    refreshTimer = setTimeout(() => void refresh(), 250)
+  }
   mapService.onBoundsChanged(bounds => {
     searchBar.updateBounds(bounds)
-    void refresh()
+    refreshDebounced()
   })
   setTimeout(() => void refresh(), 800)
 

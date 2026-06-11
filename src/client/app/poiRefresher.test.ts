@@ -71,6 +71,25 @@ describe('createPoiRefresher (tiled)', () => {
     expect(setMarkers.mock.calls.at(-1)![0]).toHaveLength(1)
   })
 
+  it('keeps painting when one tile fails (partial result, no throw)', async () => {
+    // 2-tile viewport (rows 48.10 + 48.15); fail the upper tile only
+    fetchPoisMock.mockImplementation(async (b: { south: number; west: number }) => {
+      if (b.south === 48.15) throw new Error('Overpass proxy error: 429')
+      return oneePoiPerTile(b)
+    })
+    const { deps, setMarkers, setStatus } = makeDeps({ south: 48.13, west: 11.56, north: 48.17, east: 11.58 })
+    await createPoiRefresher(deps).refresh(); await flush()
+    expect(setMarkers.mock.calls.at(-1)![0]).toHaveLength(1) // the one good tile
+    expect(setStatus).not.toHaveBeenCalledWith(expect.any(String), true) // not an error
+  })
+
+  it('shows an error only when every tile fails', async () => {
+    fetchPoisMock.mockImplementation(async () => { throw new Error('Overpass proxy error: 429') })
+    const { deps, setStatus } = makeDeps(CITY)
+    await createPoiRefresher(deps).refresh(); await flush()
+    expect(setStatus).toHaveBeenCalledWith(expect.stringMatching(/überlastet/), true)
+  })
+
   it('refuses an over-wide viewport without fetching', async () => {
     const { deps, setStatus } = makeDeps({ south: 47, west: 10, north: 49, east: 12 })
     await createPoiRefresher(deps).refresh()

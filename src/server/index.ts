@@ -63,8 +63,11 @@ export function createApp() {
   app.use(helmetConfig)
   // Cross-site browser traffic is rejected before it can burn upstream quotas.
   app.use('/api', originGuard(ALLOWED_ORIGINS))
-  // Limiters per app instance so tests get fresh counters.
-  app.use('/api', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }))
+  // Limiters per app instance so tests get fresh counters. The global cap is
+  // generous because a single map view legitimately issues many small tile
+  // requests (POI tiling); cross-site abuse is already blocked by the origin
+  // guard, so this is just a backstop against header-less floods.
+  app.use('/api', rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false }))
   // Mapillary calls spend our API token — keep its budget tight.
   app.use('/api/mapillary', rateLimit({ windowMs: 60_000, max: 20, standardHeaders: true, legacyHeaders: false }))
 
