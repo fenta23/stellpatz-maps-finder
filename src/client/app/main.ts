@@ -29,6 +29,7 @@ import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
 import { LocalCustomPoiStore } from '@/features/custom-pois/CustomPoiStore.js'
+import { SyncedCustomPoiStore, createSupabaseCustomPoiBackend } from '@/features/custom-pois/RemoteCustomPoiStore.js'
 import { CustomPoiMarkerManager } from '@/features/custom-pois/CustomPoiMarkerManager.js'
 import { CustomPoiEditor } from '@/features/custom-pois/CustomPoiEditor.js'
 
@@ -123,7 +124,7 @@ async function init() {
   markerManager.setNotes(new Set(notes.list().map(n => n.id)))
 
   // ── Custom POIs ──────────────────────────────────────────────────────────────
-  const customPoiStore = new LocalCustomPoiStore()
+  const customPoiStore = new SyncedCustomPoiStore(new LocalCustomPoiStore())
   const customPoiEditor = new CustomPoiEditor(document.body)
 
   let currentCustomPoi: import('@/features/custom-pois/CustomPoi.js').CustomPoi | undefined
@@ -203,9 +204,13 @@ async function init() {
           .connect(createSupabaseFavoritesBackend(supabase, user.id))
           .then(() => markerManager.setFavorites(favorites.getAll()))
         void notes.connect(createSupabaseNotesBackend(supabase, user.id))
+        void customPoiStore
+          .connect(createSupabaseCustomPoiBackend(supabase, user.id))
+          .then(() => refreshCustomMarkers())
       } else {
         favorites.disconnect()
         notes.disconnect()
+        customPoiStore.disconnect()
       }
     })
   }
