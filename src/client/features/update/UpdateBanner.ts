@@ -30,16 +30,32 @@ export class UpdateBanner {
 /**
  * Listen for service-worker updates and show the banner when a new version is
  * found. Only activates when the browser supports SW (i.e. in production PWA).
+ *
+ * Strategy:
+ * - `controllerchange` fires when a new SW takes over (update → activate).
+ * - If no SW was active on setup, the first controllerchange is the initial
+ *   install → skipped. Subsequent ones are real updates → show banner.
+ * - `reg.update()` on `visibilitychange` (tab becomes active) prods the browser
+ *   to check for updates sooner than the default 24h interval — catches deploys
+ *   that happened while the page was open.
  */
 export function watchServiceWorkerUpdates(banner: UpdateBanner): void {
   if (!('serviceWorker' in navigator)) return
 
+  // True when there's no active SW yet → first controllerchange is install.
+  let isFirstControllerChange = !navigator.serviceWorker.controller
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (isFirstControllerChange) {
+      isFirstControllerChange = false
+      return
+    }
+    banner.show()
+  })
+
   navigator.serviceWorker.ready.then(reg => {
-    let seen = false
-    reg.addEventListener('updatefound', () => {
-      if (seen) return
-      seen = true
-      banner.show()
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void reg.update()
     })
   })
 }
