@@ -8,8 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Modern POI-Icons**: Neue SVG-Icons (statt Emojis) für alle POI-Typen — modernes, minimalistisches Design direkt mitgeliefert. Parkplatz: stilisiertes P, Stellplatz: Wohnmobil-Icon, Camping: modernes Zelt, Entsorgung: Mülltonnen-Symbol, Wasser: Wassertropfen.
-- **Notiz-Badge für POIs**: POIs mit persönlichen Notizen bekommen ein grünes Notiz-Icon (zusätzlich zum roten Favorit-Herz). Marker-Icons werden beim Speichern einer Notiz sofort aktualisiert.
+- **Alle Emojis durch Lucide-SVG-Icons ersetzt** — konsistentes, modernes Erscheinungsbild ohne System-Emojis:
+  - POI-Typen (Parkplatz, Stellplatz, Camping, Entsorgung, Wasser) via `typeIcon()` in `poiMeta.ts`
+  - Filter-Buttons, Marker-Icons, Favoriten-/Notizen-Liste, Side-Menü, Detail-Panel (Close, Heading, Route-Button, Heart)
+  - Auth-Profil (Favoriten/Notizen-Zeile), Topbar-Logo, Nearby-Server-Icons
+  - Map-Marker-Badges (Herz + Notiz) als skalierte Lucide-Pfade
+  - Lade-Indikator-Emoji in `PoiDetailPanel` ersetzt
+- **Routing-Modus**: Native `<select>`-Dropdown mit Emoji-Optionen (🚗🚲🚶) durch Segment-Button-Gruppe mit Lucide-SVGs (`car`/`bike`/`person-standing`) ersetzt — besser sichtbar und touch-freundlich
+- **SideMenu**: `decorate`-Callback setzt Icons per `innerHTML` (unterstützt jetzt SVGs, nicht nur Emoji-Strings)
+- **CSS-SVG-Sizing**: Einheitliche Größen-Regeln für alle neuen Inline-SVGs in Headings, Buttons und Close-Icons
 - **POI-Laden: eine Query pro neuem Gebiet + Client-Akkumulation (Performance).** Das Problem war, dass der Cache-Key der *exakte* (gesnappte) Viewport-BBox war — Zoom/Pan erzeugten neue Keys und verwendeten bereits gesehene Flächen nicht wieder. Jetzt:
   - Jeder geladene POI landet in einem **Client-Store**; die geladenen 0,05°-Rasterzellen werden als „covered" markiert (`features/pois/coverage.ts`).
   - Ein Refresh zeichnet den Store, auf den Viewport zugeschnitten. Dadurch: **gesehener Viewport → 0 Requests, sofort** (Zoom-in/Pan-zurück/Revisit); **teils neuer Viewport → genau eine Query, nur über die Bounding-Box der noch nicht gesehenen Zellen** (ein dünner Streifen beim Pannen); **kalter Viewport → eine einzige Query** (wie vor der Umstellung, kein Kaltstart-Regress).
