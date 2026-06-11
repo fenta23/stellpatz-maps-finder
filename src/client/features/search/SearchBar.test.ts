@@ -88,6 +88,42 @@ describe('SearchBar', () => {
     )
   })
 
+  it('submitting the form jumps to the first result (mobile "Search" key / Enter)', async () => {
+    stubFetch([
+      { lat: '48.137', lon: '11.576', display_name: 'München, Bayern' },
+      { lat: '48.2', lon: '11.6', display_name: 'München Ost' },
+    ])
+    const sb = new SearchBar(container)
+    const listener = vi.fn()
+    sb.onPlaceSelected(listener)
+
+    const input = container.querySelector('input') as HTMLInputElement
+    input.value = 'München'
+    const form = container.querySelector('form') as HTMLFormElement
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+
+    await vi.waitFor(() => {
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ lat: 48.137, lng: 11.576 }),
+      )
+    })
+    // dropdown collapsed after picking the best match
+    expect(container.querySelector('.search-dropdown')?.classList.contains('hidden')).toBe(true)
+  })
+
+  it('submitting with no results does not fire onPlaceSelected', async () => {
+    stubFetch([])
+    const sb = new SearchBar(container)
+    const listener = vi.fn()
+    sb.onPlaceSelected(listener)
+    const input = container.querySelector('input') as HTMLInputElement
+    input.value = 'asdfqwer'
+    const form = container.querySelector('form') as HTMLFormElement
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+    await vi.waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalled())
+    expect(listener).not.toHaveBeenCalled()
+  })
+
   it('includes viewbox in request after updateBounds', async () => {
     stubFetch([])
     const sb = new SearchBar(container)

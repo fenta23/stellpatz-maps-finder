@@ -24,18 +24,26 @@ export class SearchBar {
     const wrapper = document.createElement('div')
     wrapper.className = 'search-wrapper'
 
+    // A real <form> so the on-screen keyboard's "Search"/"Go" key (and Enter)
+    // actually submits — without it, mobile users couldn't trigger a search.
+    const form = document.createElement('form')
+    form.className = 'search-form'
+    form.setAttribute('role', 'search')
+
     this.input = document.createElement('input')
     this.input.type = 'search'
     this.input.placeholder = 'Ort suchen…'
     this.input.className = 'search-input'
     this.input.setAttribute('aria-label', 'Ort suchen')
     this.input.setAttribute('autocomplete', 'off')
+    this.input.setAttribute('enterkeyhint', 'search')
 
     this.dropdown = document.createElement('ul')
     this.dropdown.className = 'search-dropdown hidden'
     this.dropdown.setAttribute('role', 'listbox')
 
-    wrapper.appendChild(this.input)
+    form.appendChild(this.input)
+    wrapper.appendChild(form)
     wrapper.appendChild(this.dropdown)
     this.container.appendChild(wrapper)
 
@@ -44,8 +52,14 @@ export class SearchBar {
       this.debounceTimer = setTimeout(() => void this.search(), 350)
     })
 
+    // Submit (Enter / mobile "Search" key) → jump straight to the best match.
+    form.addEventListener('submit', (e) => {
+      e.preventDefault()
+      void this.submit()
+    })
+
     this.input.addEventListener('blur', () => {
-      // small delay so click on item fires first
+      // small delay so a click/tap on an item fires first
       setTimeout(() => this.hideDropdown(), 150)
     })
 
@@ -58,9 +72,24 @@ export class SearchBar {
     this.bounds = bounds
   }
 
+  /** Debounced as-you-type search → dropdown of suggestions. */
   private async search(): Promise<void> {
+    const results = await this.fetchResults()
+    this.showDropdown(results)
+  }
+
+  /** Submit (Enter / mobile keyboard) → run now and jump to the best match. */
+  private async submit(): Promise<void> {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer)
+    const results = await this.fetchResults()
+    if (results.length === 0) { this.hideDropdown(); return }
+    this.selectResult(results[0]!)
+    this.input.blur() // dismiss the on-screen keyboard
+  }
+
+  private async fetchResults(): Promise<NominatimResult[]> {
     const q = this.input.value.trim()
-    if (q.length < 2) { this.hideDropdown(); return }
+    if (q.length < 2) return []
 
     const params = new URLSearchParams({ q, limit: '6' })
     if (this.bounds) {
@@ -70,11 +99,18 @@ export class SearchBar {
 
     try {
       const res = await fetch(apiUrl(`/api/geocode?${params}`))
-      if (!res.ok) { this.hideDropdown(); return }
-      const results = await res.json() as NominatimResult[]
-      this.showDropdown(results)
+      if (!res.ok) return []
+      return await res.json() as NominatimResult[]
     } catch {
-      this.hideDropdown()
+      return []
+    }
+  }
+
+  private selectResult(r: NominatimResult): void {
+    this.input.value = r.display_name
+    this.hideDropdown()
+    for (const l of this.listeners) {
+      l({ lat: Number(r.lat), lng: Number(r.lon), name: r.display_name })
     }
   }
 
@@ -87,12 +123,11 @@ export class SearchBar {
       li.className = 'search-dropdown-item'
       li.setAttribute('role', 'option')
       li.textContent = r.display_name
-      li.addEventListener('mousedown', () => {
-        this.input.value = r.display_name
-        this.hideDropdown()
-        for (const l of this.listeners) {
-          l({ lat: Number(r.lat), lng: Number(r.lon), name: r.display_name })
-        }
+      // mousedown (fires before the input's blur) + preventDefault keeps focus
+      // off the blur-hide race; works for synthesized taps on touch too.
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault()
+        this.selectResult(r)
       })
       this.dropdown.appendChild(li)
     }
