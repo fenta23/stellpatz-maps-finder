@@ -121,43 +121,54 @@ describe('svgToDataUrl', () => {
 })
 
 describe('buildIcon', () => {
-  it('returns base SVG when not favorited', () => {
-    const svg = buildIcon('parking', false)
-    expect(svg).not.toContain('♥')
+  it('returns base SVG when not favorited or noted', () => {
+    const svg = buildIcon('parking', false, false)
+    expect(svg).not.toContain('#E53935') // no heart
+    expect(svg).not.toContain('#4CAF50') // no note
   })
 
   it('injects heart badge when favorited', () => {
-    const svg = buildIcon('parking', true)
-    expect(svg).toContain('♥')
-    expect(svg).toContain('#E53935')
+    const svg = buildIcon('parking', true, false)
+    expect(svg).toContain('#E53935') // heart color
+  })
+
+  it('injects note badge when noted', () => {
+    const svg = buildIcon('parking', false, true)
+    expect(svg).toContain('#4CAF50') // note color
+  })
+
+  it('combines heart and note badges', () => {
+    const svg = buildIcon('parking', true, true)
+    expect(svg).toContain('#E53935') // heart
+    expect(svg).toContain('#4CAF50') // note
   })
 
   it('heart badge works for all poi types', () => {
     for (const type of ['parking', 'camper', 'campsite', 'dump', 'water'] as const) {
-      expect(buildIcon(type, true)).toContain('♥')
+      expect(buildIcon(type, true, false)).toContain('#E53935')
     }
   })
 
   it('uses the blue icon for public parking', () => {
-    const svg = buildIcon('parking', false, false)
+    const svg = buildIcon('parking', false, false, false)
     expect(svg).toContain('#1565C0')
     expect(svg).not.toContain('#616161')
   })
 
   it('uses the grey icon plus lock badge for private parking', () => {
-    const svg = buildIcon('parking', false, true)
+    const svg = buildIcon('parking', false, false, true)
     expect(svg).toContain('#616161') // grey fill + lock
     expect(svg).not.toContain('#1565C0')
   })
 
   it('combines lock and heart badges for a favorited private parking', () => {
-    const svg = buildIcon('parking', true, true)
-    expect(svg).toContain('♥')
-    expect(svg).toContain('#616161')
+    const svg = buildIcon('parking', true, false, true)
+    expect(svg).toContain('#E53935') // heart
+    expect(svg).toContain('#616161') // lock
   })
 
   it('ignores isPrivate for non-parking types', () => {
-    const svg = buildIcon('campsite', false, true)
+    const svg = buildIcon('campsite', false, false, true)
     expect(svg).toContain('#E65100') // unchanged campsite colour
     expect(svg).not.toContain('#616161')
   })
@@ -169,8 +180,8 @@ describe('PoiMarkerManager.setFavorites', () => {
     const mgr = new PoiMarkerManager(adapter, vi.fn())
     mgr.updatePois([poi(1), poi(2)])
     mgr.setFavorites(new Set(['1']))
-    expect(adapter.handles[0]?.icon).toContain('%E2%99%A5') // ♥ URL-encoded
-    expect(adapter.handles[1]?.icon).not.toContain('%E2%99%A5')
+    expect(adapter.handles[0]?.icon).toContain('%23E53935') // heart color
+    expect(adapter.handles[1]?.icon).not.toContain('%23E53935')
   })
 
   it('new markers pick up existing favorites', () => {
@@ -178,7 +189,7 @@ describe('PoiMarkerManager.setFavorites', () => {
     const mgr = new PoiMarkerManager(adapter, vi.fn())
     mgr.setFavorites(new Set(['1']))
     mgr.updatePois([poi(1)])
-    expect(adapter.handles[0]?.icon).toContain('%E2%99%A5')
+    expect(adapter.handles[0]?.icon).toContain('%23E53935')
   })
 
   it('renders private parking with the grey icon and keeps it through favorite toggle', () => {
@@ -191,6 +202,35 @@ describe('PoiMarkerManager.setFavorites', () => {
     // toggling a favorite must not lose the private (grey) styling
     mgr.setFavorites(new Set(['1']))
     expect(adapter.handles[0]?.icon).toContain('%23616161')
-    expect(adapter.handles[0]?.icon).toContain('%E2%99%A5')
+    expect(adapter.handles[0]?.icon).toContain('%23E53935')
+  })
+})
+
+describe('PoiMarkerManager.setNotes', () => {
+  it('updateIcon is called on existing markers when notes change', () => {
+    const adapter = makeAdapter()
+    const mgr = new PoiMarkerManager(adapter, vi.fn())
+    mgr.updatePois([poi(1), poi(2)])
+    mgr.setNotes(new Set(['1']))
+    expect(adapter.handles[0]?.icon).toContain('%234CAF50') // note color
+    expect(adapter.handles[1]?.icon).not.toContain('%234CAF50')
+  })
+
+  it('new markers pick up existing notes', () => {
+    const adapter = makeAdapter()
+    const mgr = new PoiMarkerManager(adapter, vi.fn())
+    mgr.setNotes(new Set(['1']))
+    mgr.updatePois([poi(1)])
+    expect(adapter.handles[0]?.icon).toContain('%234CAF50')
+  })
+
+  it('combines note and favorite badges', () => {
+    const adapter = makeAdapter()
+    const mgr = new PoiMarkerManager(adapter, vi.fn())
+    mgr.updatePois([poi(1)])
+    mgr.setFavorites(new Set(['1']))
+    mgr.setNotes(new Set(['1']))
+    expect(adapter.handles[0]?.icon).toContain('%23E53935') // heart
+    expect(adapter.handles[0]?.icon).toContain('%234CAF50') // note
   })
 })

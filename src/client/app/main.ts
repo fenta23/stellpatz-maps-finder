@@ -107,6 +107,7 @@ async function init() {
     filterPanel.getActiveTypes(),
   )
   markerManager.setFavorites(favorites.getAll())
+  markerManager.setNotes(new Set(notes.list().map(n => n.id)))
 
   // ── Favorites sync on login/logout ───────────────────────────────────────────
   // Supabase emits the initial session on subscribe, so this also covers the
@@ -194,6 +195,7 @@ async function init() {
   detailPanel.onNoteSave(text => {
     if (!session.selectedPoi) return
     notes.set(toNoteTarget(session.selectedPoi), text)
+    markerManager.setNotes(new Set(notes.list().map(n => n.id)))
   })
   detailPanel.onNearbySelect(item => {
     const poi = session.selectedPoi
@@ -220,7 +222,6 @@ async function init() {
     },
   })
   favorites.onChange(() => favoritesPanel.refresh())
-  notes.onChange(() => favoritesPanel.refresh()) // a saved note updates the favorites subtitle
 
   const notesPanel = new NotesListPanel(document.body, {
     getNotes: () => notes.list(),
@@ -230,7 +231,11 @@ async function init() {
     },
     onRemove: note => notes.remove(note.id),
   })
-  notes.onChange(() => notesPanel.refresh())
+  notes.onChange(() => {
+    markerManager.setNotes(new Set(notes.list().map(n => n.id)))
+    favoritesPanel.refresh() // a saved note updates the favorites subtitle
+    notesPanel.refresh()
+  })
 
   const menuItems: MenuItem[] = [
     { icon: '🗺️', label: 'Karte', onSelect: () => { favoritesPanel.close(); notesPanel.close() } },
