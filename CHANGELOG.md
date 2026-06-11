@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Anlegen über den **„+"-Button** (Platzierungs-Modus) oder **Rechtsklick / Long-press** auf die Karte.
   - **Editor-Modal** mit Lucide-**Icon-Picker** (20 Icons), Name, Adresse, Kontakt, Details (Gebühr/Kapazität/Öffnungszeiten/Betreiber/Beschreibung) und eigener Notiz.
   - Eigene Marker mit dem gewählten Icon; Klick öffnet den Detail-View, von dort **Bearbeiten/Löschen**. Über den Filter ein-/ausblendbar.
-  - Speicherung aktuell **lokal** (`LocalCustomPoiStore`, localStorage). Supabase-Migration `0005_custom_pois.sql` (Tabelle + RLS, `user_id = auth.uid()`) ist für späteren Per-User-Sync vorbereitet.
-  - Slice `features/custom-pois/` (Store, Editor, MarkerManager, Modell) inkl. Unit-Tests.
+  - Speicherung **lokal + optionaler Supabase-Sync** bei Login (`SyncedCustomPoiStore`, analog zu Favoriten/Notizen): lokaler Mirror ist führend für Reads, Writes gehen im Hintergrund durch, Sync-Fehler blockieren nie die UI. Beim Login werden Server-POIs in den Mirror gemerged (lokale Kopie gewinnt bei gleicher ID) und der vereinte Stand hochgeschoben. Migration `0005_custom_pois.sql` (Tabelle + RLS, `user_id = auth.uid()`); optionale Felder/Timestamps liegen in der `data`-jsonb-Spalte.
+  - Slice `features/custom-pois/` (lokaler + synchronisierter Store, Editor, MarkerManager, Modell) inkl. Unit-Tests.
 
 ### Fixed
 - **Custom-POI-Editor: Layout & Mobil.** Icon-Picker + Name liegen jetzt voller Breite oben, darunter zwei balancierte Spalten (Adresse/Kontakt | Details/Notiz) statt einer überlangen linken Spalte mit Loch unten rechts. Auf Mobil (`max-width: 639px`) öffnet der Editor **vollflächig** und überdeckt den Detail-View korrekt (Editor-`z-index` von 1000 → 1900, über dem mobilen Detail-Bottom-Sheet `1100`); Overlay mit Dim-Hintergrund.
