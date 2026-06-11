@@ -1,22 +1,22 @@
 <div class="fav-panel" role="dialog" aria-label="Notizen">
   <div class="fav-header">
-    <span class="fav-title">📝 Notizen</span>
-    <button class="fav-close" type="button" aria-label="Schließen">✕</button>
+    <span class="fav-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></svg> Notizen</span>
+    <button class="fav-close" type="button" aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
   </div>
   <ul class="fav-list" data-ref="list" data-list>
     <template data-row>
       <li class="fav-item">
         <button class="fav-item-main" type="button" data-on="select">
-          <span class="fav-item-icon" data-text="icon"></span>
+          <span class="fav-item-icon" data-ref="poi-icon"></span>
           <span class="fav-item-text">
             <span class="fav-item-name" data-text="name"></span>
             <span class="fav-item-sub" data-text="sub"></span>
           </span>
         </button>
-        <button class="fav-item-remove" type="button" data-on="remove" title="Notiz löschen">🗑️</button>
+        <button class="fav-item-remove" type="button" data-on="remove" title="Notiz löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
       </li>
     </template>
-    <li class="fav-empty" data-empty>Noch keine Notizen. Öffne einen Ort und schreib unter „📝 Meine Notiz".</li>
+    <li class="fav-empty" data-empty>Noch keine Notizen. Öffne einen Ort und schreib unter „Meine Notiz".</li>
   </ul>
   <div class="fav-footer" data-ref="footer"></div>
 </div>

@@ -4,7 +4,7 @@ import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 
 describe('poiLabel helpers', () => {
   it('maps type to icon + label', () => {
-    expect(typeIcon('camper')).toBe('🚐')
+    expect(typeIcon('camper')).toMatch(/^<svg /)
     expect(typeLabel('campsite')).toBe('Campingplatz')
   })
 

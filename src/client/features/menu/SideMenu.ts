@@ -22,6 +22,10 @@ export class SideMenu {
     renderList(ref(this.panel, 'list'), items, {
       row: item => ({ icon: item.icon, label: item.label }),
       on: { select: item => { this.close(); item.onSelect() } },
+      decorate: (row, item) => {
+        const iconEl = row.querySelector('.side-menu-icon')
+        if (iconEl) iconEl.innerHTML = item.icon
+      },
     })
 
     container.append(this.backdrop, this.panel)

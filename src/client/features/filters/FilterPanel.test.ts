@@ -36,7 +36,7 @@ describe('FilterPanel', () => {
     const el = makeContainer()
     new FilterPanel(el)
     const btn = el.querySelector<HTMLButtonElement>('[data-type="parking"]')!
-    expect(btn.textContent).toBe('🅿️') // icon only, no text label
+    expect(btn.querySelector('svg')).toBeTruthy() // SVG icon, no text
     expect(btn.title).toBe('Parkplatz')
     expect(btn.getAttribute('aria-label')).toBe('Parkplatz')
   })

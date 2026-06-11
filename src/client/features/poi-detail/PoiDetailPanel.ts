@@ -7,6 +7,9 @@ import { clone, ref } from '@/core/template.js'
 import { renderList } from '@/core/bind.js'
 import panelHtml from './poiDetailPanel.html?raw'
 
+const SVG_MAP_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>'
+const SVG_NOTE_HEADING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></svg>'
+
 export type NavigateRequest = { readonly poi: OsmPoi }
 
 export interface OsmNote {
@@ -36,7 +39,13 @@ interface TagRow {
   readonly href?: string
 }
 
-const MODE_ICON: Record<RoutingMode, string> = { driving: '🚗', cycling: '🚲', foot: '🚶' }
+const MODE_ICON: Record<RoutingMode, string> = {
+  driving: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>',
+  cycling: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>',
+  foot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg>',
+}
+
+const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>'
 
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
@@ -92,12 +101,11 @@ export class PoiDetailPanel {
 
     const fav = ref(view, 'fav')
     fav.setAttribute('aria-pressed', String(isFavorite))
-    fav.textContent = isFavorite ? '♥' : '♡'
+    fav.innerHTML = HEART_SVG
     fav.classList.toggle('active', isFavorite)
     fav.addEventListener('click', () => {
       const nowFav = fav.getAttribute('aria-pressed') !== 'true'
       fav.setAttribute('aria-pressed', String(nowFav))
-      fav.textContent = nowFav ? '♥' : '♡'
       fav.classList.toggle('active', nowFav)
       for (const l of this.favListeners) l()
     })
@@ -119,7 +127,7 @@ export class PoiDetailPanel {
     // Route summary
     if (route) {
       ref(view, 'routeSummary').hidden = false
-      ref(view, 'routeMain').textContent = `${MODE_ICON[mode]} ${route.distanceText} · ${route.durationText}`
+      ref(view, 'routeMain').innerHTML = `${MODE_ICON[mode]} ${route.distanceText} · ${route.durationText}`
       ref(view, 'routeDetour').textContent =
         `Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})`
     }
@@ -182,7 +190,7 @@ export class PoiDetailPanel {
         : `${(it.distance / 1000).toFixed(1).replace('.', ',')} km`
       return `<li><button type="button" class="nearby-item" data-nearby-idx="${i}" title="Route von hier zeigen"><span class="nearby-icon">${it.icon}</span><span class="nearby-name">${esc(it.name)}</span><span class="nearby-dist">${dist}</span></button></li>`
     }).join('')
-    section.innerHTML = `<h3 class="nearby-heading">📍 In der Nähe <span class="nearby-hint">· tippen für Route</span></h3><ul class="nearby-list">${rows}</ul>`
+    section.innerHTML = `<h3 class="nearby-heading">${SVG_MAP_PIN} In der Nähe <span class="nearby-hint">· tippen für Route</span></h3><ul class="nearby-list">${rows}</ul>`
   }
 
   updateNotes(notes: OsmNote[]): void {
@@ -325,7 +333,7 @@ function renderNotes(notes: OsmNote[]): string {
       <div class="note-text">${renderNoteText(n.text)}</div>
       <div class="note-meta">${esc(n.date)}</div>
     </div>`).join('')
-  return `<h3 class="notes-heading">📝 Community-Hinweise</h3>${items}`
+  return `<h3 class="notes-heading">${SVG_NOTE_HEADING} Community-Hinweise</h3>${items}`
 }
 
 const URL_RE = /https?:\/\/\S+/g

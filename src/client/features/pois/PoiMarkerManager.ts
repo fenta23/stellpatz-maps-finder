@@ -24,41 +24,30 @@ interface TrackedMarker {
   readonly isPrivate: boolean
 }
 
-const BASE_ICONS: Record<PoiType, string> = {
-  parking: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="15" fill="#1565C0" stroke="#fff" stroke-width="2"/>
-    <path d="M14 9h4a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3h-1v4h-2v-4h-1V12a3 3 0 0 1 0-3zm3 1h-3v5h3a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z" fill="#fff"/>
-  </svg>`,
-  camper: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="15" fill="#2E7D32" stroke="#fff" stroke-width="2"/>
-    <path d="M8 12h16v8H8v-3h1v-1h-1v-4zm2 3h2v1h-2v-1zm4 0h2v1h-2v-1zm4 0h2v1h-2v-1z" fill="#fff" stroke="#fff" stroke-width="0.5"/>
-    <path d="M9 10h14c1 0 1-1 1-1h-16c0 0 0 1 1 1z" fill="#fff"/>
-  </svg>`,
-  campsite: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="15" fill="#E65100" stroke="#fff" stroke-width="2"/>
-    <path d="M16 8l7 9H9l7-9zm-6 10h12v2h-12v-2zm2 3h8v2h-8v-2z" fill="#fff"/>
-  </svg>`,
-  dump: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="15" fill="#795548" stroke="#fff" stroke-width="2"/>
-    <path d="M10 9h12v2h-1v9h-10v-9h-1V9zm2 2v8h8v-8h-8zm2 1h1v6h-1v-6zm2 0h1v6h-1v-6zm3 0h1v6h-1v-6z" fill="#fff"/>
-  </svg>`,
-  water: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="15" fill="#0277BD" stroke="#fff" stroke-width="2"/>
-    <path d="M16 9c-1.5 2-3 4-3 6 0 2.2 1.3 4 3 4s3-1.8 3-4c0-2-1.5-4-3-6zm0 8.5c-1.4 0-2.5-1-2.5-2.5 0-1 1-2.5 2.5-4.5 1.5 2 2.5 3.5 2.5 4.5 0 1.5-1.1 2.5-2.5 2.5z" fill="#fff"/>
-  </svg>`,
+// Helper: wrap Lucide paths inside a coloured circle marker.
+function svgMarker(fill: string, paths: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="15" fill="${fill}" stroke="#fff" stroke-width="2"/>
+    <g transform="translate(4,4)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">${paths}</g>
+  </svg>`
 }
 
-// Grey "P" variant for private/restricted parking — same shape, muted colour
-const PRIVATE_PARKING_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="15" fill="#616161" stroke="#fff" stroke-width="2"/>
-    <path d="M14 9h4a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3h-1v4h-2v-4h-1V12a3 3 0 0 1 0-3zm3 1h-3v5h3a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z" fill="#fff"/>
-  </svg>`
+const BASE_ICONS: Record<PoiType, string> = {
+  parking: svgMarker('#1565C0', '<path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>'),
+  camper: svgMarker('#2E7D32', '<path d="M13 6v5a1 1 0 0 0 1 1h6.102a1 1 0 0 1 .712.298l.898.91a1 1 0 0 1 .288.702V17a1 1 0 0 1-1 1h-3"/><path d="M5 18H3a1 1 0 0 1-1-1V8a2 2 0 0 1 2-2h12c1.1 0 2.1.8 2.4 1.8l1.176 4.2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2" fill="#fff"/><circle cx="7" cy="18" r="2" fill="#fff"/>'),
+  campsite: svgMarker('#E65100', '<path d="M3.5 21 14 3"/><path d="M20.5 21 10 3"/><path d="M15.5 21 12 15l-3.5 6"/><path d="M2 21h20"/>'),
+  dump: svgMarker('#795548', '<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+  water: svgMarker('#0277BD', '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>'),
+}
 
-// Red heart badge (top-right corner)
-const HEART_BADGE = `<circle cx="26" cy="6" r="7" fill="#E53935" stroke="#fff" stroke-width="1.5"/><path d="M24 3.5c-.4-.4-1-.6-1.6-.6-.6 0-1.2.2-1.6.6l-.8.8-.8-.8c-.4-.4-1-.6-1.6-.6-.6 0-1.2.2-1.6.6-.9.8-.9 2.2 0 3l4 4 4-4c.9-.8.9-2.2 0-3z" fill="#fff"/>`
+// Grey "P" variant for private/restricted parking — same Lucide path, muted colour
+const PRIVATE_PARKING_ICON = svgMarker('#616161', '<path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>')
 
-// Note badge (bottom-right corner) - a small notepad icon
-const NOTE_BADGE = `<circle cx="26" cy="26" r="6.5" fill="#4CAF50" stroke="#fff" stroke-width="1.5"/><path d="M24 23h3v5h-3v-5zm-.5-1h4v1h-4v-1z" fill="#fff" stroke="#fff" stroke-width="0.3"/>`
+// Red heart badge (top-right corner) — Lucide heart
+const HEART_BADGE = `<circle cx="26" cy="6" r="7" fill="#E53935" stroke="#fff" stroke-width="1.5"/><g transform="translate(21.2,1.2) scale(0.4)" fill="#fff"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></g>`
+
+// Note badge (bottom-right corner) — Lucide sticky-note
+const NOTE_BADGE = `<circle cx="26" cy="26" r="6.5" fill="#4CAF50" stroke="#fff" stroke-width="1.5"/><g transform="translate(21.8,21.8) scale(0.35)" fill="#fff"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></g>`
 
 // Lock badge sits bottom-left so it never collides with badges on right side
 const LOCK_BADGE = `<circle cx="7" cy="26" r="6.5" fill="#fff" stroke="#616161" stroke-width="1"/><rect x="4" y="25.5" width="6" height="5" rx="1" fill="#616161"/><path d="M5.2 25.5 v-1.3 a1.8 1.8 0 0 1 3.6 0 V25.5" fill="none" stroke="#fff" stroke-width="1.2"/>`
