@@ -216,7 +216,7 @@ describe('GET /api/nearby', () => {
     expect((await request(app).get('/api/nearby?lat=48.1&lon=181')).status).toBe(400)
   })
 
-  it('returns sorted nearby items with distance and icon', async () => {
+  it('returns sorted nearby items with distance (no icon — client-side mapping)', async () => {
     mockFetch(200, {
       elements: [
         { type: 'node', id: 1, lat: 48.105, lon: 11.5, tags: { amenity: 'pharmacy', name: 'Apotheke am Markt' } },
@@ -227,7 +227,7 @@ describe('GET /api/nearby', () => {
     expect(res.status).toBe(200)
     expect(res.body.length).toBe(2)
     expect(res.body[0]).toMatchObject({ kind: 'bakery', name: 'Bäcker Huber', lat: 48.102, lon: 11.5 })
-    expect(res.body[0].icon).toMatch(/^<svg/)
+    expect(res.body[0].icon).toBeUndefined()
     expect(res.body[0].distance).toBeLessThan(res.body[1].distance)
   })
 

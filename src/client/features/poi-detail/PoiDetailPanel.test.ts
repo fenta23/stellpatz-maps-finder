@@ -150,7 +150,7 @@ describe('PoiDetailPanel', () => {
     const cb = vi.fn()
     panel.onNearbySelect(cb)
     panel.show(poi)
-    const item = { kind: 'bakery', icon: '🥐', name: 'Bäcker', distance: 300, lat: 48.2, lon: 11.3 }
+    const item = { kind: 'bakery', name: 'Bäcker', distance: 300, lat: 48.2, lon: 11.3 }
     panel.updateNearby([item])
     const row = container.querySelector<HTMLButtonElement>('.nearby-item')
     expect(row).not.toBeNull()

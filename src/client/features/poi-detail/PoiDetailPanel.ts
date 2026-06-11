@@ -26,11 +26,19 @@ export interface PoiImage {
 
 export interface NearbyItem {
   readonly kind: string
-  readonly icon: string
   readonly name: string
   readonly distance: number
   readonly lat: number
   readonly lon: number
+}
+
+const NEARBY_ICONS: Record<string, string> = {
+  fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0v-6.998a2 2 0 0 0-.59-1.42L18 5"/><path d="M14 21V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16"/><path d="M2 21h13"/><path d="M3 9h11"/></svg>',
+  supermarket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></svg>',
+  pharmacy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>',
+  bakery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+  water: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>',
+  dump: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
 }
 
 interface TagRow {
@@ -188,7 +196,8 @@ export class PoiDetailPanel {
       const dist = it.distance < 1000
         ? `${it.distance} m`
         : `${(it.distance / 1000).toFixed(1).replace('.', ',')} km`
-      return `<li><button type="button" class="nearby-item" data-nearby-idx="${i}" title="Route von hier zeigen"><span class="nearby-icon">${it.icon}</span><span class="nearby-name">${esc(it.name)}</span><span class="nearby-dist">${dist}</span></button></li>`
+      const svg = NEARBY_ICONS[it.kind] ?? ''
+      return `<li><button type="button" class="nearby-item" data-nearby-idx="${i}" title="Route von hier zeigen"><span class="nearby-icon">${svg}</span><span class="nearby-name">${esc(it.name)}</span><span class="nearby-dist">${dist}</span></button></li>`
     }).join('')
     section.innerHTML = `<h3 class="nearby-heading">${SVG_MAP_PIN} In der Nähe <span class="nearby-hint">· tippen für Route</span></h3><ul class="nearby-list">${rows}</ul>`
   }
