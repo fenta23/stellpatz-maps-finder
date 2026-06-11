@@ -677,6 +677,18 @@
     .route-summary svg { width: 1em; height: 1em; vertical-align: middle; }
     .detour { color: var(--ink-muted); }
 
+    .route-start {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 7px 18px; font-size: 0.8rem; color: var(--ink-muted);
+      border-bottom: 1px solid var(--border-soft); background: var(--surface);
+    }
+    .route-start strong { color: var(--ink); font-weight: 600; }
+    .route-start-reset {
+      border: none; background: none; cursor: pointer; padding: 0;
+      color: var(--terracotta); font-size: 0.8rem; text-decoration: underline;
+    }
+    .btn-go svg, .btn-set-start svg { width: 1em; height: 1em; vertical-align: middle; }
+
     .poi-tags {
       width: 100%;
       border-collapse: collapse;

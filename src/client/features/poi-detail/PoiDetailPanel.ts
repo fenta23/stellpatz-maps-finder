@@ -1,6 +1,6 @@
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
-import { buildOsmPoiLink, buildGoogleMapsLink } from '@/features/routing/DirectionsService.js'
-import type { RouteResult, RoutingMode } from '@/features/routing/DirectionsService.js'
+import { buildOsmPoiLink, buildNavLink } from '@/features/routing/DirectionsService.js'
+import type { RouteResult, RoutingMode, LatLon } from '@/features/routing/DirectionsService.js'
 import type { CustomPoi } from '@/features/custom-pois/CustomPoi.js'
 import { customIdToNumber } from '@/features/custom-pois/CustomPoi.js'
 import { coalesce } from '@shared/fp.js'
@@ -63,6 +63,14 @@ export interface PanelConfig {
   readonly onDelete?: () => void
 }
 
+/** Route-start info for the panel: the effective start label, whether it's a
+ *  custom origin (→ show reset), and the coords to seed the nav deeplink. */
+export interface PanelRouting {
+  readonly originLabel: string
+  readonly isCustomOrigin: boolean
+  readonly from: LatLon | null
+}
+
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
@@ -70,6 +78,8 @@ export class PoiDetailPanel {
   private readonly favListeners: Array<() => void> = []
   private readonly noteListeners: Array<(text: string) => void> = []
   private readonly nearbyListeners: Array<(item: NearbyItem) => void> = []
+  private readonly setStartListeners: Array<() => void> = []
+  private readonly resetStartListeners: Array<() => void> = []
   private nearbyItems: NearbyItem[] = []
 
   constructor(private readonly container: HTMLElement) {
@@ -106,7 +116,7 @@ export class PoiDetailPanel {
     })
   }
 
-  show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig): void {
+  show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig, routing?: PanelRouting): void {
     this.panel.classList.remove('hidden')
     this.panel.innerHTML = ''
     const view = clone(panelHtml)
@@ -162,6 +172,18 @@ export class PoiDetailPanel {
         `Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})`
     }
 
+    // Route start row (which point routes start from) + reset to current location
+    if (routing) {
+      ref(view, 'routeStart').hidden = false
+      ref(view, 'routeStartLabel').textContent = routing.originLabel
+      const resetBtn = ref(view, 'resetStartBtn')
+      resetBtn.hidden = !routing.isCustomOrigin
+      resetBtn.addEventListener('click', () => { for (const l of this.resetStartListeners) l() })
+      // "Losfahren" deeplink (turn-by-turn in the phone's nav app)
+      ref<HTMLAnchorElement>(view, 'nav').href = buildNavLink({ lat: poi.lat, lon: poi.lon }, mode, { from: routing.from })
+    }
+    ref(view, 'setStartBtn').addEventListener('click', () => { for (const l of this.setStartListeners) l() })
+
     // Tags table
     renderList(ref(view, 'tags'), buildTags(poi), {
       row: r => ({ label: r.label, value: r.href ? '' : r.value }),
@@ -178,7 +200,6 @@ export class PoiDetailPanel {
 
     // External links
     ref<HTMLAnchorElement>(view, 'osm').href = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
-    ref<HTMLAnchorElement>(view, 'gmaps').href = buildGoogleMapsLink({ lat: poi.lat, lon: poi.lon })
 
     // Hide data sections for custom POIs (no nearby, images, OSM notes)
     if (isCustom) {
@@ -282,6 +303,24 @@ export class PoiDetailPanel {
     return () => {
       const idx = this.listeners.indexOf(listener)
       if (idx !== -1) this.listeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when "Von hier starten" is tapped (use this POI as the route start). */
+  onSetStart(listener: () => void): () => void {
+    this.setStartListeners.push(listener)
+    return () => {
+      const idx = this.setStartListeners.indexOf(listener)
+      if (idx !== -1) this.setStartListeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when the start is reset to the current location. */
+  onResetStart(listener: () => void): () => void {
+    this.resetStartListeners.push(listener)
+    return () => {
+      const idx = this.resetStartListeners.indexOf(listener)
+      if (idx !== -1) this.resetStartListeners.splice(idx, 1)
     }
   }
 }
