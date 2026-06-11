@@ -1,7 +1,7 @@
 import { notNullUndefined } from '@shared/common.js'
 import { apiUrl } from '@/core/config.js'
 
-export type PoiType = 'parking' | 'camper' | 'campsite' | 'dump' | 'water'
+export type PoiType = 'parking' | 'camper' | 'campsite' | 'dump' | 'water' | 'climbing'
 
 export interface LatLngBounds {
   readonly south: number
@@ -22,6 +22,7 @@ export interface OsmTags {
   readonly motorhome?: string
   readonly tourism?: string
   readonly amenity?: string
+  readonly sport?: string
   readonly [key: string]: string | undefined
 }
 
@@ -77,11 +78,18 @@ export function buildQuery(bounds: LatLngBounds, types: ReadonlySet<PoiType>): s
     parts.push(`node["amenity"="water_point"](${bbox});`)
     parts.push(`way["amenity"="water_point"](${bbox});`)
   }
+  if (types.has('climbing')) {
+    // outdoor crags/areas (nodes/cliffs) and indoor walls all carry sport=climbing
+    parts.push(`node["sport"="climbing"](${bbox});`)
+    parts.push(`way["sport"="climbing"](${bbox});`)
+    parts.push(`relation["sport"="climbing"](${bbox});`)
+  }
 
   return `[out:json][timeout:30];\n(\n  ${parts.join('\n  ')}\n);\nout center tags;`
 }
 
 export function elementToPoiType(el: OsmElement): PoiType {
+  if (el.tags.sport === 'climbing') return 'climbing'
   if (el.tags.tourism === 'camp_site') return 'campsite'
   if (el.tags.tourism === 'camp_pitch') return 'camper'
   if (el.tags.tourism === 'caravan_site') return 'camper'

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Klettergebiete als POI-Typ.** Neuer Filter „Klettern" (Lucide-Berg-Icon, lila Marker) zeigt OSM-`sport=climbing` (Crags, Klettergärten, Hallen) als Nodes/Ways/Relations. Standardmäßig an, über die Filterleiste umschaltbar. Keine Server-Änderung nötig — die Query-Grammatik-Allowlist akzeptiert den Tag-Filter bereits.
 - **Eigene POIs (Custom POIs)** — Nutzer können eigene Punkte auf der Karte anlegen, bearbeiten und löschen:
   - Anlegen über den **„+"-Button** (Platzierungs-Modus) oder **Rechtsklick / Long-press** auf die Karte.
   - **Editor-Modal** mit Lucide-**Icon-Picker** (20 Icons), Name, Adresse, Kontakt, Details (Gebühr/Kapazität/Öffnungszeiten/Betreiber/Beschreibung) und eigener Notiz.
