@@ -28,6 +28,12 @@ import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
 
+const SVG_MAP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>'
+const SVG_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>'
+const SVG_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></svg>'
+const SVG_USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+const SVG_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447] // Germany center
 
 function requestLocation(statusEl: HTMLElement): Promise<[number, number] | null> {
@@ -47,7 +53,7 @@ async function init() {
   // ── DOM ────────────────────────────────────────────────────────────────────
   const mapContainer = document.getElementById('map')!
   const statusEl = document.getElementById('status')!
-  const routingModeEl = document.getElementById('routing-mode') as HTMLSelectElement
+  const routingToggle = document.getElementById('routing-toggle')!
 
   // Auth (only when Supabase is configured) — panel built here, menu assembled
   // further down once the services it links to (favorites list, map) exist.
@@ -178,10 +184,14 @@ async function init() {
     markerManager.setTypeVisible(type, active)
   })
 
-  routingModeEl.addEventListener('change', () => {
-    const mode = routingModeEl.value as RoutingMode
+  routingToggle.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.routing-opt') as HTMLButtonElement
+    if (!btn) return
+    const mode = btn.dataset.mode as RoutingMode
     if (mode === session.routingMode) return
     session.routingMode = mode
+    routingToggle.querySelector('.active')?.classList.remove('active')
+    btn.classList.add('active')
     void selection.reroute()
   })
 
@@ -238,15 +248,15 @@ async function init() {
   })
 
   const menuItems: MenuItem[] = [
-    { icon: '🗺️', label: 'Karte', onSelect: () => { favoritesPanel.close(); notesPanel.close() } },
-    { icon: '⭐', label: 'Favoriten', onSelect: () => { notesPanel.close(); favoritesPanel.open() } },
-    { icon: '📝', label: 'Notizen', onSelect: () => { favoritesPanel.close(); notesPanel.open() } },
+    { icon: SVG_MAP, label: 'Karte', onSelect: () => { favoritesPanel.close(); notesPanel.close() } },
+    { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { notesPanel.close(); favoritesPanel.open() } },
+    { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { favoritesPanel.close(); notesPanel.open() } },
   ]
   if (authPanel) {
-    menuItems.push({ icon: '👤', label: 'Konto', onSelect: () => authPanel!.open() })
+    menuItems.push({ icon: SVG_USER, label: 'Konto', onSelect: () => authPanel!.open() })
   }
   menuItems.push({
-    icon: '🗑️',
+    icon: SVG_TRASH,
     label: 'Cache leeren & neu laden',
     onSelect: () => void clearAppCache().then(() => location.reload()),
   })

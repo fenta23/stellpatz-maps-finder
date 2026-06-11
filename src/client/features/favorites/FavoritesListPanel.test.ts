@@ -50,7 +50,7 @@ describe('FavoritesListPanel', () => {
     })
     panel.open()
     const subs = [...document.querySelectorAll('.fav-item-sub')].map(s => s.textContent)
-    expect(subs[0]).toBe('📝 Tor links') // note wins, trimmed
+    expect(subs[0]).toBe(' Tor links') // note wins, trimmed
     expect(subs[1]).toBe('Parkplatz')    // falls back to type label
   })
 

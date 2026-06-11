@@ -50,7 +50,6 @@ export class NotesListPanel {
 
     renderList(this.listEl, items, {
       row: note => ({
-        icon: typeIcon(note.type),
         name: note.name.trim() || typeLabel(note.type),
         sub: note.text,
       }),
@@ -59,6 +58,8 @@ export class NotesListPanel {
         remove: note => { this.deps.onRemove(note); this.refresh() },
       },
       decorate: (row, note) => {
+        const iconEl = row.querySelector('[data-ref="poi-icon"]')
+        if (iconEl) iconEl.innerHTML = typeIcon(note.type)
         const label = note.name.trim() || typeLabel(note.type)
         row.querySelector('[data-on="remove"]')?.setAttribute('aria-label', `Notiz zu ${label} löschen`)
       },

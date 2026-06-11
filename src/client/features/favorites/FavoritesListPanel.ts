@@ -14,6 +14,8 @@ export interface FavoritesListPanelDeps {
   getNote?: (id: string) => string
 }
 
+const SVG_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></svg>'
+
 const PAGE_SIZE = 8
 
 /** Full-screen overlay listing favorited POIs, paginated, click to navigate. */
@@ -51,20 +53,28 @@ export class FavoritesListPanel {
     this.page = page
 
     renderList(this.listEl, items, {
-      row: fav => {
-        const note = this.deps.getNote?.(fav.id)?.trim()
-        return {
-          icon: typeIcon(fav.type),
-          name: favoriteLabel(fav),
-          sub: note ? `📝 ${note}` : typeLabel(fav.type),
-        }
-      },
+      row: fav => ({
+        name: favoriteLabel(fav),
+      }),
       on: {
         select: fav => { this.close(); this.deps.onSelect(fav) },
         remove: fav => { this.deps.onRemove(fav); this.refresh() },
       },
-      decorate: (row, fav) =>
-        row.querySelector('[data-on="remove"]')?.setAttribute('aria-label', `${favoriteLabel(fav)} entfernen`),
+      decorate: (row, fav) => {
+        const iconEl = row.querySelector('[data-ref="poi-icon"]')
+        if (iconEl) iconEl.innerHTML = typeIcon(fav.type)
+        const note = this.deps.getNote?.(fav.id)?.trim()
+        const subEl = row.querySelector('[data-ref="sub"]')
+        if (subEl) {
+          if (note) {
+            subEl.innerHTML = SVG_NOTE
+            subEl.append(' ' + note)
+          } else {
+            subEl.textContent = typeLabel(fav.type)
+          }
+        }
+        row.querySelector('[data-on="remove"]')?.setAttribute('aria-label', `${favoriteLabel(fav)} entfernen`)
+      },
     })
 
     renderPagination(this.footer, page, pages, total, p => { this.page = p; this.render() })
