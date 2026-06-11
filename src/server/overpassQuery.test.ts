@@ -3,7 +3,7 @@ import { isValidPoiQuery } from './overpassQuery.js'
 import { buildQuery, type PoiType } from '../client/features/pois/OverpassClient.js'
 
 const BOUNDS = { south: 48.1, west: 11.5, north: 48.2, east: 11.6 }
-const ALL_TYPES: PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water']
+const ALL_TYPES: PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water', 'climbing']
 
 describe('isValidPoiQuery — accepts everything the client builds', () => {
   it('accepts the full all-types query', () => {

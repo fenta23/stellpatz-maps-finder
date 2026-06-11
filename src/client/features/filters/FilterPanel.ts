@@ -2,7 +2,7 @@ import type { PoiType } from '@/features/pois/OverpassClient.js'
 import { typeIcon } from '@/features/pois/poiMeta.js'
 
 const STORAGE_KEY = 'stellpatz:filters'
-const ALL_TYPES: readonly PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water']
+const ALL_TYPES: readonly PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water', 'climbing']
 
 const TYPE_LABELS: Record<PoiType, string> = {
   parking: 'Parkplatz',
@@ -10,6 +10,7 @@ const TYPE_LABELS: Record<PoiType, string> = {
   campsite: 'Camping',
   dump: 'Entsorgung',
   water: 'Wasser',
+  climbing: 'Klettern',
 }
 
 export type FilterChangeEvent = { readonly type: PoiType; readonly active: boolean }

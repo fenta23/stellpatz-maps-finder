@@ -43,6 +43,13 @@ describe('buildQuery', () => {
     expect(q).toContain('"tourism"="caravan_site"')
   })
 
+  it('includes climbing query when climbing type active', () => {
+    const q = buildQuery(BOUNDS, new Set(['climbing']))
+    expect(q).toContain('"sport"="climbing"')
+    expect(q).toContain('relation["sport"="climbing"]')
+    expect(q).not.toContain('"amenity"="parking"')
+  })
+
   it('excludes motorhome spots from pure parking query', () => {
     const q = buildQuery(BOUNDS, new Set(['parking']))
     expect(q).toContain('"motorhome"!="yes"')
@@ -80,6 +87,10 @@ describe('elementToPoiType', () => {
 
   it('classifies water_point as water', () => {
     expect(elementToPoiType({ ...base, tags: { amenity: 'water_point' } })).toBe('water')
+  })
+
+  it('classifies sport=climbing as climbing', () => {
+    expect(elementToPoiType({ ...base, tags: { sport: 'climbing' } })).toBe('climbing')
   })
 
   it('defaults to parking', () => {

@@ -7,7 +7,7 @@ const SLOW_HINT_MS = 8000
 
 // All POI types are fetched so a region is fetched once regardless of active
 // filters; toggling filters is then pure marker visibility (no refetch).
-const ALL_TYPES: ReadonlySet<PoiType> = new Set<PoiType>(['parking', 'camper', 'campsite', 'dump', 'water'])
+const ALL_TYPES: ReadonlySet<PoiType> = new Set<PoiType>(['parking', 'camper', 'campsite', 'dump', 'water', 'climbing'])
 
 export interface PoiRefresherDeps {
   readonly getBounds: () => LatLngBounds | null

@@ -22,10 +22,11 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock })
 beforeEach(() => localStorageMock.clear())
 
 describe('FilterPanel', () => {
-  it('renders 5 type toggle buttons plus add + custom', () => {
+  it('renders 6 type toggle buttons plus add + custom', () => {
     const el = makeContainer()
     new FilterPanel(el, noop)
-    expect(el.querySelectorAll('[data-type]')).toHaveLength(5)
+    expect(el.querySelectorAll('[data-type]')).toHaveLength(6)
+    expect(el.querySelector('[data-type="climbing"]')).toBeTruthy()
     expect(el.querySelector('[data-action="custom"]')).toBeTruthy()
     expect(el.querySelector('.filter-add')).toBeTruthy()
   })
@@ -33,7 +34,7 @@ describe('FilterPanel', () => {
   it('all buttons active by default', () => {
     const el = makeContainer()
     const panel = new FilterPanel(el, noop)
-    expect(panel.getActiveTypes().size).toBe(5)
+    expect(panel.getActiveTypes().size).toBe(6)
   })
 
   it('renders icon-only buttons with label in title + aria-label', () => {
