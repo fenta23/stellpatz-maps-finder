@@ -99,6 +99,15 @@ describe('createPoiRefresher (single-query + accumulation)', () => {
     expect(setStatus).not.toHaveBeenCalledWith(expect.any(String), true)
   })
 
+  it('does not re-call setMarkers when the rendered set is unchanged', async () => {
+    const { deps, setMarkers } = makeDeps(CITY)
+    const r = createPoiRefresher(deps)
+    await r.refresh(); await flush()
+    const calls = setMarkers.mock.calls.length
+    await r.refresh(); await flush() // fully covered → same set → should skip
+    expect(setMarkers.mock.calls.length).toBe(calls)
+  })
+
   it('refuses an over-wide viewport without fetching', async () => {
     const { deps, setStatus } = makeDeps({ south: 47, west: 10, north: 49, east: 12 })
     await createPoiRefresher(deps).refresh()

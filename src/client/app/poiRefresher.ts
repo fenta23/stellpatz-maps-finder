@@ -31,11 +31,19 @@ export function createPoiRefresher(deps: PoiRefresherDeps): { refresh(): Promise
   const covered = new Set<string>()
   let inFlight: AbortController | null = null
   let generation = 0
+  let lastRenderedIds = new Set<number>()
 
   function render(bounds: LatLngBounds): number {
     const pois: OsmPoi[] = []
     for (const p of store.values()) if (withinBounds(p, bounds)) pois.push(p)
-    deps.setMarkers(pois)
+    // Skip redundant re-renders (e.g. the pre-fetch paint on zoom-out shows the
+    // same markers already on screen) — re-running setMarkers would churn the
+    // marker-cluster layer and make POIs flicker.
+    const ids = new Set(pois.map(p => p.id))
+    if (!sameIds(ids, lastRenderedIds)) {
+      lastRenderedIds = ids
+      deps.setMarkers(pois)
+    }
     return pois.length
   }
 
@@ -84,4 +92,10 @@ export function createPoiRefresher(deps: PoiRefresherDeps): { refresh(): Promise
   }
 
   return { refresh }
+}
+
+function sameIds(a: ReadonlySet<number>, b: ReadonlySet<number>): boolean {
+  if (a.size !== b.size) return false
+  for (const id of a) if (!b.has(id)) return false
+  return true
 }
