@@ -1,6 +1,10 @@
 import L from 'leaflet'
 import type { LatLngBounds } from '@/features/pois/OverpassClient.js'
 
+const SVG_MAP = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>'
+
+const SVG_SATELLITE = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13.5 6.5-3.148-3.148a1.205 1.205 0 0 0-1.704 0L6.352 5.648a1.205 1.205 0 0 0 0 1.704L9.5 10.5"/><path d="M16.5 7.5 19 5"/><path d="m17.5 10.5 3.148 3.148a1.205 1.205 0 0 1 0 1.704l-2.296 2.296a1.205 1.205 0 0 1-1.704 0L13.5 14.5"/><path d="M9 21a6 6 0 0 0-6-6"/><path d="M9.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l4.296-4.296a1.205 1.205 0 0 0 0-1.704l-2.296-2.296a1.205 1.205 0 0 0-1.704 0z"/></svg>'
+
 export interface BaseLayerConfig {
   readonly label: string
   readonly url: string
@@ -34,6 +38,39 @@ export function buildBaseLayers(): Record<string, L.TileLayer> {
   return layers
 }
 
+function createLayerSwitcher(baseLayers: Record<string, L.TileLayer>, map: L.Map): L.Control {
+  const control = L.control({ position: 'topright' })
+
+  control.onAdd = () => {
+    const container = L.DomUtil.create('div', 'layer-switcher leaflet-bar')
+
+    const keys = Object.keys(baseLayers)
+    let activeKey = keys[0]!
+
+    for (const key of keys) {
+      const btn = L.DomUtil.create('button', 'layer-btn', container)
+      btn.innerHTML = key === 'Karte' ? SVG_MAP : SVG_SATELLITE
+      btn.title = key
+      btn.setAttribute('aria-label', key)
+      if (key === activeKey) btn.classList.add('active')
+
+      L.DomEvent.on(btn, 'click', () => {
+        if (key === activeKey) return
+        baseLayers[activeKey]?.remove()
+        baseLayers[key]?.addTo(map)
+        activeKey = key
+        container.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      })
+    }
+
+    L.DomEvent.disableClickPropagation(container)
+    return container
+  }
+
+  return control
+}
+
 export class MapService {
   private readonly map: L.Map
   private readonly boundsListeners: Array<(b: LatLngBounds) => void> = []
@@ -49,7 +86,7 @@ export class MapService {
     const baseLayers = buildBaseLayers()
     // First config is the default base layer shown on load
     baseLayers[BASE_LAYER_CONFIGS[0]!.label]!.addTo(this.map)
-    L.control.layers(baseLayers, undefined, { position: 'topright' }).addTo(this.map)
+    createLayerSwitcher(baseLayers, this.map).addTo(this.map)
 
     this.map.on('moveend', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
