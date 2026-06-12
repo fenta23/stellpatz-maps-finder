@@ -46,9 +46,22 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
     })
   })
 
+  let checkInterval: ReturnType<typeof setInterval> | undefined
+
+  function poll(): void {
+    void reg.update()
+  }
+
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void reg.update()
+    if (document.visibilityState === 'visible') {
+      poll()
+      checkInterval = setInterval(poll, 3 * 60 * 1000)
+    } else {
+      clearInterval(checkInterval)
+    }
   })
+
+  checkInterval = setInterval(poll, 3 * 60 * 1000)
 
   banner.setUpdateHandler(() => {
     reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
