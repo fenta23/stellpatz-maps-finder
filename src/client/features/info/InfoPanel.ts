@@ -6,27 +6,29 @@ const VERSION = '0.9.0'
 
 /** Render the KAC-style markdown changelog into basic HTML. */
 function renderChangelog(md: string): string {
-  const html: string[] = []
+  const out: string[] = []
+  let inUl = false
+
+  const closeUl = () => {
+    if (inUl) { out.push('</ul>'); inUl = false }
+  }
+
   for (const line of md.split('\n')) {
     if (/^##\s/.test(line)) {
+      closeUl()
       const title = line.replace(/^##\s+/, '').replace(/[`*]/g, '')
-      html.push(title ? `<h4>${title}</h4>` : '')
+      if (title) out.push(`<h4>${title}</h4>`)
     } else if (/^###\s/.test(line)) {
-      const title = line.replace(/^###\s+/, '')
-      html.push(`<h5>${title}</h5>`)
-      html.push('<ul>')
+      closeUl()
+      out.push(`<h5>${line.replace(/^###\s+/, '')}</h5>`)
+      out.push('<ul>')
+      inUl = true
     } else if (/^-\s/.test(line)) {
-      const item = line.replace(/^- /, '')
-      html.push(`<li>${item}</li>`)
-    } else if (/^#/.test(line)) {
-      // skip top-level headings
-    } else {
-      if (html.at(-1) === '<ul>') {
-        html.pop()
-      }
+      out.push(`<li>${line.replace(/^- /, '')}</li>`)
     }
   }
-  return html.join('\n')
+  closeUl()
+  return out.join('\n')
 }
 
 export class InfoPanel {
