@@ -7,7 +7,6 @@ function fakeClient(over: Record<string, unknown> = {}) {
   const auth = {
     signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
     verifyOtp: vi.fn().mockResolvedValue({ error: null }),
-    signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
     getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
     getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
@@ -47,16 +46,6 @@ describe('createAuth.verifyOtp', () => {
     const { client } = fakeClient({ verifyOtp: vi.fn().mockResolvedValue({ error: { message: 'invalid token' } }) })
     const res = await createAuth(client).verifyOtp('me@example.com', '000000')
     expect(res).toEqual({ ok: false, error: 'invalid token' })
-  })
-})
-
-describe('createAuth.signInWithGoogle', () => {
-  it('starts the Google OAuth flow', async () => {
-    const { client, auth } = fakeClient()
-    await createAuth(client).signInWithGoogle()
-    expect(auth.signInWithOAuth).toHaveBeenCalledWith(
-      expect.objectContaining({ provider: 'google' }),
-    )
   })
 })
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Google-OAuth-Login.** Provider war nie fertig konfiguriert und entfällt — Anmeldung läuft jetzt ausschließlich passwortlos per E-Mail-OTP-Code. Google-Button, `signInWithGoogle`/`signInWithOAuth`, OAuth-Styles und der „oder per E-Mail"-Divider entfernt. (Google-Maps-**Import** und Routing-Links sind davon unberührt.)
+
 ### Added
 - **PWA-Login per 6-stelligem Code (OTP).** Der E-Mail-Login fragt jetzt nach `Code senden` einen 6-stelligen Code ab (`verifyOtp`), statt nur auf den Magic-Link zu setzen. Damit funktioniert die Anmeldung in der installierten Home-Screen-PWA: kein Browser-Redirect mehr, die Session landet direkt im Storage-Kontext der PWA (auf iOS haben Safari und PWA getrennte Storages, weshalb der Link-Flow dort die PWA nie eingeloggt hat). `AuthPanel` mit Zwei-Schritt-Ablauf (E-Mail → Code), Magic-Link bleibt als Browser-Fallback nutzbar.
 - **`npm run deploy:email`** ([`scripts/deploy-email-templates.mjs`](scripts/deploy-email-templates.mjs)) pusht die Auth-E-Mail-Templates aus `supabase/templates/` via Management-API ins gehostete Projekt — die HTML-Dateien sind jetzt Source of Truth statt manueller Dashboard-Kopie. `magic-link.html` enthält jetzt `{{ .Token }}` (OTP-Code) plus Link als Fallback.
