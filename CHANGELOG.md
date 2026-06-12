@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lade-Banner** umbenannt: „Lade Stellplätze…" → „Suche Orte…"
 
 ### Fixed
+- **Custom-POI-Editor: „Bitte einen Namen eingeben" beim Editieren importierter POIs.** `querySelector('[data-ref="name"]')` fand das `<h2>` aus dem Detail-Panel vor dem `<input>` im Editor → Name wurde immer als leer erkannt. Queries jetzt auf `.custom-poi-editor` gescoped.
+- **Custom-POI-Marker: nach Edit wieder alter Name beim Neuklick.** `CustomPoiMarkerManager.updatePois()` hat existierende Marker übersprungen → deren `onClick`-Closure hielt den ursprünglichen POI. Marker mit geänderten Daten werden jetzt neu erstellt.
 - **Detail-Panel blockierte die Karten-Controls (`pointer-events`).** Der Host `#detail-panel` ist ein 340 px breiter, absolut positionierter Streifen am rechten Rand (z-index 1) und fängt Klicks ab – auch wenn das eigentliche Panel `display: none` ist. Dadurch war u. a. der Layer-Switcher (Karte/Satellit) oben rechts nicht mehr bedienbar. Host jetzt `pointer-events: none`, das sichtbare `.poi-detail-panel` `pointer-events: auto` → der leere Streifen lässt Klicks zur Karte durch, das offene Panel fängt seine eigenen weiter ab. Mobil unberührt (Host dort `position: static`).
 
 ### Added
