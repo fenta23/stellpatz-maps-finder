@@ -1,0 +1,92 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { LocalFilterStore } from './FilterStore.js'
+import { DEFAULT_FILTERS, PERSONAL_FILTER_ID, type FilterDef } from './filterModel.js'
+
+const userFilter = (id = 'u1'): FilterDef => ({
+  id, name: 'Tankstelle', iconId: 'fuel', color: '#C62828',
+  enabled: true, kind: 'osm', builtin: false, order: 100,
+  selectors: [{ elements: ['node', 'way'], tags: [{ key: 'amenity', value: 'fuel' }] }],
+})
+
+beforeEach(() => localStorage.clear())
+
+describe('LocalFilterStore', () => {
+  it('seeds the default filters in order', () => {
+    const s = new LocalFilterStore()
+    expect(s.list().map(f => f.id)).toEqual(DEFAULT_FILTERS.map(f => f.id))
+  })
+
+  it('toggles enabled and persists across reloads', () => {
+    const s = new LocalFilterStore()
+    s.setEnabled('parking', false)
+    expect(s.get('parking')?.enabled).toBe(false)
+    const reloaded = new LocalFilterStore()
+    expect(reloaded.get('parking')?.enabled).toBe(false)
+    expect(reloaded.get('camper')?.enabled).toBe(true)
+  })
+
+  it('adds a user filter that shows up in list + osmFilters', () => {
+    const s = new LocalFilterStore()
+    s.put(userFilter())
+    expect(s.get('u1')?.name).toBe('Tankstelle')
+    expect(s.osmFilters().some(f => f.id === 'u1')).toBe(true)
+    expect(new LocalFilterStore().get('u1')?.iconId).toBe('fuel')
+  })
+
+  it('locks built-in selectors — editing tags is ignored', () => {
+    const s = new LocalFilterStore()
+    const parking = s.get('parking')!
+    s.put({ ...parking, color: '#000000', selectors: [{ elements: ['node'], tags: [{ key: 'hacked', value: 'yes' }] }] })
+    const after = s.get('parking')!
+    expect(after.color).toBe('#000000') // appearance change applied
+    expect(JSON.stringify(after.selectors)).toBe(JSON.stringify(parking.selectors)) // tags preserved
+  })
+
+  it('removes a user filter; resetting a built-in restores its default', () => {
+    const s = new LocalFilterStore()
+    s.put(userFilter())
+    s.remove('u1')
+    expect(s.get('u1')).toBeUndefined()
+
+    s.put({ ...s.get('water')!, enabled: false, color: '#123456' })
+    expect(s.get('water')?.enabled).toBe(false)
+    s.remove('water') // reset
+    const water = s.get('water')!
+    expect(water.enabled).toBe(true)
+    expect(water.color).toBe(DEFAULT_FILTERS.find(f => f.id === 'water')!.color)
+  })
+
+  it('osmSignature changes with selectors, not with enabled/colour', () => {
+    const s = new LocalFilterStore()
+    const sig0 = s.osmSignature()
+    s.setEnabled('parking', false)
+    expect(s.osmSignature()).toBe(sig0)
+    s.put(userFilter())
+    expect(s.osmSignature()).not.toBe(sig0)
+  })
+
+  it('rejects structurally invalid user filters', () => {
+    const s = new LocalFilterStore()
+    s.put({ ...userFilter('bad'), selectors: [] })
+    expect(s.get('bad')).toBeUndefined()
+    s.put({ ...userFilter('bad2'), name: '   ' })
+    expect(s.get('bad2')).toBeUndefined()
+  })
+
+  it('keeps the personal group as kind=personal', () => {
+    const s = new LocalFilterStore()
+    expect(s.get(PERSONAL_FILTER_ID)?.kind).toBe('personal')
+    expect(s.osmFilters().some(f => f.id === PERSONAL_FILTER_ID)).toBe(false)
+  })
+
+  it('applyRemote adopts unseen records but local wins ties', () => {
+    const s = new LocalFilterStore()
+    s.put({ ...userFilter('local'), name: 'LocalName' })
+    s.applyRemote([
+      { ...userFilter('local'), name: 'RemoteName' }, // tie → local wins
+      { ...userFilter('remoteOnly'), name: 'Remote' }, // adopted
+    ])
+    expect(s.get('local')?.name).toBe('LocalName')
+    expect(s.get('remoteOnly')?.name).toBe('Remote')
+  })
+})

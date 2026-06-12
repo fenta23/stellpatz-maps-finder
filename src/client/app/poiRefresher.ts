@@ -1,18 +1,17 @@
-import { fetchPois, type LatLngBounds, type OsmPoi, type PoiType } from '@/features/pois/OverpassClient.js'
+import { fetchPois, type LatLngBounds, type OsmPoi } from '@/features/pois/OverpassClient.js'
+import type { FilterDef } from '@/features/filters/filterModel.js'
 import { markCovered, uncoveredBounds, withinBounds } from '@/features/pois/coverage.js'
 import { overpassErrorMessage, poiCountMessage } from '@/features/pois/statusMessages.js'
 
 const MAX_SPAN_DEG = 1.5 // refuse to query an over-wide viewport
 const SLOW_HINT_MS = 8000
 
-// All POI types are fetched so a region is fetched once regardless of active
-// filters; toggling filters is then pure marker visibility (no refetch).
-const ALL_TYPES: ReadonlySet<PoiType> = new Set<PoiType>(['parking', 'camper', 'campsite', 'dump', 'water', 'climbing'])
-
 export interface PoiRefresherDeps {
   readonly getBounds: () => LatLngBounds | null
   readonly setMarkers: (pois: readonly OsmPoi[]) => void
   readonly setStatus: (msg: string, isError?: boolean) => void
+  /** Returns all OSM filter definitions (built-in + user-created) for the fetch. */
+  readonly getOsmFilters: () => readonly FilterDef[]
 }
 
 /**
@@ -69,13 +68,13 @@ export function createPoiRefresher(deps: PoiRefresherDeps): { refresh(): Promise
     render(bounds) // show what we already have while the new strip loads
     inFlight?.abort()
     inFlight = new AbortController()
-    deps.setStatus('Lade Stellplätze…')
+    deps.setStatus('Suche Orte…')
     const slowTimer = setTimeout(() => {
       if (generation === myGen) deps.setStatus('Warte auf Overpass-Server – kann etwas dauern…')
     }, SLOW_HINT_MS)
 
     try {
-      const pois = await fetchPois(fetchArea, ALL_TYPES, inFlight.signal)
+      const pois = await fetchPois(fetchArea, deps.getOsmFilters(), inFlight.signal)
       clearTimeout(slowTimer)
       if (generation !== myGen) return
       for (const p of pois) store.set(p.id, p)

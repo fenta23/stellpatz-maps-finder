@@ -3,13 +3,15 @@ import { svgToDataUrl } from '@/features/pois/PoiMarkerManager.js'
 import type { CustomPoi } from './CustomPoi.js'
 import { findIcon } from './CustomPoi.js'
 
-const MARKER_FILL = '#FF8F00'
+/** Default personal-group colour — distinct from the OSM type colours so a custom
+ *  POI that reuses a type icon (e.g. "parking") is still visually unmistakable. */
+export const DEFAULT_PERSONAL_COLOR = '#D81B60'
 
-function buildIcon(poi: CustomPoi): string {
+function buildIcon(poi: CustomPoi, fill: string): string {
   const icon = findIcon(poi.iconId)
   const paths = icon.path
   return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="15" fill="${MARKER_FILL}" stroke="#fff" stroke-width="2"/>
+    <circle cx="16" cy="16" r="15" fill="${fill}" stroke="#fff" stroke-width="2"/>
     <g transform="translate(4,4)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">${paths}</g>
   </svg>`
 }
@@ -17,13 +19,19 @@ function buildIcon(poi: CustomPoi): string {
 export class CustomPoiMarkerManager {
   private readonly markers = new Map<string, MarkerHandle>()
   private visible = true
+  private color: string
+  private last: readonly CustomPoi[] = []
 
   constructor(
     private readonly adapter: MapAdapter,
     private readonly onSelect: (poi: CustomPoi) => void,
-  ) {}
+    color: string = DEFAULT_PERSONAL_COLOR,
+  ) {
+    this.color = color
+  }
 
   updatePois(pois: readonly CustomPoi[]): void {
+    this.last = pois
     const incoming = new Set(pois.map(p => p.id))
 
     for (const [id, handle] of this.markers) {
@@ -35,7 +43,7 @@ export class CustomPoiMarkerManager {
 
     for (const poi of pois) {
       if (this.markers.has(poi.id)) continue
-      const icon = svgToDataUrl(buildIcon(poi))
+      const icon = svgToDataUrl(buildIcon(poi, this.color))
       const handle = this.adapter.createMarker({
         lat: poi.lat,
         lon: poi.lon,
@@ -53,6 +61,15 @@ export class CustomPoiMarkerManager {
     for (const [, handle] of this.markers) {
       handle.setVisible(visible)
     }
+  }
+
+  /** Recolour all personal markers (when the personal group's colour changed). */
+  setColor(color: string): void {
+    if (color === this.color) return
+    this.color = color
+    const pois = this.last
+    this.clear()
+    this.updatePois(pois)
   }
 
   get isVisible(): boolean {
