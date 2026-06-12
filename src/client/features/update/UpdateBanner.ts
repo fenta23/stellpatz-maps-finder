@@ -55,13 +55,24 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
   // Immediate check on page load (PWA cold open)
   poll()
 
+  function restartInterval(): void {
+    clearInterval(checkInterval)
+    checkInterval = setInterval(poll, 3 * 60 * 1000)
+  }
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       poll()
-      checkInterval = setInterval(poll, 3 * 60 * 1000)
+      restartInterval()
     } else {
       clearInterval(checkInterval)
     }
+  })
+
+  // iOS PWA: focus event fires when app comes to foreground (reliable fallback)
+  window.addEventListener('focus', () => {
+    poll()
+    restartInterval()
   })
 
   checkInterval = setInterval(poll, 3 * 60 * 1000)
