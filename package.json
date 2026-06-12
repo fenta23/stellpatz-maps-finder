@@ -8,7 +8,7 @@
   },
   "scripts": {
     "supabase": "supabase start",
-    "dev": "supabase start 2>/dev/null; concurrently \"supabase functions serve --env-file .env\" \"vite\"",
+    "dev": "vite",
     "build": "npm run build:client",
     "build:client": "vite build",
     "preview": "vite preview",
