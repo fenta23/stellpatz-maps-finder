@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Info-Panel im Side-Menü** – zeigt App-Info, Version und den CHANGELOG.md direkt in der App an
+- **Löschen-Button (X) in der Searchbar** – leert das Suchfeld mit einem Klick
+- **Nightly Overpass Cache Warmup** – 27 Regionen werden täglich via GitHub Actions vorgewärmt
 - Integrationstests für Edge Functions (`npm run test:int`) – 14 HTTP-Tests gegen alle 7 Endpunkte
 - CI: Integrationstests laufen gegen Production-EF vor jedem Frontend-Deploy
 
 ### Changed
+- **Routing-Toggle als Leaflet-Control** (unten links) – Routing-Modus (🚗/🚲/🚶) aus der Filterleiste in ein kompaktes Karten-Control ausgelagert; Filter-Panel entlastet
+- **Locate + Routing horizontal kombiniert** – beide Buttons liegen jetzt nebeneinander in einer Zeile
 - Express-Server durch Supabase Edge Function `api` ersetzt
 - Frontend-Hosting: Render → GitHub Pages (via GitHub Actions)
 - API-Proxy via `VITE_API_BASE` → Supabase Edge Functions URL
@@ -24,7 +29,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `public/404.html`: SPA-Fallback für GitHub Pages
 
 ### Fixed
+- **iOS PWA Vollbild** – Karte per `position:absolute` in `#content` verankert; ios-spezifische `100vh`/`100%`-Kämpfe; Detail-Panel mobil Buttons unten angedockt; doppeltes `safe-area-inset` entfernt
+- **SW-Update** – Polling alle 3 Minuten + sofortiger Check bei PWA cold start + focus-event als Fallback für iOS PWA
+- **SW-Registrierung** ohne `virtual:pwa-register` (manuelles `navigator.serviceWorker.register`)
+- **Auth redirect URL** inkl. Pfad (GitHub Pages Subdir)
+- **auth-input + search-input `font-size: 16px`** (verhindert iOS-Zoom bei Fokus)
+- **Keyboard nach Suche** wird nach Auswahl eines Ergebnisses ausgeblendet
+- **Detail-Panel** 30px tiefer positioniert
+- **Auth-Close-Button** Touch-Target vergrößert
+- **Sidebar** – veraltete "v4"-Version aus Header entfernt
 - CORS: nur bekannte Origins werden akzeptiert (github.io, capacitor://localhost)
+
+### CI
+- Unit-Tests vor Integrationstests in der CI-Pipeline
+- Integrationstests laufen gegen Production-EF vor jedem Frontend-Deploy
+
+### Cache
+- **Overpass-Cache TTL 7→30 Tage**, BBOX_SNAP 0.05→0.2° – reduziert Overpass-Queries bei wiederholtem Pan/Zoom
 - Mapillary-Rate-Limit: 20 req/min pro IP via Supabase-Backend
 - **„Mein Standort"-Button auf der Karte.** Ein Control unten links zentriert die Karte (Zoom 15) auf den aktuellen Standort; ist noch keiner bekannt, wird einer angefragt (mit Status-Hinweis, Fehlertoleranz bei Ablehnung). `MapService.onLocate` + `createLocateControl`.
 - **Einheitlicher Map-Control-Look.** Zoom-In/Out, Layer-Switcher und Standort-Button haben jetzt dieselbe Optik (Größe, Hover-Tint, Lucide-Icons): Leaflets „+/−"-Glyphen wurden durch Lucide-Plus/Minus ersetzt, das Zoom-Styling an Layer/Locate angeglichen (`#map`-gescopt, um Leaflets eigenes CSS zu überschreiben).
