@@ -1,5 +1,23 @@
-import { describe, it, expect } from 'vitest'
-import { BASE_LAYER_CONFIGS, buildBaseLayers } from './MapService.js'
+import { describe, it, expect, vi } from 'vitest'
+import { BASE_LAYER_CONFIGS, buildBaseLayers, createLocateControl } from './MapService.js'
+
+type OnAdd = { onAdd: () => HTMLElement }
+
+describe('createLocateControl', () => {
+  it('fires the callback when the button is clicked', () => {
+    const onClick = vi.fn()
+    const el = (createLocateControl(onClick) as unknown as OnAdd).onAdd()
+    const btn = el.querySelector<HTMLButtonElement>('.locate-btn')
+    expect(btn).toBeTruthy()
+    btn!.click()
+    expect(onClick).toHaveBeenCalledOnce()
+  })
+
+  it('exposes an accessible label', () => {
+    const el = (createLocateControl(vi.fn()) as unknown as OnAdd).onAdd()
+    expect(el.querySelector('.locate-btn')?.getAttribute('aria-label')).toBe('Zu meinem Standort')
+  })
+})
 
 describe('BASE_LAYER_CONFIGS', () => {
   it('offers exactly a map and a satellite layer', () => {

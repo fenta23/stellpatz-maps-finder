@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **„Mein Standort"-Button auf der Karte.** Ein Control unten links zentriert die Karte (Zoom 15) auf den aktuellen Standort; ist noch keiner bekannt, wird einer angefragt (mit Status-Hinweis, Fehlertoleranz bei Ablehnung). `MapService.onLocate` + `createLocateControl`.
 - **Navigation: freier Startpunkt + „Losfahren"-Deeplink.** Routen gingen bisher immer vom aktuellen Standort aus. Jetzt:
   - **Von hier starten**: ein POI lässt sich als Routenstart setzen (Button im Detail-Panel) → Folge-Ziele werden von dort geroutet (z.B. Parkplatz → Stellplatz). Funktioniert **auch ohne Standortfreigabe**. Das Panel zeigt den aktuellen Start („Start: …") mit Reset auf „Mein Standort".
   - **Losfahren (Navi)**: öffnet echtes Turn-by-Turn in **Google bzw. Apple Maps** (plattform-erkannt) mit Start + Ziel + Verkehrsmittel — die App plant, das Telefon-Navi fährt. Ersetzt den alten reinen „In Google Maps öffnen"-Link.

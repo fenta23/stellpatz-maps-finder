@@ -5,6 +5,26 @@ const SVG_MAP = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" 
 
 const SVG_SATELLITE = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13.5 6.5-3.148-3.148a1.205 1.205 0 0 0-1.704 0L6.352 5.648a1.205 1.205 0 0 0 0 1.704L9.5 10.5"/><path d="M16.5 7.5 19 5"/><path d="m17.5 10.5 3.148 3.148a1.205 1.205 0 0 1 0 1.704l-2.296 2.296a1.205 1.205 0 0 1-1.704 0L13.5 14.5"/><path d="M9 21a6 6 0 0 0-6-6"/><path d="M9.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l4.296-4.296a1.205 1.205 0 0 0 0-1.704l-2.296-2.296a1.205 1.205 0 0 0-1.704 0z"/></svg>'
 
+// Lucide "locate-fixed" — crosshair with centre dot
+const SVG_LOCATE = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>'
+
+/** A control button that recenters the map on the user's location. */
+export function createLocateControl(onClick: () => void): L.Control {
+  const control = L.control({ position: 'bottomleft' })
+  control.onAdd = () => {
+    const container = L.DomUtil.create('div', 'locate-control leaflet-bar')
+    const btn = L.DomUtil.create('button', 'locate-btn', container) as HTMLButtonElement
+    btn.type = 'button'
+    btn.innerHTML = SVG_LOCATE
+    btn.title = 'Zu meinem Standort'
+    btn.setAttribute('aria-label', 'Zu meinem Standort')
+    L.DomEvent.on(btn, 'click', (e: Event) => { L.DomEvent.stop(e); onClick() })
+    L.DomEvent.disableClickPropagation(container)
+    return container
+  }
+  return control
+}
+
 export interface BaseLayerConfig {
   readonly label: string
   readonly url: string
@@ -76,6 +96,7 @@ export class MapService {
   private readonly boundsListeners: Array<(b: LatLngBounds) => void> = []
   private readonly contextMenuListeners: Array<(lat: number, lng: number) => void> = []
   private readonly placementListeners: Array<(lat: number, lng: number) => void> = []
+  private readonly locateListeners: Array<() => void> = []
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private _isPlacing = false
 
@@ -89,6 +110,7 @@ export class MapService {
     const baseLayers = buildBaseLayers()
     baseLayers[BASE_LAYER_CONFIGS[0]!.label]!.addTo(this.map)
     createLayerSwitcher(baseLayers, this.map).addTo(this.map)
+    createLocateControl(() => { for (const l of this.locateListeners) l() }).addTo(this.map)
 
     this.map.on('moveend', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
@@ -130,6 +152,15 @@ export class MapService {
     return () => {
       const idx = this.contextMenuListeners.indexOf(listener)
       if (idx !== -1) this.contextMenuListeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when the "my location" control is tapped. */
+  onLocate(listener: () => void): () => void {
+    this.locateListeners.push(listener)
+    return () => {
+      const idx = this.locateListeners.indexOf(listener)
+      if (idx !== -1) this.locateListeners.splice(idx, 1)
     }
   }
 
