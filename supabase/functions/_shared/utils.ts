@@ -22,6 +22,7 @@ const ALLOWED_ORIGINS: readonly string[] = (
 const APP_ORIGINS = [
   'https://fenta23.github.io',
   'capacitor://localhost',
+  'http://localhost:5173',
   ...ALLOWED_ORIGINS,
 ]
 
