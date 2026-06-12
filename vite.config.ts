@@ -59,9 +59,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Dev: proxy API calls to local Supabase Edge Functions
-      // (supabase functions serve → http://localhost:54321)
-      '/api': { target: 'http://localhost:54321/functions/v1', changeOrigin: false },
+      // Dev: proxy API calls to Supabase Edge Functions.
+      // Falls VITE_API_BASE gesetzt ist → direkt zur Production-URL,
+      // sonst zu lokalen Supabase Edge Functions (braucht Docker + supabase start).
+      '/api': {
+        target: process.env['VITE_API_BASE'] || 'http://localhost:54321/functions/v1',
+        changeOrigin: !process.env['VITE_API_BASE'],
+      },
     },
   },
   test: {
