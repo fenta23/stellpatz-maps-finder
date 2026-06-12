@@ -12,6 +12,9 @@ const SVG_LOCATE = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="2
 // control matches the icon style of the layer switcher / locate button.
 const SVG_PLUS = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>'
 const SVG_MINUS = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" x2="19" y1="12" y2="12"/></svg>'
+const SVG_CAR = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>'
+const SVG_BIKE = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>'
+const SVG_FOOT = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg>'
 
 /** A control button that recenters the map on the user's location. */
 export function createLocateControl(onClick: () => void): L.Control {
@@ -28,6 +31,35 @@ export function createLocateControl(onClick: () => void): L.Control {
     return container
   }
   return control
+}
+
+export function createRoutingControl(): { control: L.Control; getContainer: () => HTMLElement } {
+  let container: HTMLElement
+  const control = L.control({ position: 'bottomleft' })
+  control.onAdd = () => {
+    container = L.DomUtil.create('div', 'routing-toggle leaflet-bar')
+    container.setAttribute('role', 'radiogroup')
+    container.setAttribute('aria-label', 'Routenmodus')
+
+    const modes: Array<{ mode: string; label: string; svg: string }> = [
+      { mode: 'driving', label: 'Auto', svg: SVG_CAR },
+      { mode: 'cycling', label: 'Fahrrad', svg: SVG_BIKE },
+      { mode: 'foot', label: 'Fußweg', svg: SVG_FOOT },
+    ]
+
+    for (const m of modes) {
+      const btn = L.DomUtil.create('button', 'routing-opt', container) as HTMLButtonElement
+      btn.type = 'button'
+      btn.dataset.mode = m.mode
+      btn.innerHTML = m.svg
+      btn.title = m.label
+      btn.setAttribute('aria-label', m.label)
+    }
+
+    L.DomEvent.disableClickPropagation(container)
+    return container
+  }
+  return { control, getContainer: () => container }
 }
 
 export interface BaseLayerConfig {
