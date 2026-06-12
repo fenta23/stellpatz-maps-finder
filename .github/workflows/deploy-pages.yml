@@ -30,6 +30,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Unit tests
+        run: npm test
+
       - name: Integration tests
         run: npm run test:int
         env:
