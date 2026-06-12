@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Data-driven Filter-System.** Statt hartcodierter POI-Typen werden Filter jetzt über einen `FilterStore` (localStorage + Supabase-Sync) verwaltet. Neue `FilterConfigPanel` zum Anlegen/Bearbeiten/Löschen von Filtern inkl. 16 Vorlagen (Tankstelle, Supermarkt, Restaurant, …). Filter haben zwei Ebenen: `hidden` (Config-Switch → in Chip-Leiste ausblenden) und `enabled` (Chip-Klick → POIs auf Karte an/aus).
+- **Supabase-Tabelle `poi_filters`** (Migration 0006) für benutzersynchrone Filter-Definitionen.
+- **Overpass-Query data-driven:** `buildOverpassQuery` + `classifyElement` in `filterModel.ts` bauen Query und Klassifikation aus beliebigen `FilterDef[]`.
+
+### Changed
+- **`fetchPois`** akzeptiert `FilterDef[]` statt `PoiType` – Abfrage und Klassifikation sind jetzt vollständig datengetrieben.
+- **`poiRefresher`** holt Daten für alle aktiven OSM-Filter (built-in + benutzerdefiniert), nicht nur die 6 Standard-Typen.
+- **`PoiMarkerManager`** nutzt `StyleResolver` → Marker-Farbe und -Icon sind live aus dem FilterStore konfigurierbar.
+- **`poiMeta`** (Labels/Icons) über `PoiMetaRegistry` an den FilterStore angebunden.
+- **`CustomPoiMarkerManager`** erhält Farbe aus dem personal-Filter.
+- **Lade-Banner** umbenannt: „Lade Stellplätze…" → „Suche Orte…"
+
 ### Fixed
 - **Detail-Panel blockierte die Karten-Controls (`pointer-events`).** Der Host `#detail-panel` ist ein 340 px breiter, absolut positionierter Streifen am rechten Rand (z-index 1) und fängt Klicks ab – auch wenn das eigentliche Panel `display: none` ist. Dadurch war u. a. der Layer-Switcher (Karte/Satellit) oben rechts nicht mehr bedienbar. Host jetzt `pointer-events: none`, das sichtbare `.poi-detail-panel` `pointer-events: auto` → der leere Streifen lässt Klicks zur Karte durch, das offene Panel fängt seine eigenen weiter ab. Mobil unberührt (Host dort `position: static`).
 
