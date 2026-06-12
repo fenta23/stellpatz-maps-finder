@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **`main.ts` refactored** (501→350 Zeilen). Import-Wiring, Custom-POI-Wiring, Auth-Sync und SVG-Icons in eigene Module unter `app/` ausgelagert.
+- **`PoiDetailPanel` aufgeräumt:** `show()` in Sub-Renderer (`renderFav`/`renderMenu`/`renderRoute`/`renderTags`) aufgeteilt, Constructor-Event-Wiring in `wireGlobalEvents()`, Listener mit generischem `subscribe()`-Helper DRY gemacht (337→316 Zeilen).
+- **`FilterConfigPanel` verkleinert:** `buildEditorForm` in `buildTemplates`/`buildNameField`/`buildAppearance`/`buildTagsSection`/`buildActions` aufgeteilt, `el()`-DOM-Helper (381→328 Zeilen).
 - **`fetchPois`** akzeptiert `FilterDef[]` statt `PoiType` – Abfrage und Klassifikation sind jetzt vollständig datengetrieben.
 - **`poiRefresher`** holt Daten für alle aktiven OSM-Filter (built-in + benutzerdefiniert), nicht nur die 6 Standard-Typen.
 - **`PoiMarkerManager`** nutzt `StyleResolver` → Marker-Farbe und -Icon sind live aus dem FilterStore konfigurierbar.

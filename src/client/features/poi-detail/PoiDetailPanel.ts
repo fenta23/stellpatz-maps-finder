@@ -56,9 +56,18 @@ export interface PanelRouting {
   readonly from: LatLon | null
 }
 
+// ── Generic listener helper ──────────────────────────────────────────────────
+function subscribe<T>(listeners: T[], listener: T): () => void {
+  listeners.push(listener)
+  return () => {
+    const idx = listeners.indexOf(listener)
+    if (idx !== -1) listeners.splice(idx, 1)
+  }
+}
+
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
-  private readonly listeners: Array<(r: NavigateRequest) => void> = []
+  private readonly navListeners: Array<(r: NavigateRequest) => void> = []
   private readonly closeListeners: Array<() => void> = []
   private readonly favListeners: Array<() => void> = []
   private readonly noteListeners: Array<(text: string) => void> = []
@@ -72,22 +81,32 @@ export class PoiDetailPanel {
     this.panel.className = 'poi-detail-panel hidden'
     this.panel.setAttribute('aria-label', 'POI Details')
     this.container.appendChild(this.panel)
+    this.wireGlobalEvents()
+  }
 
+  // ── Public event registration ───────────────────────────────────────────────
+  onClose = (listener: () => void): (() => void) => subscribe(this.closeListeners, listener)
+  onFavoriteToggle = (listener: () => void): (() => void) => subscribe(this.favListeners, listener)
+  onNoteSave = (listener: (text: string) => void): (() => void) => subscribe(this.noteListeners, listener)
+  onNearbySelect = (listener: (item: NearbyItem) => void): (() => void) => subscribe(this.nearbyListeners, listener)
+  onNavigate = (listener: (r: NavigateRequest) => void): (() => void) => subscribe(this.navListeners, listener)
+  onSetStart = (listener: () => void): (() => void) => subscribe(this.setStartListeners, listener)
+  onResetStart = (listener: () => void): (() => void) => subscribe(this.resetStartListeners, listener)
+
+  // ── Event delegation + global key handling ──────────────────────────────────
+  private wireGlobalEvents(): void {
     this.panel.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
       const link = target.closest<HTMLElement>('[data-lightbox]')
-      if (link?.dataset['lightbox']) {
-        e.preventDefault()
-        showLightbox(link.dataset['lightbox'])
-        return
-      }
+      if (link?.dataset['lightbox']) { e.preventDefault(); showLightbox(link.dataset['lightbox']); return }
       const nearby = target.closest<HTMLElement>('[data-nearby-idx]')
       if (nearby?.dataset['nearbyIdx']) {
         const item = this.nearbyItems[Number(nearby.dataset['nearbyIdx'])]
-        if (!item) return
-        this.panel.querySelectorAll('.nearby-item.active').forEach(el => el.classList.remove('active'))
-        nearby.classList.add('active')
-        for (const l of this.nearbyListeners) l(item)
+        if (item) {
+          this.panel.querySelectorAll('.nearby-item.active').forEach(el => el.classList.remove('active'))
+          nearby.classList.add('active')
+          for (const l of this.nearbyListeners) l(item)
+        }
       }
     })
 
@@ -99,8 +118,7 @@ export class PoiDetailPanel {
       if (e.key !== 'Escape') return
       if (this.panel.classList.contains('hidden')) return
       if (this.closeMenu()) return
-      const lightbox = document.getElementById('poi-lightbox')
-      if (lightbox && !lightbox.classList.contains('hidden')) return
+      if (document.getElementById('poi-lightbox')?.classList.contains('hidden') === false) return
       this.hide()
     })
   }
@@ -113,6 +131,7 @@ export class PoiDetailPanel {
     return true
   }
 
+  // ── Public render ───────────────────────────────────────────────────────────
   show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig, routing?: PanelRouting): void {
     this.panel.classList.remove('hidden')
     this.panel.innerHTML = ''
@@ -121,39 +140,17 @@ export class PoiDetailPanel {
 
     const isCustom = config?.isCustom ?? false
     const t = poi.tags
+
+    // Header: name, favourite heart, close, kebab menu
     ref(view, 'name').textContent = t.name ?? typeLabel(poi.type)
-
-    const fav = ref(view, 'fav')
-    if (isCustom) {
-      fav.hidden = true
-    } else {
-      fav.setAttribute('aria-pressed', String(isFavorite))
-      fav.innerHTML = HEART_SVG
-      fav.classList.toggle('active', isFavorite)
-      fav.addEventListener('click', () => {
-        const nowFav = fav.getAttribute('aria-pressed') !== 'true'
-        fav.setAttribute('aria-pressed', String(nowFav))
-        fav.classList.toggle('active', nowFav)
-        for (const l of this.favListeners) l()
-      })
-    }
-
+    this.renderFav(view, isCustom, isFavorite)
     ref(view, 'close').addEventListener('click', () => this.hide())
     view.querySelector('.btn-navigate')?.addEventListener('click', () => {
-      for (const l of this.listeners) l({ poi })
+      for (const l of this.navListeners) l({ poi })
     })
+    if (isCustom) this.renderMenu(view, config!)
 
-    if (isCustom) {
-      const menuWrap = ref(view, 'menuWrap')
-      const menuBtn = ref(view, 'menuBtn')
-      const menu = ref(view, 'menu')
-      menuWrap.hidden = false
-      const setMenu = (open: boolean) => { menu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)) }
-      menuBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.hidden) })
-      ref(view, 'editBtn').addEventListener('click', () => { setMenu(false); config?.onEdit?.() })
-      ref(view, 'deleteBtn').addEventListener('click', () => { setMenu(false); config?.onDelete?.() })
-    }
-
+    // Opening hours badge
     const oh = t.opening_hours ? parseOpenHours(t.opening_hours) : null
     if (oh) {
       const badge = ref(view, 'ohBadge')
@@ -162,13 +159,58 @@ export class PoiDetailPanel {
       badge.textContent = oh.hint
     }
 
+    // Route
+    this.renderRoute(view, route, mode, routing, poi)
+
+    // Tags
+    this.renderTags(view, poi)
+
+    // OSM link
+    ref<HTMLAnchorElement>(view, 'osm').href = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
+
+    // Detail sections visibility
+    if (isCustom) {
+      view.querySelectorAll<HTMLElement>('[data-section]').forEach(s => s.hidden = true)
+    }
+
+    // Note editor
+    ref<HTMLTextAreaElement>(view, 'note').value = noteText
+    this.wireNoteEditor(noteText)
+  }
+
+  // ── Sub-render helpers ──────────────────────────────────────────────────────
+  private renderFav(view: DocumentFragment, isCustom: boolean, isFavorite: boolean): void {
+    if (isCustom) { ref(view, 'fav').hidden = true; return }
+    const fav = ref(view, 'fav')
+    fav.setAttribute('aria-pressed', String(isFavorite))
+    fav.innerHTML = HEART_SVG
+    fav.classList.toggle('active', isFavorite)
+    fav.addEventListener('click', () => {
+      const nowFav = fav.getAttribute('aria-pressed') !== 'true'
+      fav.setAttribute('aria-pressed', String(nowFav))
+      fav.classList.toggle('active', nowFav)
+      for (const l of this.favListeners) l()
+    })
+  }
+
+  private renderMenu(view: DocumentFragment, config: PanelConfig): void {
+    const menuWrap = ref(view, 'menuWrap')
+    const menuBtn = ref(view, 'menuBtn')
+    const menu = ref(view, 'menu')
+    menuWrap.hidden = false
+    const setMenu = (open: boolean) => { menu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)) }
+    menuBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.hidden) })
+    ref(view, 'editBtn').addEventListener('click', () => { setMenu(false); config.onEdit?.() })
+    ref(view, 'deleteBtn').addEventListener('click', () => { setMenu(false); config.onDelete?.() })
+  }
+
+  private renderRoute(view: DocumentFragment, route: RouteResult | undefined, mode: RoutingMode, routing: PanelRouting | undefined, poi: OsmPoi): void {
     if (route) {
       ref(view, 'routeSummary').hidden = false
       ref(view, 'routeMain').innerHTML = `${MODE_ICON[mode]} ${route.distanceText} · ${route.durationText}`
       ref(view, 'routeDetour').textContent =
         `Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})`
     }
-
     if (routing) {
       ref(view, 'routeStart').hidden = false
       ref(view, 'routeStartLabel').textContent = routing.originLabel
@@ -178,7 +220,9 @@ export class PoiDetailPanel {
       ref<HTMLAnchorElement>(view, 'nav').href = buildNavLink({ lat: poi.lat, lon: poi.lon }, mode, { from: routing.from })
     }
     ref(view, 'setStartBtn').addEventListener('click', () => { for (const l of this.setStartListeners) l() })
+  }
 
+  private renderTags(view: DocumentFragment, poi: OsmPoi): void {
     renderList(ref(view, 'tags'), buildTags(poi), {
       row: r => ({ label: r.label, value: r.href ? '' : r.value }),
       decorate: (rowEl: HTMLElement, r: TagRow) => {
@@ -191,18 +235,9 @@ export class PoiDetailPanel {
         cell.appendChild(a)
       },
     })
-
-    ref<HTMLAnchorElement>(view, 'osm').href = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
-
-    if (isCustom) {
-      const sections = view.querySelectorAll<HTMLElement>('[data-section]')
-      for (const s of sections) s.hidden = true
-    }
-
-    ref<HTMLTextAreaElement>(view, 'note').value = noteText
-    this.wireNoteEditor(noteText)
   }
 
+  // ── Note editor ─────────────────────────────────────────────────────────────
   private wireNoteEditor(initial: string): void {
     const input = this.panel.querySelector<HTMLTextAreaElement>('.mynote-input')
     const status = this.panel.querySelector<HTMLElement>('.mynote-status')
@@ -220,11 +255,11 @@ export class PoiDetailPanel {
     input.addEventListener('input', () => { if (status) status.textContent = '' })
   }
 
+  // ── Content update helpers ──────────────────────────────────────────────────
   updateImages(images: PoiImage[]): void {
     const section = this.panel.querySelector<HTMLElement>('[data-section="images"]')
     if (!section) return
-    if (images.length === 0) { section.innerHTML = ''; return }
-    section.innerHTML = renderImages(images)
+    section.innerHTML = images.length === 0 ? '' : renderImages(images)
   }
 
   updateNearby(items: NearbyItem[]): void {
@@ -253,62 +288,6 @@ export class PoiDetailPanel {
     this.panel.innerHTML = ''
     hideLightbox()
     for (const l of this.closeListeners) l()
-  }
-
-  onClose(listener: () => void): () => void {
-    this.closeListeners.push(listener)
-    return () => {
-      const idx = this.closeListeners.indexOf(listener)
-      if (idx !== -1) this.closeListeners.splice(idx, 1)
-    }
-  }
-
-  onFavoriteToggle(listener: () => void): () => void {
-    this.favListeners.push(listener)
-    return () => {
-      const idx = this.favListeners.indexOf(listener)
-      if (idx !== -1) this.favListeners.splice(idx, 1)
-    }
-  }
-
-  onNoteSave(listener: (text: string) => void): () => void {
-    this.noteListeners.push(listener)
-    return () => {
-      const idx = this.noteListeners.indexOf(listener)
-      if (idx !== -1) this.noteListeners.splice(idx, 1)
-    }
-  }
-
-  onNearbySelect(listener: (item: NearbyItem) => void): () => void {
-    this.nearbyListeners.push(listener)
-    return () => {
-      const idx = this.nearbyListeners.indexOf(listener)
-      if (idx !== -1) this.nearbyListeners.splice(idx, 1)
-    }
-  }
-
-  onNavigate(listener: (r: NavigateRequest) => void): () => void {
-    this.listeners.push(listener)
-    return () => {
-      const idx = this.listeners.indexOf(listener)
-      if (idx !== -1) this.listeners.splice(idx, 1)
-    }
-  }
-
-  onSetStart(listener: () => void): () => void {
-    this.setStartListeners.push(listener)
-    return () => {
-      const idx = this.setStartListeners.indexOf(listener)
-      if (idx !== -1) this.setStartListeners.splice(idx, 1)
-    }
-  }
-
-  onResetStart(listener: () => void): () => void {
-    this.resetStartListeners.push(listener)
-    return () => {
-      const idx = this.resetStartListeners.indexOf(listener)
-      if (idx !== -1) this.resetStartListeners.splice(idx, 1)
-    }
   }
 }
 
