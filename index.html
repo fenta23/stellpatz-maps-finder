@@ -56,11 +56,16 @@
                 padding: 0;
             }
 
+            html {
+                height: 100%;
+            }
+
             body {
                 font-family: var(--font);
                 color: var(--ink);
                 display: flex;
                 flex-direction: column;
+                height: 100vh;
                 height: 100dvh;
                 overflow: hidden;
                 background: var(--bg);
@@ -1086,14 +1091,16 @@
             /* ── Map + detail layout ── */
             #content {
                 flex: 1;
+                min-height: 0;
                 display: flex;
                 overflow: hidden;
                 position: relative;
             }
             /* Own stacking context below the topbar (z-index 10) so Leaflet's marker/
-       control panes can't render above the topbar's search dropdown. */
+        control panes can't render above the topbar's search dropdown. */
             #map {
                 flex: 1;
+                min-height: 0;
                 background: var(--surface-2);
                 position: relative;
                 z-index: 0;
