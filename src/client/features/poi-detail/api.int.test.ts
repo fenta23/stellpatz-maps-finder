@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
-const API = 'http://localhost:54321/functions/v1/api'
+const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:54321/functions/v1'
+const API = `${BASE}/api`
 
 describe('api edge function', () => {
   it('health returns ok', async () => {

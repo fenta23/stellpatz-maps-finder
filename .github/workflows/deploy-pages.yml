@@ -30,6 +30,11 @@ jobs:
 
       - run: npm ci
 
+      - name: Integration tests
+        run: npm run test:int
+        env:
+          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+
       - name: Build client
         run: npm run build:client -- --base=/stellpatz-maps-finder/
         env:

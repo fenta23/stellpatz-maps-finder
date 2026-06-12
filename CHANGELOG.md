@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Integrationstests für Edge Functions (`npm run test:int`) – 14 HTTP-Tests gegen alle 7 Endpunkte
+- CI: Integrationstests laufen gegen Production-EF vor jedem Frontend-Deploy
+
 ### Changed
 - Express-Server durch Supabase Edge Function `api` ersetzt
 - Frontend-Hosting: Render → GitHub Pages (via GitHub Actions)

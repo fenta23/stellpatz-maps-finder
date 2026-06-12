@@ -9,6 +9,7 @@ npm install          # install dependencies
 npm run dev          # start dev server (Vite :5173 + Supabase Edge Functions :54321)
 npm test             # run all unit tests (Vitest)
 npm run test:watch   # watch mode
+npm run test:int     # integration tests vs Edge Function (needs supabase functions serve or VITE_API_BASE)
 npm run build        # production build → dist/client/
 npm run build:client # only Vite frontend build
 npm run generate-pwa-assets # regenerate PWA icons from public/logo.svg
