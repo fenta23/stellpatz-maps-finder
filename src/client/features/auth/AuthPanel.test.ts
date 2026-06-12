@@ -8,7 +8,6 @@ function fakeAuth(initialUser: User | null = null) {
   const auth: Auth = {
     sendMagicLink: vi.fn<(e: string) => Promise<MagicLinkResult>>().mockResolvedValue({ ok: true }),
     verifyOtp: vi.fn<(e: string, t: string) => Promise<MagicLinkResult>>().mockResolvedValue({ ok: true }),
-    signInWithGoogle: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn().mockResolvedValue(undefined),
     currentUser: vi.fn().mockResolvedValue(initialUser),
     onChange: vi.fn((cb: (u: User | null) => void) => { changeCb = cb; return () => {} }),
@@ -19,22 +18,12 @@ function fakeAuth(initialUser: User | null = null) {
 const flush = () => new Promise(r => setTimeout(r, 0))
 
 describe('AuthPanel — logged out', () => {
-  it('renders the Google button and the email form', async () => {
+  it('renders the email form', async () => {
     const c = document.createElement('div')
     new AuthPanel(c, fakeAuth(null).auth)
     await flush()
-    expect(c.querySelector('[data-ref="google"]')).not.toBeNull()
     expect(c.querySelector<HTMLInputElement>('.auth-input')).not.toBeNull()
     expect(c.querySelector('[data-ref="send"]')?.textContent).toBe('Code senden')
-  })
-
-  it('starts the Google flow on click', async () => {
-    const c = document.createElement('div')
-    const { auth } = fakeAuth(null)
-    new AuthPanel(c, auth)
-    await flush()
-    c.querySelector<HTMLButtonElement>('[data-ref="google"]')!.click()
-    expect(auth.signInWithGoogle).toHaveBeenCalledOnce()
   })
 
   it('rejects an invalid email without calling the backend', async () => {
@@ -94,7 +83,7 @@ describe('AuthPanel — logged out', () => {
 describe('AuthPanel — profile (logged in)', () => {
   const user = {
     email: 'max@example.com',
-    app_metadata: { provider: 'google' },
+    app_metadata: { provider: 'email' },
     created_at: '2026-01-15T10:00:00Z',
   } as unknown as User
 
@@ -105,7 +94,7 @@ describe('AuthPanel — profile (logged in)', () => {
     await flush()
     emitChange(user)
     expect(c.textContent).toContain('max@example.com')
-    expect(c.querySelector('[data-ref="method"]')?.textContent).toBe('Google')
+    expect(c.querySelector('[data-ref="method"]')?.textContent).toBe('E-Mail')
     expect(c.querySelector('[data-ref="since"]')?.textContent).toContain('2026')
     const logout = c.querySelector<HTMLButtonElement>('[data-ref="logout"]')!
     expect(logout.textContent).toBe('Abmelden')

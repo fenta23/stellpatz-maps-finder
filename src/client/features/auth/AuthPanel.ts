@@ -17,11 +17,10 @@ export interface AuthPanelOptions {
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
-  google: 'Google',
-  email: 'E-Mail / Magic-Link',
+  email: 'E-Mail',
 }
 
-/** Modal for login (Google OAuth or magic-link) and a profile overview. */
+/** Modal for passwordless login (E-Mail-OTP-Code) and a profile overview. */
 export class AuthPanel {
   private readonly backdrop: HTMLElement
   private readonly panel: HTMLElement
@@ -69,7 +68,6 @@ export class AuthPanel {
 
   private renderLoggedOut(): HTMLElement {
     const view = clone(loggedOutHtml)
-    ref(view, 'google').addEventListener('click', () => void this.auth.signInWithGoogle())
 
     const stepEmail = ref(view, 'stepEmail')
     const stepCode = ref(view, 'stepCode')
