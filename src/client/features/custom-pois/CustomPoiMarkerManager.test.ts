@@ -119,13 +119,22 @@ describe('CustomPoiMarkerManager', () => {
     expect(mgr.isVisible).toBe(true)
   })
 
-  it('generates icons with amber fill', () => {
+  it('generates icons with the personal-group fill (default)', () => {
     const adapter = makeAdapter()
     const mgr = new CustomPoiMarkerManager(adapter, vi.fn())
     mgr.updatePois([poi('1')])
     const icon = decodeURIComponent(adapter.handles[0]?.icon ?? '')
-    expect(icon).toContain('#FF8F00')
+    expect(icon).toContain('#D81B60')
     expect(icon).toContain('<circle')
+  })
+
+  it('recolours markers when the personal colour changes', () => {
+    const adapter = makeAdapter()
+    const mgr = new CustomPoiMarkerManager(adapter, vi.fn(), '#D81B60')
+    mgr.updatePois([poi('1')])
+    mgr.setColor('#00838F')
+    const icon = decodeURIComponent(adapter.handles.at(-1)?.icon ?? '')
+    expect(icon).toContain('#00838F')
   })
 
   it('uses POI name as marker title', () => {

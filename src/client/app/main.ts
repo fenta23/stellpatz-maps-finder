@@ -12,6 +12,13 @@ import { PoiDetailPanel, customPoiToOsmPoi } from '@/features/poi-detail/PoiDeta
 import { collectTagImages, loadMapillaryImages, loadNearby, loadNotes } from '@/features/poi-detail/poiData.js'
 import { nearbyRouteMessage } from '@/features/poi-detail/nearbyMessage.js'
 import { FilterPanel } from '@/features/filters/FilterPanel.js'
+import { LocalFilterStore } from '@/features/filters/FilterStore.js'
+import { SyncedFilterStore, createSupabaseFilterBackend } from '@/features/filters/RemoteFilterStore.js'
+import { FilterConfigPanel } from '@/features/filters/FilterConfigPanel.js'
+import { setPoiMetaRegistry } from '@/features/pois/poiMeta.js'
+import { filterIconPath, PERSONAL_FILTER_ID } from '@/features/filters/filterModel.js'
+import { DEFAULT_PERSONAL_COLOR } from '@/features/custom-pois/CustomPoiMarkerManager.js'
+import { type StyleResolver } from '@/features/pois/PoiMarkerManager.js'
 import { SearchBar } from '@/features/search/SearchBar.js'
 import { LocalFavoritesStore } from '@/features/favorites/FavoritesStore.js'
 import { SyncedFavoritesStore, createSupabaseFavoritesBackend } from '@/features/favorites/RemoteFavoritesStore.js'
@@ -100,9 +107,16 @@ async function init() {
   const mapService = new MapService(mapContainer, userPos ?? DEFAULT_CENTER, userPos ? 13 : 6)
   const map = mapService.getMap()
   const routingToggle = mapService.getRoutingContainer()!
+  const filterStore = new SyncedFilterStore(new LocalFilterStore())
+  const filterConfigPanel = new FilterConfigPanel(document.body, filterStore)
+  setPoiMetaRegistry({
+    label: id => filterStore.get(id)?.name,
+    iconId: id => filterStore.get(id)?.iconId,
+  })
   const filterPanel = new FilterPanel(
     document.getElementById('poi-filter')!,
-    () => mapService.startPlacement(),
+    filterStore,
+    { onAdd: () => mapService.startPlacement(), onOpenConfig: () => filterConfigPanel.open() },
   )
   const detailPanel = new PoiDetailPanel(document.getElementById('detail-panel')!)
   const searchBar = new SearchBar(document.getElementById('search-bar')!)
@@ -144,10 +158,16 @@ async function init() {
   })
 
   // ── POI markers ──────────────────────────────────────────────────────────────
+  const osmFilterIds = () => new Set(filterStore.list().filter(f => !f.hidden && f.enabled && f.kind === 'osm').map(f => f.id))
+  const styleResolver: StyleResolver = (filterId) => {
+    const f = filterStore.get(filterId)
+    return { color: f?.color ?? '#1565C0', iconPath: filterIconPath(f?.iconId ?? 'parking') }
+  }
   const markerManager = new PoiMarkerManager(
     createLeafletMarkerAdapter(map),
     poi => void selection.select(poi),
-    filterPanel.getActiveTypes(),
+    osmFilterIds(),
+    styleResolver,
   )
   markerManager.setFavorites(favorites.getAll())
   markerManager.setNotes(new Set(notes.list().map(n => n.id)))
@@ -192,16 +212,13 @@ async function init() {
       const osm = customPoiToOsmPoi(poi)
       void selection.select(osm)
     },
+    filterStore.get(PERSONAL_FILTER_ID)?.color ?? DEFAULT_PERSONAL_COLOR,
   )
-  customMarkerManager.setVisible(filterPanel.isCustomVisible())
+  const personalInit = filterStore.get(PERSONAL_FILTER_ID)
+  customMarkerManager.setVisible(personalInit ? !personalInit.hidden && personalInit.enabled : true)
   refreshCustomMarkers()
 
   customPoiStore.onChange(() => refreshCustomMarkers())
-
-  // Placement mode ("+" button)
-  filterPanel.onCustomToggle(({ active }) => {
-    customMarkerManager.setVisible(active)
-  })
 
   // Long-press / context menu → editor
   mapService.onContextMenu((lat, lng) => {
@@ -236,10 +253,12 @@ async function init() {
         void customPoiStore
           .connect(createSupabaseCustomPoiBackend(supabase, user.id))
           .then(() => refreshCustomMarkers())
+        void filterStore.connect(createSupabaseFilterBackend(supabase, user.id))
       } else {
         favorites.disconnect()
         notes.disconnect()
         customPoiStore.disconnect()
+        filterStore.disconnect()
       }
     })
 
@@ -295,6 +314,7 @@ async function init() {
     getBounds: () => mapService.getBounds(),
     setMarkers: pois => markerManager.updatePois(pois),
     setStatus,
+    getOsmFilters: () => filterStore.list().filter(f => f.kind === 'osm' && !f.hidden && f.selectors.length > 0),
   })
 
   // ── Wiring ───────────────────────────────────────────────────────────────────
@@ -311,8 +331,17 @@ async function init() {
   })
   setTimeout(() => void refresh(), 800)
 
-  filterPanel.onChange(({ type, active }) => {
-    markerManager.setTypeVisible(type, active)
+  filterStore.onChange(() => {
+    // Sync enabled OSM filter visibility
+    markerManager.setActiveTypes(osmFilterIds())
+    // Sync marker styles (if a filter's colour/icon changed)
+    markerManager.setStyleResolver(styleResolver)
+    // Sync personal group
+    const personal = filterStore.get(PERSONAL_FILTER_ID)
+    if (personal) {
+      customMarkerManager.setVisible(!personal.hidden && personal.enabled)
+      customMarkerManager.setColor(personal.color)
+    }
   })
 
   routingToggle.addEventListener('click', (e) => {

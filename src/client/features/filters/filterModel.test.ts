@@ -1,0 +1,158 @@
+import { describe, it, expect } from 'vitest'
+import {
+  DEFAULT_FILTERS, PERSONAL_FILTER_ID, FILTER_ICONS, FILTER_TEMPLATES, FILTER_COLORS,
+  buildOverpassQuery, classifyElement, filterIconPath,
+  isValidTagToken, isValidCondition, isValidSelector,
+  type FilterDef, type OsmSelector,
+} from './filterModel.js'
+import type { LatLngBounds } from '@/features/pois/OverpassClient.js'
+
+const BOUNDS: LatLngBounds = { south: 48.0, west: 11.0, north: 48.5, east: 11.5 }
+const byId = (id: string): FilterDef => DEFAULT_FILTERS.find(f => f.id === id)!
+
+describe('DEFAULT_FILTERS', () => {
+  it('has the 6 OSM types plus a personal group', () => {
+    expect(DEFAULT_FILTERS.map(f => f.id)).toEqual(
+      ['parking', 'camper', 'campsite', 'dump', 'water', 'climbing', PERSONAL_FILTER_ID],
+    )
+  })
+
+  it('marks the personal group as kind=personal with no selectors and its own colour', () => {
+    const p = byId(PERSONAL_FILTER_ID)
+    expect(p.kind).toBe('personal')
+    expect(p.selectors).toHaveLength(0)
+    expect(FILTER_COLORS.includes(p.color) || p.color === '#D81B60').toBe(true)
+    // distinct from the 6 OSM colours
+    const osmColors = DEFAULT_FILTERS.filter(f => f.kind === 'osm').map(f => f.color)
+    expect(osmColors).not.toContain(p.color)
+  })
+
+  it('all defaults are builtin and enabled', () => {
+    expect(DEFAULT_FILTERS.every(f => f.builtin && f.enabled)).toBe(true)
+  })
+})
+
+describe('buildOverpassQuery', () => {
+  it('builds parking with motorhome exclusion', () => {
+    const q = buildOverpassQuery(BOUNDS, [byId('parking')])
+    expect(q).toContain('"amenity"="parking"')
+    expect(q).toContain('"motorhome"!="yes"')
+    expect(q).toContain('48,11,48.5,11.5')
+  })
+
+  it('builds camper with all three selectors', () => {
+    const q = buildOverpassQuery(BOUNDS, [byId('camper')])
+    expect(q).toContain('"tourism"="camp_pitch"')
+    expect(q).toContain('"motorhome"="yes"')
+    expect(q).toContain('"tourism"="caravan_site"')
+  })
+
+  it('builds campsite with relation statement', () => {
+    const q = buildOverpassQuery(BOUNDS, [byId('campsite')])
+    expect(q).toContain('relation["tourism"="camp_site"]')
+  })
+
+  it('emits node/way/relation for NWR selectors', () => {
+    const q = buildOverpassQuery(BOUNDS, [byId('climbing')])
+    expect(q).toContain('node["sport"="climbing"]')
+    expect(q).toContain('way["sport"="climbing"]')
+    expect(q).toContain('relation["sport"="climbing"]')
+  })
+
+  it('ignores the personal group (no selectors)', () => {
+    const q = buildOverpassQuery(BOUNDS, [byId(PERSONAL_FILTER_ID)])
+    expect(q).not.toContain('amenity')
+    expect(q).not.toContain('tourism')
+  })
+
+  it('renders key-presence and negated conditions', () => {
+    const f: FilterDef = {
+      id: 'x', name: 'X', iconId: 'pin', color: '#000', enabled: true, kind: 'osm', builtin: false, order: 9,
+      selectors: [{ elements: ['node'], tags: [{ key: 'amenity', value: '' }, { key: 'access', value: 'private', negate: true }] }],
+    }
+    const q = buildOverpassQuery(BOUNDS, [f])
+    expect(q).toContain('["amenity"]')
+    expect(q).toContain('["access"!="private"]')
+  })
+
+  it('skips structurally invalid selectors', () => {
+    const f: FilterDef = {
+      id: 'bad', name: 'Bad', iconId: 'pin', color: '#000', enabled: true, kind: 'osm', builtin: false, order: 9,
+      selectors: [{ elements: [], tags: [{ key: 'amenity', value: 'fuel' }] }],
+    }
+    const q = buildOverpassQuery(BOUNDS, [f])
+    expect(q).not.toContain('amenity')
+  })
+})
+
+describe('classifyElement', () => {
+  const all = DEFAULT_FILTERS
+  it('classifies camp_site as campsite', () => {
+    expect(classifyElement({ tourism: 'camp_site' }, 'way', all)).toBe('campsite')
+  })
+  it('classifies camp_pitch as camper', () => {
+    expect(classifyElement({ tourism: 'camp_pitch' }, 'node', all)).toBe('camper')
+  })
+  it('classifies motorhome parking as camper, not parking', () => {
+    expect(classifyElement({ amenity: 'parking', motorhome: 'yes' }, 'node', all)).toBe('camper')
+  })
+  it('classifies plain parking as parking', () => {
+    expect(classifyElement({ amenity: 'parking' }, 'node', all)).toBe('parking')
+  })
+  it('classifies caravan_site / dump / water / climbing', () => {
+    expect(classifyElement({ tourism: 'caravan_site' }, 'node', all)).toBe('camper')
+    expect(classifyElement({ amenity: 'sanitary_dump_station' }, 'node', all)).toBe('dump')
+    expect(classifyElement({ amenity: 'water_point' }, 'node', all)).toBe('water')
+    expect(classifyElement({ sport: 'climbing' }, 'relation', all)).toBe('climbing')
+  })
+  it('returns null for unknown tags', () => {
+    expect(classifyElement({ shop: 'bakery' }, 'node', all)).toBeNull()
+  })
+  it('respects element-kind restriction (dump only node/way)', () => {
+    expect(classifyElement({ amenity: 'sanitary_dump_station' }, 'relation', all)).toBeNull()
+  })
+})
+
+describe('validation', () => {
+  it('accepts grammar-conform tokens', () => {
+    expect(isValidTagToken('amenity')).toBe(true)
+    expect(isValidTagToken('camp_site')).toBe(true)
+    expect(isValidTagToken('addr:city')).toBe(true)
+    expect(isValidTagToken('drive-through')).toBe(true)
+  })
+  it('rejects tokens with spaces/quotes', () => {
+    expect(isValidTagToken('fast food')).toBe(false)
+    expect(isValidTagToken('a"b')).toBe(false)
+    expect(isValidTagToken('')).toBe(false)
+  })
+  it('isValidCondition allows key-presence (empty value)', () => {
+    expect(isValidCondition({ key: 'amenity', value: '' })).toBe(true)
+    expect(isValidCondition({ key: 'bad key', value: '' })).toBe(false)
+    expect(isValidCondition({ key: 'amenity', value: 'fast food' })).toBe(false)
+  })
+  it('isValidSelector requires elements + 1..6 valid tags', () => {
+    const ok: OsmSelector = { elements: ['node'], tags: [{ key: 'amenity', value: 'fuel' }] }
+    expect(isValidSelector(ok)).toBe(true)
+    expect(isValidSelector({ elements: [], tags: ok.tags })).toBe(false)
+    expect(isValidSelector({ elements: ['node'], tags: [] })).toBe(false)
+  })
+})
+
+describe('icons & templates', () => {
+  it('FILTER_ICONS includes climbing and is deduped', () => {
+    const ids = FILTER_ICONS.map(i => i.id)
+    expect(ids).toContain('climbing')
+    expect(ids).toContain('parking')
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+  it('filterIconPath falls back to the first icon for unknown id', () => {
+    expect(filterIconPath('does-not-exist')).toBe(FILTER_ICONS[0]!.path)
+  })
+  it('every template is structurally valid', () => {
+    expect(FILTER_TEMPLATES.length).toBeGreaterThan(8)
+    for (const t of FILTER_TEMPLATES) {
+      expect(t.selectors.every(isValidSelector)).toBe(true)
+      expect(FILTER_ICONS.some(i => i.id === t.iconId)).toBe(true)
+    }
+  })
+})

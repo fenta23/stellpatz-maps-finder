@@ -1,5 +1,6 @@
 import type { OsmPoi, PoiType } from './OverpassClient.js'
 import { isPrivateParking } from './OverpassClient.js'
+import { DEFAULT_FILTERS, filterIconPath } from '@/features/filters/filterModel.js'
 
 export interface MarkerHandle {
   setVisible(visible: boolean): void
@@ -17,6 +18,14 @@ export interface MapAdapter {
   }): MarkerHandle
 }
 
+/** Visual style of a filter group: marker colour + Lucide icon paths. */
+export interface FilterStyle {
+  readonly color: string
+  readonly iconPath: string
+}
+
+export type StyleResolver = (filterId: string) => FilterStyle
+
 interface TrackedMarker {
   readonly handle: MarkerHandle
   readonly poiType: PoiType
@@ -32,17 +41,15 @@ function svgMarker(fill: string, paths: string): string {
   </svg>`
 }
 
-const BASE_ICONS: Record<PoiType, string> = {
-  parking: svgMarker('#1565C0', '<path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>'),
-  camper: svgMarker('#2E7D32', '<path d="M13 6v5a1 1 0 0 0 1 1h6.102a1 1 0 0 1 .712.298l.898.91a1 1 0 0 1 .288.702V17a1 1 0 0 1-1 1h-3"/><path d="M5 18H3a1 1 0 0 1-1-1V8a2 2 0 0 1 2-2h12c1.1 0 2.1.8 2.4 1.8l1.176 4.2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2" fill="#fff"/><circle cx="7" cy="18" r="2" fill="#fff"/>'),
-  campsite: svgMarker('#E65100', '<path d="M3.5 21 14 3"/><path d="M20.5 21 10 3"/><path d="M15.5 21 12 15l-3.5 6"/><path d="M2 21h20"/>'),
-  dump: svgMarker('#795548', '<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
-  water: svgMarker('#0277BD', '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>'),
-  climbing: svgMarker('#7B1FA2', '<path d="m8 3 4 8 5-5 5 15H2L8 3z"/>'),
-}
+// Built-in styles, used as the default resolver (and when buildIcon gets no style).
+const DEFAULT_STYLE = new Map<string, FilterStyle>(
+  DEFAULT_FILTERS.map(f => [f.id, { color: f.color, iconPath: filterIconPath(f.iconId) }]),
+)
+const PARKING_PATH = '<path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>'
+const defaultStyleFor = (id: string): FilterStyle => DEFAULT_STYLE.get(id) ?? DEFAULT_STYLE.get('parking')!
 
 // Grey "P" variant for private/restricted parking — same Lucide path, muted colour
-const PRIVATE_PARKING_ICON = svgMarker('#616161', '<path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>')
+const PRIVATE_PARKING_ICON = svgMarker('#616161', PARKING_PATH)
 
 // Red heart badge (top-right corner) — Lucide heart
 const HEART_BADGE = `<circle cx="26" cy="6" r="7" fill="#E53935" stroke="#fff" stroke-width="1.5"/><g transform="translate(21.2,1.2) scale(0.4)" fill="#fff"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></g>`
@@ -53,9 +60,21 @@ const NOTE_BADGE = `<circle cx="26" cy="26" r="6.5" fill="#4CAF50" stroke="#fff"
 // Lock badge sits bottom-left so it never collides with badges on right side
 const LOCK_BADGE = `<circle cx="7" cy="26" r="6.5" fill="#fff" stroke="#616161" stroke-width="1"/><rect x="4" y="25.5" width="6" height="5" rx="1" fill="#616161"/><path d="M5.2 25.5 v-1.3 a1.8 1.8 0 0 1 3.6 0 V25.5" fill="none" stroke="#fff" stroke-width="1.2"/>`
 
-export function buildIcon(type: PoiType, isFavorite: boolean, hasNote = false, isPrivate = false): string {
+/**
+ * Build the marker SVG for a POI group. `style` carries the configured colour +
+ * icon; when omitted it falls back to the built-in default for that id. Private
+ * parking always renders as a grey "P" with a lock, regardless of style.
+ */
+export function buildIcon(
+  type: PoiType,
+  isFavorite: boolean,
+  hasNote = false,
+  isPrivate = false,
+  style?: FilterStyle,
+): string {
   const privateParking = isPrivate && type === 'parking'
-  const base = privateParking ? PRIVATE_PARKING_ICON : (BASE_ICONS[type] ?? BASE_ICONS.parking)
+  const s = style ?? defaultStyleFor(type)
+  const base = privateParking ? PRIVATE_PARKING_ICON : svgMarker(s.color, s.iconPath)
   const badges = `${privateParking ? LOCK_BADGE : ''}${isFavorite ? HEART_BADGE : ''}${hasNote ? NOTE_BADGE : ''}`
   return badges ? base.replace('</svg>', `${badges}</svg>`) : base
 }
@@ -66,16 +85,25 @@ export function svgToDataUrl(svg: string): string {
 
 export class PoiMarkerManager {
   private readonly markers = new Map<number, TrackedMarker>()
-  private readonly activeTypes: Set<PoiType>
+  private readonly activeTypes: Set<string>
   private favoriteIds: ReadonlySet<string> = new Set()
   private noteIds: ReadonlySet<string> = new Set()
+  private resolveStyle: StyleResolver
 
   constructor(
     private readonly adapter: MapAdapter,
     private readonly onSelect: (poi: OsmPoi) => void,
-    initialTypes: ReadonlySet<PoiType> = new Set(['parking', 'camper', 'campsite']),
+    initialTypes: ReadonlySet<string> = new Set(['parking', 'camper', 'campsite']),
+    resolveStyle: StyleResolver = defaultStyleFor,
   ) {
     this.activeTypes = new Set(initialTypes)
+    this.resolveStyle = resolveStyle
+  }
+
+  private iconFor(tracked: { poiType: PoiType; poiId: number; isPrivate: boolean }): string {
+    const isFav = this.favoriteIds.has(String(tracked.poiId))
+    const hasNote = this.noteIds.has(String(tracked.poiId))
+    return svgToDataUrl(buildIcon(tracked.poiType, isFav, hasNote, tracked.isPrivate, this.resolveStyle(tracked.poiType)))
   }
 
   updatePois(pois: readonly OsmPoi[]): void {
@@ -90,15 +118,12 @@ export class PoiMarkerManager {
 
     for (const poi of pois) {
       if (this.markers.has(poi.id)) continue
-      const isFav = this.favoriteIds.has(String(poi.id))
-      const hasNote = this.noteIds.has(String(poi.id))
       const isPrivate = isPrivateParking(poi)
-      const icon = svgToDataUrl(buildIcon(poi.type, isFav, hasNote, isPrivate))
       const handle = this.adapter.createMarker({
         lat: poi.lat,
         lon: poi.lon,
         title: poi.tags.name ?? poi.type,
-        icon,
+        icon: this.iconFor({ poiType: poi.type, poiId: poi.id, isPrivate }),
         onClick: () => this.onSelect(poi),
       })
       this.markers.set(poi.id, { handle, poiType: poi.type, poiId: poi.id, isPrivate })
@@ -111,23 +136,28 @@ export class PoiMarkerManager {
 
   setFavorites(ids: ReadonlySet<string>): void {
     this.favoriteIds = ids
-    for (const [, tracked] of this.markers) {
-      const isFav = ids.has(String(tracked.poiId))
-      const hasNote = this.noteIds.has(String(tracked.poiId))
-      tracked.handle.updateIcon(svgToDataUrl(buildIcon(tracked.poiType, isFav, hasNote, tracked.isPrivate)))
-    }
+    this.refreshIcons()
   }
 
   setNotes(ids: ReadonlySet<string>): void {
     this.noteIds = ids
+    this.refreshIcons()
+  }
+
+  /** Re-render every marker's icon (e.g. after a filter's colour/icon changed). */
+  refreshIcons(): void {
     for (const [, tracked] of this.markers) {
-      const isFav = this.favoriteIds.has(String(tracked.poiId))
-      const hasNote = ids.has(String(tracked.poiId))
-      tracked.handle.updateIcon(svgToDataUrl(buildIcon(tracked.poiType, isFav, hasNote, tracked.isPrivate)))
+      tracked.handle.updateIcon(this.iconFor(tracked))
     }
   }
 
-  setTypeVisible(type: PoiType, visible: boolean): void {
+  /** Swap the style resolver (live filter colours/icons) and re-render. */
+  setStyleResolver(resolve: StyleResolver): void {
+    this.resolveStyle = resolve
+    this.refreshIcons()
+  }
+
+  setTypeVisible(type: string, visible: boolean): void {
     if (visible) {
       this.activeTypes.add(type)
     } else {
@@ -140,7 +170,16 @@ export class PoiMarkerManager {
     }
   }
 
-  getActiveTypes(): ReadonlySet<PoiType> {
+  /** Replace the whole active set (e.g. after the enabled filters changed). */
+  setActiveTypes(types: ReadonlySet<string>): void {
+    this.activeTypes.clear()
+    for (const t of types) this.activeTypes.add(t)
+    for (const [, tracked] of this.markers) {
+      tracked.handle.setVisible(this.activeTypes.has(tracked.poiType))
+    }
+  }
+
+  getActiveTypes(): ReadonlySet<string> {
     return this.activeTypes
   }
 

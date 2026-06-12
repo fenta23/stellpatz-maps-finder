@@ -1,7 +1,13 @@
 import { notNullUndefined } from '@shared/common.js'
 import { apiUrl } from '@/core/config.js'
+import { buildOverpassQuery, classifyElement, type FilterDef } from '@/features/filters/filterModel.js'
 
-export type PoiType = 'parking' | 'camper' | 'campsite' | 'dump' | 'water' | 'climbing'
+/**
+ * A POI's group identity = a filter id. Built-in ids ('parking', 'camper', …)
+ * stay stable; user-defined filters use uuids. Kept as a string alias so the
+ * favorites/notes snapshots and the detail panel keep compiling.
+ */
+export type PoiType = string
 
 export interface LatLngBounds {
   readonly south: number
@@ -43,60 +49,9 @@ export interface OsmPoi {
   readonly tags: OsmTags
 }
 
-export function buildQuery(bounds: LatLngBounds, types: ReadonlySet<PoiType>): string {
-  const { south, west, north, east } = bounds
-  const bbox = `${south},${west},${north},${east}`
-  const parts: string[] = []
-
-  if (types.has('parking')) {
-    // only pure parking, not motorhome spots (those go to camper)
-    parts.push(`node["amenity"="parking"]["motorhome"!="yes"](${bbox});`)
-    parts.push(`way["amenity"="parking"]["motorhome"!="yes"](${bbox});`)
-  }
-  if (types.has('camper')) {
-    parts.push(`node["tourism"="camp_pitch"](${bbox});`)
-    parts.push(`way["tourism"="camp_pitch"](${bbox});`)
-    parts.push(`relation["tourism"="camp_pitch"](${bbox});`)
-    parts.push(`node["amenity"="parking"]["motorhome"="yes"](${bbox});`)
-    parts.push(`way["amenity"="parking"]["motorhome"="yes"](${bbox});`)
-    // dedicated motorhome areas
-    parts.push(`node["tourism"="caravan_site"](${bbox});`)
-    parts.push(`way["tourism"="caravan_site"](${bbox});`)
-    parts.push(`relation["tourism"="caravan_site"](${bbox});`)
-  }
-  if (types.has('campsite')) {
-    // OSM tag is camp_site (with underscore), not campsite
-    parts.push(`node["tourism"="camp_site"](${bbox});`)
-    parts.push(`way["tourism"="camp_site"](${bbox});`)
-    parts.push(`relation["tourism"="camp_site"](${bbox});`)
-  }
-  if (types.has('dump')) {
-    parts.push(`node["amenity"="sanitary_dump_station"](${bbox});`)
-    parts.push(`way["amenity"="sanitary_dump_station"](${bbox});`)
-  }
-  if (types.has('water')) {
-    parts.push(`node["amenity"="water_point"](${bbox});`)
-    parts.push(`way["amenity"="water_point"](${bbox});`)
-  }
-  if (types.has('climbing')) {
-    // outdoor crags/areas (nodes/cliffs) and indoor walls all carry sport=climbing
-    parts.push(`node["sport"="climbing"](${bbox});`)
-    parts.push(`way["sport"="climbing"](${bbox});`)
-    parts.push(`relation["sport"="climbing"](${bbox});`)
-  }
-
-  return `[out:json][timeout:30];\n(\n  ${parts.join('\n  ')}\n);\nout center tags;`
-}
-
-export function elementToPoiType(el: OsmElement): PoiType {
-  if (el.tags.sport === 'climbing') return 'climbing'
-  if (el.tags.tourism === 'camp_site') return 'campsite'
-  if (el.tags.tourism === 'camp_pitch') return 'camper'
-  if (el.tags.tourism === 'caravan_site') return 'camper'
-  if (el.tags.motorhome === 'yes') return 'camper'
-  if (el.tags.amenity === 'sanitary_dump_station') return 'dump'
-  if (el.tags.amenity === 'water_point') return 'water'
-  return 'parking'
+/** Build the Overpass query from the given filter definitions (data-driven). */
+export function buildQuery(bounds: LatLngBounds, filters: readonly FilterDef[]): string {
+  return buildOverpassQuery(bounds, filters)
 }
 
 // OSM access values that mark parking as restricted. Everything else —
@@ -120,26 +75,29 @@ function elementToLatLon(el: OsmElement): { lat: number; lon: number } | null {
   return null
 }
 
-function parseElements(data: { elements?: OsmElement[] }): readonly OsmPoi[] {
+function parseElements(data: { elements?: OsmElement[] }, filters: readonly FilterDef[]): readonly OsmPoi[] {
   const seen = new Set<number>()
   return (data.elements ?? [])
     .filter(el => !seen.has(el.id) && seen.add(el.id))
     .map((el): OsmPoi | null => {
       const pos = elementToLatLon(el)
       if (!pos) return null
-      return { id: el.id, type: elementToPoiType(el), lat: pos.lat, lon: pos.lon, tags: el.tags }
+      // Classify against the same filters that built the query; first match wins.
+      const type = classifyElement(el.tags, el.type, filters)
+      if (type === null) return null
+      return { id: el.id, type, lat: pos.lat, lon: pos.lon, tags: el.tags }
     })
     .filter(notNullUndefined)
 }
 
 export async function fetchPois(
   bounds: LatLngBounds,
-  types: ReadonlySet<PoiType>,
+  filters: readonly FilterDef[],
   signal?: AbortSignal,
 ): Promise<readonly OsmPoi[]> {
-  if (types.size === 0) return []
+  if (!filters.some(f => f.kind === 'osm' && f.selectors.length > 0)) return []
 
-  const query = buildQuery(bounds, types)
+  const query = buildQuery(bounds, filters)
   const res = await fetch(apiUrl('/api/overpass'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -153,5 +111,5 @@ export async function fetchPois(
   }
 
   const data = await res.json() as { elements?: OsmElement[] }
-  return parseElements(data)
+  return parseElements(data, filters)
 }

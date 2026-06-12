@@ -7,3 +7,6 @@ coverage/
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Team-Präsentation (nur lokal)
+presentation/

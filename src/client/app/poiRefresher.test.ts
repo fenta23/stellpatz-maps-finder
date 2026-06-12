@@ -26,7 +26,7 @@ beforeEach(() => {
 function makeDeps(bounds: { south: number; west: number; north: number; east: number } | null) {
   const setMarkers = vi.fn<(p: readonly OsmPoi[]) => void>()
   const setStatus = vi.fn()
-  return { deps: { getBounds: () => bounds, setMarkers, setStatus }, setMarkers, setStatus }
+  return { deps: { getBounds: () => bounds, setMarkers, setStatus, getOsmFilters: () => [] }, setMarkers, setStatus }
 }
 
 const flush = () => new Promise(r => setTimeout(r, 0))
@@ -52,7 +52,7 @@ describe('createPoiRefresher (single-query + accumulation)', () => {
 
   it('panning into new area queries only the uncovered strip (once)', async () => {
     let bounds = { ...CITY }
-    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers: vi.fn(), setStatus: vi.fn() })
+    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers: vi.fn(), setStatus: vi.fn(), getOsmFilters: () => [] })
     await r.refresh(); await flush()
     expect(fetchPoisMock).toHaveBeenCalledTimes(1)
     fetchPoisMock.mockClear()
@@ -67,7 +67,7 @@ describe('createPoiRefresher (single-query + accumulation)', () => {
   it('accumulates POIs across areas and clips render to the viewport', async () => {
     let bounds = { ...CITY }
     const setMarkers = vi.fn<(p: readonly OsmPoi[]) => void>()
-    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers, setStatus: vi.fn() })
+    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers, setStatus: vi.fn(), getOsmFilters: () => [] })
     await r.refresh(); await flush()
     bounds = { south: 48.20, west: 11.55, north: 48.25, east: 11.60 } // disjoint north area
     await r.refresh(); await flush()
@@ -92,7 +92,7 @@ describe('createPoiRefresher (single-query + accumulation)', () => {
       })))
     let bounds = { ...CITY }
     const { setStatus } = { setStatus: vi.fn() }
-    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers: vi.fn(), setStatus })
+    const r = createPoiRefresher({ getBounds: () => bounds, setMarkers: vi.fn(), setStatus, getOsmFilters: () => [] })
     const p1 = r.refresh()
     bounds = { south: 48.20, west: 11.55, north: 48.25, east: 11.60 }
     await r.refresh(); await p1; await flush()

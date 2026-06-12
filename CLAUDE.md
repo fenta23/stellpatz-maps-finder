@@ -64,4 +64,4 @@ _shared/    utils.ts (CORS, Query-Validation, BBox-Snap, Supabase-Client, Rate-L
 - Vanilla TypeScript, kein Framework
 - `readonly`, pure functions, explizite Dependencies
 - Jedes Feature hat Unit Tests
-- Changelog in CHANGELOG.md (Keep a Changelog)
+- Changelog in CHANGELOG.md (Keep a Changelog) — NACH jedem Commit/PR ergänzen, nicht erst am Ende!
