@@ -101,3 +101,17 @@ describe('AuthPanel — profile (logged in)', () => {
     expect(c.querySelector('[data-ref="favCount"]')?.textContent).toBe('–')
   })
 })
+
+describe('AuthPanel — close button', () => {
+  it('closes the panel when the X button is clicked', async () => {
+    const c = document.createElement('div')
+    const panel = new AuthPanel(c, fakeAuth(null).auth)
+    await flush()
+    expect(panel.isOpen()).toBe(false)
+    panel.open()
+    expect(panel.isOpen()).toBe(true)
+    const closeBtn = c.querySelector<HTMLButtonElement>('.auth-close')!
+    closeBtn.click()
+    expect(panel.isOpen()).toBe(false)
+  })
+})
