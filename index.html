@@ -1093,23 +1093,26 @@
             #content {
                 flex: 1;
                 min-height: 0;
-                display: flex;
-                overflow: hidden;
                 position: relative;
+                overflow: hidden;
             }
             /* Own stacking context below the topbar (z-index 10) so Leaflet's marker/
         control panes can't render above the topbar's search dropdown. */
             #map {
-                flex: 1;
-                min-height: 0;
+                position: absolute;
+                inset: 0;
                 background: var(--surface-2);
-                position: relative;
                 z-index: 0;
             }
 
             /* ── Detail panel ── */
             #detail-panel {
-                position: relative;
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 340px;
+                z-index: 1;
             }
 
             .poi-detail-panel {
@@ -1794,6 +1797,13 @@
                 /* Hide the app title from the topbar on mobile — it's in the sidebar now. */
                 #topbar h1 {
                     display: none;
+                }
+
+                /* The detail panel child is fixed on mobile; reset parent so it doesn't
+         steal space from the absolutely-positioned map. */
+                #detail-panel {
+                    position: static;
+                    width: auto;
                 }
 
                 /* Filter bar wraps instead of overflowing — every control stays reachable. */
