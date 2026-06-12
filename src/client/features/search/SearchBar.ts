@@ -42,7 +42,14 @@ export class SearchBar {
     this.dropdown.className = 'search-dropdown hidden'
     this.dropdown.setAttribute('role', 'listbox')
 
+    const clearBtn = document.createElement('button')
+    clearBtn.type = 'button'
+    clearBtn.className = 'search-clear hidden'
+    clearBtn.setAttribute('aria-label', 'Suche löschen')
+    clearBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
+
     form.appendChild(this.input)
+    form.appendChild(clearBtn)
     wrapper.appendChild(form)
     wrapper.appendChild(this.dropdown)
     this.container.appendChild(wrapper)
@@ -50,6 +57,14 @@ export class SearchBar {
     this.input.addEventListener('input', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
       this.debounceTimer = setTimeout(() => void this.search(), 350)
+      clearBtn.classList.toggle('hidden', this.input.value.length === 0)
+    })
+
+    clearBtn.addEventListener('click', () => {
+      this.input.value = ''
+      this.input.focus()
+      this.hideDropdown()
+      clearBtn.classList.add('hidden')
     })
 
     // Submit (Enter / mobile "Search" key) → jump straight to the best match.
