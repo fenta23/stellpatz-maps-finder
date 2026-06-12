@@ -74,6 +74,9 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     exclude: ['src/**/*.int.test.ts'],
     globals: true,
+    env: {
+      VITE_API_BASE: '',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

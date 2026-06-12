@@ -12,13 +12,10 @@ export function joinApiUrl(base: string, path: string): string {
 }
 
 function readBase(): string {
-  try {
-    // Vite statically replaces this at build; undefined under plain Node/tests.
-    const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env
-    return env?.['VITE_API_BASE'] ?? ''
-  } catch {
-    return ''
-  }
+  // Vitest can override via process.env; Vite build replaces import.meta.env.
+  return process.env['VITE_API_BASE']
+    || (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.['VITE_API_BASE']
+    || ''
 }
 
 export const API_BASE = readBase()
