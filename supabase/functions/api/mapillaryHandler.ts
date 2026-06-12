@@ -1,4 +1,4 @@
-import { jsonResponse, errorResponse, parseLatLon, USER_AGENT } from '../_shared/utils.ts'
+import { jsonResponse, errorResponse, parseLatLon, USER_AGENT, getSupabase, checkRateLimit } from '../_shared/utils.ts'
 
 const MAPILLARY_API = 'https://graph.mapillary.com/images'
 const RADIUS_DEG = 0.0005
@@ -12,6 +12,18 @@ export async function handleMapillary(req: Request, origin: string | null): Prom
 
   const token = Deno.env.get('MAPILLARY_ACCESS_TOKEN')
   if (!token) return jsonResponse([], 200, origin)
+
+  // Rate limit: 20 req/min per client IP
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const supabase = await getSupabase()
+  if (supabase) {
+    const { allowed, retryAfterMs } = await checkRateLimit(supabase, 'mapillary', clientIp)
+    if (!allowed) {
+      const res = errorResponse('Rate limit exceeded', 429, origin)
+      if (retryAfterMs) res.headers.set('Retry-After', String(Math.ceil(retryAfterMs / 1000)))
+      return res
+    }
+  }
 
   const bbox = [
     (lon - RADIUS_DEG).toFixed(6),
