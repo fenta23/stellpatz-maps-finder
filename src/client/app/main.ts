@@ -1,7 +1,7 @@
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { MapService, getUserLocation, createRoutingControl } from '@/features/map/MapService.js'
+import { MapService, getUserLocation } from '@/features/map/MapService.js'
 import { createLeafletMarkerAdapter } from '@/features/map/leafletAdapter.js'
 import { createLocationMarker } from '@/features/map/locationMarker.js'
 import { panPoiIntoView } from '@/features/map/panIntoView.js'
@@ -97,9 +97,7 @@ async function init() {
   // ── Services + state (rest) ──────────────────────────────────────────────────
   const mapService = new MapService(mapContainer, userPos ?? DEFAULT_CENTER, userPos ? 13 : 6)
   const map = mapService.getMap()
-  const { control: routingControl, getContainer: getRoutingContainer } = createRoutingControl()
-  routingControl.addTo(map)
-  const routingToggle = getRoutingContainer()
+  const routingToggle = mapService.getRoutingContainer()!
   const filterPanel = new FilterPanel(
     document.getElementById('poi-filter')!,
     () => mapService.startPlacement(),

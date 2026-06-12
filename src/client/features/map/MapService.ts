@@ -33,13 +33,32 @@ export function createLocateControl(onClick: () => void): L.Control {
   return control
 }
 
-export function createRoutingControl(): { control: L.Control; getContainer: () => HTMLElement } {
+/**
+ * Combined map-actions control: locate button + routing mode selector,
+ * laid out as a single horizontal row at bottom-left.
+ */
+export function createMapActions(onLocate: () => void): { control: L.Control; getRoutingContainer: () => HTMLElement } {
   let container: HTMLElement
+
   const control = L.control({ position: 'bottomleft' })
   control.onAdd = () => {
-    container = L.DomUtil.create('div', 'routing-toggle leaflet-bar')
-    container.setAttribute('role', 'radiogroup')
-    container.setAttribute('aria-label', 'Routenmodus')
+    container = L.DomUtil.create('div', 'map-actions leaflet-bar')
+
+    // Locate button
+    const locateBtn = L.DomUtil.create('button', 'locate-btn', container) as HTMLButtonElement
+    locateBtn.type = 'button'
+    locateBtn.innerHTML = SVG_LOCATE
+    locateBtn.title = 'Zu meinem Standort'
+    locateBtn.setAttribute('aria-label', 'Zu meinem Standort')
+    L.DomEvent.on(locateBtn, 'click', (e: Event) => { L.DomEvent.stop(e); onLocate() })
+
+    // Separator
+    const sep = L.DomUtil.create('span', 'map-actions-sep', container)
+
+    // Routing toggle
+    const toggle = L.DomUtil.create('span', 'routing-toggle', container)
+    toggle.setAttribute('role', 'radiogroup')
+    toggle.setAttribute('aria-label', 'Routenmodus')
 
     const modes: Array<{ mode: string; label: string; svg: string }> = [
       { mode: 'driving', label: 'Auto', svg: SVG_CAR },
@@ -48,7 +67,7 @@ export function createRoutingControl(): { control: L.Control; getContainer: () =
     ]
 
     for (const m of modes) {
-      const btn = L.DomUtil.create('button', 'routing-opt', container) as HTMLButtonElement
+      const btn = L.DomUtil.create('button', 'routing-opt', toggle) as HTMLButtonElement
       btn.type = 'button'
       btn.dataset.mode = m.mode
       btn.innerHTML = m.svg
@@ -59,7 +78,8 @@ export function createRoutingControl(): { control: L.Control; getContainer: () =
     L.DomEvent.disableClickPropagation(container)
     return container
   }
-  return { control, getContainer: () => container }
+
+  return { control, getRoutingContainer: () => container }
 }
 
 export interface BaseLayerConfig {
@@ -136,6 +156,7 @@ export class MapService {
   private readonly locateListeners: Array<() => void> = []
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private _isPlacing = false
+  private _routingContainer: HTMLElement | null = null
 
   constructor(
     container: HTMLElement,
@@ -147,7 +168,9 @@ export class MapService {
     const baseLayers = buildBaseLayers()
     baseLayers[BASE_LAYER_CONFIGS[0]!.label]!.addTo(this.map)
     createLayerSwitcher(baseLayers, this.map).addTo(this.map)
-    createLocateControl(() => { for (const l of this.locateListeners) l() }).addTo(this.map)
+    const actions = createMapActions(() => { for (const l of this.locateListeners) l() })
+    actions.control.addTo(this.map)
+    this._routingContainer = actions.getRoutingContainer()
 
     // Swap Leaflet's "+"/"−" zoom glyphs for Lucide icons (styled like the other controls).
     const c = this.map.getContainer()
@@ -248,6 +271,10 @@ export class MapService {
 
   getMap(): L.Map {
     return this.map
+  }
+
+  getRoutingContainer(): HTMLElement | null {
+    return this._routingContainer
   }
 
   setCenter(lat: number, lng: number, zoom?: number): void {

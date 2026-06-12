@@ -745,15 +745,47 @@
             }
 
             /* ── Routing mode toggle ── */
-            .routing-toggle {
+            /* ── Map actions (locate + routing, combined horizontal control) ── */
+            .map-actions {
                 display: flex;
-                border: 1.5px solid var(--accent);
-                border-radius: var(--radius-sm);
-                overflow: hidden;
+                align-items: center;
                 background: var(--surface);
+                border-radius: var(--radius-sm);
                 box-shadow: var(--shadow-sm);
+                overflow: hidden;
             }
-            .routing-opt {
+            .map-actions .locate-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 34px;
+                height: 34px;
+                border: none;
+                cursor: pointer;
+                background: transparent;
+                color: var(--ink-muted);
+                transition: background 0.15s, color 0.15s;
+                flex-shrink: 0;
+            }
+            .map-actions .locate-btn:hover {
+                background: var(--surface-2);
+                color: var(--accent);
+            }
+            .map-actions .locate-btn svg {
+                width: 20px;
+                height: 20px;
+                display: block;
+            }
+            .map-actions-sep {
+                width: 1px;
+                height: 24px;
+                background: var(--border);
+                flex-shrink: 0;
+            }
+            .map-actions .routing-toggle {
+                display: flex;
+            }
+            .map-actions .routing-opt {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
@@ -761,39 +793,24 @@
                 background: transparent;
                 color: var(--accent);
                 cursor: pointer;
-                padding: 6px 8px;
+                padding: 5px 7px;
                 line-height: 1;
                 transition: background 0.15s;
             }
-            .routing-opt + .routing-opt {
+            .map-actions .routing-opt + .routing-opt {
                 border-left: 1.5px solid var(--accent);
             }
-            .routing-opt:hover {
+            .map-actions .routing-opt:hover {
                 background: var(--accent-soft);
             }
-            .routing-opt.active {
+            .map-actions .routing-opt.active {
                 background: var(--accent);
                 color: #fff;
             }
-            .routing-opt svg {
+            .map-actions .routing-opt svg {
                 width: 18px;
                 height: 18px;
                 display: block;
-            }
-
-            /* On mobile the routing toggle sits below the locate btn in the map */
-            @media (max-width: 600px) {
-                .routing-toggle {
-                    border-radius: var(--radius-sm);
-                    box-shadow: var(--shadow-sm);
-                }
-                .routing-opt {
-                    padding: 7px 9px;
-                }
-                .routing-opt svg {
-                    width: 20px;
-                    height: 20px;
-                }
             }
 
             /* ── Map controls: one consistent look for zoom, layer switcher & locate.
@@ -804,12 +821,8 @@
                 gap: 1px;
                 background: transparent;
             }
-            .locate-control {
-                background: transparent;
-            }
 
             .layer-btn,
-            .locate-btn,
             #map .leaflet-bar a.leaflet-control-zoom-in,
             #map .leaflet-bar a.leaflet-control-zoom-out {
                 display: flex;
@@ -826,14 +839,12 @@
                     color 0.15s;
             }
             .layer-btn:hover,
-            .locate-btn:hover,
             #map .leaflet-bar a.leaflet-control-zoom-in:hover,
             #map .leaflet-bar a.leaflet-control-zoom-out:hover {
                 background: var(--surface-2);
                 color: var(--accent);
             }
             .layer-btn svg,
-            .locate-btn svg,
             #map .leaflet-bar a.leaflet-control-zoom-in svg,
             #map .leaflet-bar a.leaflet-control-zoom-out svg {
                 width: 20px;
@@ -850,9 +861,6 @@
             .layer-btn.active {
                 background: var(--accent-soft);
                 color: var(--accent);
-            }
-            .locate-btn {
-                border-radius: 4px;
             }
 
             /* Hairline between + / − (matches the layer switcher's 1px gap look). */
@@ -1838,7 +1846,7 @@
                     left: 0;
                     right: 0;
                     width: 100%;
-                    height: 60dvh;
+                    height: calc(60dvh + 30px);
                     border-left: none;
                     border-top: 1px solid var(--border);
                     border-radius: var(--radius) var(--radius) 0 0;
