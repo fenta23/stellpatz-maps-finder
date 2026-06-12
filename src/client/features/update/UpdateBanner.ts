@@ -52,6 +52,9 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
     void reg.update()
   }
 
+  // Immediate check on page load (PWA cold open)
+  poll()
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       poll()
