@@ -1,4 +1,4 @@
-import type { SupabaseClient, User } from '@supabase/supabase-js'
+import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 
 export type MagicLinkResult = { ok: true } | { ok: false; error: string }
 
@@ -11,10 +11,23 @@ export interface Auth {
   currentUser(): Promise<User | null>
   /** Subscribe to login/logout; returns an unsubscribe fn. */
   onChange(cb: (user: User | null) => void): () => void
+  /**
+   * Re-read the session from storage (e.g. after a magic-link redirect in the
+   * browser while the PWA stayed open). Returns the current user if recovered.
+   */
+  recoverSession(): Promise<User | null>
+}
+
+/** Derive the Supabase localStorage key from the project URL. */
+function storageKey(supabaseUrl: string): string {
+  const ref = supabaseUrl.match(/https:\/\/(.+)\.supabase\.co/)?.[1]
+  return ref ? `sb-${ref}-auth-token` : ''
 }
 
 /** Thin, testable wrapper over Supabase Auth (client injected for tests). */
 export function createAuth(client: SupabaseClient): Auth {
+  const key = storageKey(client.supabaseUrl)
+
   return {
     async sendMagicLink(email) {
       const { error } = await client.auth.signInWithOtp({
@@ -43,6 +56,19 @@ export function createAuth(client: SupabaseClient): Auth {
     onChange(cb) {
       const { data } = client.auth.onAuthStateChange((_event, session) => cb(session?.user ?? null))
       return () => data.subscription.unsubscribe()
+    },
+
+    async recoverSession() {
+      if (!key) return null
+      const raw = localStorage.getItem(key)
+      if (!raw) return null
+      try {
+        const session = JSON.parse(raw) as Session
+        const { data } = await client.auth.setSession(session)
+        return data.user
+      } catch {
+        return null
+      }
     },
   }
 }

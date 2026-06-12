@@ -242,6 +242,21 @@ async function init() {
         customPoiStore.disconnect()
       }
     })
+
+    // Session recovery: wenn der Magic-Link im Browser geöffnet wurde, die
+    // Session aus localStorage übernehmen sobald die PWA wieder sichtbar ist.
+    let lastUser = await auth.currentUser()
+    const recover = async () => {
+      const user = await auth!.recoverSession()
+      if (user?.id !== lastUser?.id) {
+        lastUser = user
+        // onAuthStateChange feuert durch setSession() → onChange läuft
+      }
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void recover()
+    })
+    window.addEventListener('focus', () => void recover())
   }
 
   // ── POI detail data loading (two-phase images, then nearby + notes) ──────────

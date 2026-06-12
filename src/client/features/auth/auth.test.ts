@@ -9,10 +9,12 @@ function fakeClient(over: Record<string, unknown> = {}) {
     signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
     getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+    getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+    setSession: vi.fn().mockResolvedValue({ data: { user: null } }),
     onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe } } }),
     ...over,
   }
-  return { client: { auth } as unknown as SupabaseClient, auth, unsubscribe }
+  return { client: { auth, supabaseUrl: 'https://x.supabase.co' } as unknown as SupabaseClient, auth, unsubscribe }
 }
 
 describe('createAuth.sendMagicLink', () => {
@@ -48,6 +50,24 @@ describe('createAuth.currentUser', () => {
     expect((await createAuth(withUser.client).currentUser())?.email).toBe('x@y.z')
     const none = fakeClient()
     expect(await createAuth(none.client).currentUser()).toBeNull()
+  })
+})
+
+describe('createAuth.recoverSession', () => {
+  it('returns null when no session is in localStorage', async () => {
+    const { client } = fakeClient()
+    const user = await createAuth(client).recoverSession()
+    expect(user).toBeNull()
+  })
+
+  it('recovers a session from localStorage and calls setSession', async () => {
+    localStorage.setItem('sb-x-auth-token', JSON.stringify({ access_token: 't', refresh_token: 'r' }))
+    const setSession = vi.fn().mockResolvedValue({ data: { user: { id: '1', email: 'a@b.c' } } })
+    const { client } = fakeClient({ setSession })
+    const user = await createAuth(client).recoverSession()
+    expect(user?.email).toBe('a@b.c')
+    expect(setSession).toHaveBeenCalledWith({ access_token: 't', refresh_token: 'r' })
+    localStorage.clear()
   })
 })
 
