@@ -26,6 +26,7 @@ import { UpdateBanner, watchServiceWorkerUpdates } from '@/features/update/Updat
 import { getSupabaseClient } from '@/features/auth/authClient.js'
 import { createAuth, type Auth } from '@/features/auth/auth.js'
 import { AuthPanel } from '@/features/auth/AuthPanel.js'
+import { InfoPanel } from '@/features/info/InfoPanel.js'
 import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
@@ -39,6 +40,7 @@ const SVG_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const SVG_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></svg>'
 const SVG_USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
 const SVG_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+const SVG_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
 
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447] // Germany center
 
@@ -363,14 +365,17 @@ async function init() {
     notesPanel.refresh()
   })
 
+  const infoPanel = new InfoPanel(document.body)
+
   const menuItems: MenuItem[] = [
-    { icon: SVG_MAP, label: 'Karte', onSelect: () => { favoritesPanel.close(); notesPanel.close() } },
-    { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { notesPanel.close(); favoritesPanel.open() } },
-    { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { favoritesPanel.close(); notesPanel.open() } },
+    { icon: SVG_MAP, label: 'Karte', onSelect: () => { infoPanel.close(); favoritesPanel.close(); notesPanel.close() } },
+    { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { infoPanel.close(); notesPanel.close(); favoritesPanel.open() } },
+    { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { infoPanel.close(); favoritesPanel.close(); notesPanel.open() } },
   ]
   if (authPanel) {
     menuItems.push({ icon: SVG_USER, label: 'Konto', onSelect: () => authPanel!.open() })
   }
+  menuItems.push({ icon: SVG_INFO, label: 'Info', onSelect: () => infoPanel.open() })
   menuItems.push({
     icon: SVG_TRASH,
     label: 'Cache leeren & neu laden',
