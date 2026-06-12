@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Express-Server durch Supabase Edge Function `api` ersetzt
+- Frontend-Hosting: Render → GitHub Pages (via GitHub Actions)
+- API-Proxy via `VITE_API_BASE` → Supabase Edge Functions URL
+- Overpass-Cache: PostgREST → `supabase-js` Client
+
 ### Added
+- `supabase/functions/api/`: 7 Handler (health, overpass, geocode, route, nearby, mapillary, notes) + Router
+- `supabase/functions/_shared/utils.ts`: Ports der Server-Utilities (isValidPoiQuery, snapBboxInQuery, decodeValhallaPolyline, etc.)
+- GitHub Actions Workflow: `deploy-pages.yml` für automatischen Build + Deploy
+- `public/404.html`: SPA-Fallback für GitHub Pages
+
+### Fixed
+- CORS: nur bekannte Origins werden akzeptiert (github.io, capacitor://localhost)
+- Mapillary-Rate-Limit: 20 req/min pro IP via Supabase-Backend
 - **„Mein Standort"-Button auf der Karte.** Ein Control unten links zentriert die Karte (Zoom 15) auf den aktuellen Standort; ist noch keiner bekannt, wird einer angefragt (mit Status-Hinweis, Fehlertoleranz bei Ablehnung). `MapService.onLocate` + `createLocateControl`.
 - **Einheitlicher Map-Control-Look.** Zoom-In/Out, Layer-Switcher und Standort-Button haben jetzt dieselbe Optik (Größe, Hover-Tint, Lucide-Icons): Leaflets „+/−"-Glyphen wurden durch Lucide-Plus/Minus ersetzt, das Zoom-Styling an Layer/Locate angeglichen (`#map`-gescopt, um Leaflets eigenes CSS zu überschreiben).
 - **Navigation: freier Startpunkt + „Losfahren"-Deeplink.** Routen gingen bisher immer vom aktuellen Standort aus. Jetzt:
