@@ -42,24 +42,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        navigateFallbackDenylist: [/^\/api\//], // never serve the app shell for API routes
+        navigateFallbackDenylist: [/^\/api\//],
         // IMPORTANT: do NOT add map-tile hosts here. A runtime-caching route makes the
         // SW fetch tiles itself, which is then subject to the SW's CSP `connect-src`
         // (not `img-src`) and gets blocked → grey map. Tiles must stay plain <img>
         // loads (governed by img-src), exactly as without a SW.
-        runtimeCaching: [
-          {
-            // API proxy — fresh-first, fall back to cache when offline (same-origin → CSP 'self')
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api',
-              networkTimeoutSeconds: 6,
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+        // API calls go cross-origin to Supabase Edge Functions — no SW caching needed.
       },
       devOptions: { enabled: false }, // SW only in production builds
     }),
@@ -71,15 +59,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // changeOrigin:false keeps Host = localhost:5173 so it matches the
-      // browser's Origin header on POSTs — required by the API origin guard.
-      '/api': { target: 'http://localhost:3000', changeOrigin: false },
+      // Dev: proxy API calls to local Supabase Edge Functions
+      // (supabase functions serve → http://localhost:54321)
+      '/api': { target: 'http://localhost:54321/functions/v1', changeOrigin: false },
     },
   },
   test: {
     root: resolve(__dirname, '.'),
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
+    exclude: ['src/server/**/*.test.ts'],
     globals: true,
     coverage: {
       provider: 'v8',
