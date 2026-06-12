@@ -862,23 +862,18 @@
     .nearby-name { flex: 1; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .nearby-dist { flex-shrink: 0; color: var(--ink-faint); font-size: 0.78rem; }
 
-    /* ── Image strip ── */
-    .poi-img-strip {
-      display: flex;
-      gap: 7px;
-      padding: 12px 18px;
-      overflow-x: auto;
-      scrollbar-width: thin;
-      background: var(--surface-2);
-      border-bottom: 1px solid var(--border-soft);
-    }
-    .poi-img-item { flex-shrink: 0; border-radius: var(--radius-sm); overflow: hidden; position: relative; display: block; }
-    .poi-img-thumb { height: 110px; width: auto; display: block; object-fit: cover; }
-    .poi-img-caption {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      background: rgba(44, 40, 34, 0.6);
-      color: #fff; font-size: 0.68rem; padding: 2px 6px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    /* ── Image gallery (hero + lightbox) ── */
+    .poi-gallery { position: relative; }
+    .poi-gallery-hero { display: block; cursor: pointer; }
+    .poi-gallery-hero:hover .poi-gallery-img { opacity: 0.85; }
+    .poi-gallery-img-wrap { overflow: hidden; display: flex; }
+    .poi-gallery-img { width: 100%; height: 200px; object-fit: cover; display: block; transition: opacity 0.2s; }
+    .poi-gallery-count {
+      position: absolute; top: 10px; right: 10px; z-index: 1;
+      background: rgba(44, 40, 34, 0.75); color: #fff;
+      padding: 3px 10px; border-radius: var(--radius-pill);
+      font-size: 0.78rem; font-weight: 600;
+      pointer-events: none;
     }
 
     /* ── My personal note (editor) ── */
@@ -926,18 +921,34 @@
     #poi-lightbox { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; }
     #poi-lightbox.hidden { display: none; }
     .lightbox-backdrop { position: absolute; inset: 0; background: rgba(28, 25, 21, 0.9); }
-    .lightbox-close {
-      position: absolute; top: 14px; right: 14px; z-index: 1;
-      width: 36px; height: 36px; border-radius: 50%; border: none;
-      background: rgba(255, 255, 255, 0.18); color: #fff; font-size: 1.1rem;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    .lightbox-close, .lightbox-prev, .lightbox-next {
+      position: absolute; z-index: 1; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255, 255, 255, 0.18); color: #fff;
     }
+    .lightbox-close { top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; font-size: 1.1rem; }
     .lightbox-close:hover { background: rgba(255, 255, 255, 0.32); }
+    .lightbox-prev, .lightbox-next {
+      top: 50%; transform: translateY(-50%); width: 44px; height: 80px;
+      border-radius: var(--radius-sm); font-size: 2rem;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .lightbox-prev { left: 10px; }
+    .lightbox-next { right: 10px; }
+    .lightbox-prev:hover, .lightbox-next:hover { background: rgba(255, 255, 255, 0.32); }
+    .lightbox-prev[hidden], .lightbox-next[hidden] { opacity: 0; pointer-events: none; }
     .lightbox-img {
       position: relative; z-index: 1;
-      max-width: 92vw; max-height: 88vh;
+      max-width: 82vw; max-height: 86vh;
       border-radius: var(--radius); object-fit: contain;
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+    }
+    .lightbox-counter {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 1;
+      color: #fff; font-size: 0.85rem; font-weight: 500;
+      background: rgba(44, 40, 34, 0.6); padding: 4px 14px;
+      border-radius: var(--radius-pill);
+      white-space: nowrap;
     }
 
     /* ── Update banner (new version available) ── */

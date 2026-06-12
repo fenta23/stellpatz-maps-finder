@@ -34,15 +34,36 @@ export async function resolveWikimediaImage(tag: string): Promise<PoiImage | nul
   }
 }
 
-/** OSM `image` tag + resolved Wikimedia image (the fast, local-ish sources). */
+/** Collect images from OSM tags (`image`, `image:0`, `image:1`, …,
+ *  `image:panorama`, `image:360`, `image:aerial`, `photo`) plus a resolved
+ *  Wikimedia Commons thumbnail.
+ */
 export async function collectTagImages(poi: OsmPoi): Promise<PoiImage[]> {
   const images: PoiImage[] = []
+
   if (poi.tags['image']) images.push({ src: poi.tags['image'], caption: 'OSM' })
+  for (let i = 0; ; i++) {
+    const src = poi.tags[`image:${i}`]
+    if (!src) break
+    images.push({ src, caption: 'OSM' })
+  }
+
+  const namedSrc = (tag: string): string | undefined => poi.tags[tag]
+  const pano = namedSrc('image:panorama')
+  if (pano) images.push({ src: pano, caption: 'Panorama' })
+  const spherical = namedSrc('image:360')
+  if (spherical) images.push({ src: spherical, caption: '360°' })
+  const aerial = namedSrc('image:aerial')
+  if (aerial) images.push({ src: aerial, caption: 'Luftbild' })
+  const photo = namedSrc('photo')
+  if (photo) images.push({ src: photo, caption: 'OSM' })
+
   const wmc = poi.tags['wikimedia_commons']
   if (wmc) {
     const resolved = await resolveWikimediaImage(wmc)
     if (resolved) images.push(resolved)
   }
+
   return images
 }
 

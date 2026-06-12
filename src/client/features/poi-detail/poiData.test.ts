@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { wikimediaTitle, wikimediaApiUrl, resolveWikimediaImage } from './poiData.js'
+import { wikimediaTitle, wikimediaApiUrl, resolveWikimediaImage, collectTagImages } from './poiData.js'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -35,5 +35,39 @@ describe('resolveWikimediaImage', () => {
   it('returns null on network error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
     expect(await resolveWikimediaImage('Foo.jpg')).toBeNull()
+  })
+})
+
+describe('collectTagImages', () => {
+  type POI = Parameters<typeof collectTagImages>[0]
+  const base: POI = { id: 1, type: 'campsite', lat: 0, lon: 0, tags: {} }
+
+  it('finds the image tag', async () => {
+    const r = await collectTagImages({ ...base, tags: { image: 'https://example.com/photo.jpg' } })
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({ src: 'https://example.com/photo.jpg', caption: 'OSM' })
+  })
+
+  it('collects numbered image:0, image:1 … tags', async () => {
+    const r = await collectTagImages({
+      ...base,
+      tags: { 'image:0': 'https://example.com/a.jpg', 'image:1': 'https://example.com/b.jpg' },
+    })
+    expect(r).toHaveLength(2)
+  })
+
+  it('collects named variants (panorama, 360, aerial, photo)', async () => {
+    const r = await collectTagImages({
+      ...base,
+      tags: { 'image:panorama': 'https://pano', 'image:aerial': 'https://drone', photo: 'https://pic' },
+    })
+    expect(r).toHaveLength(3)
+    expect(r[0].caption).toBe('Panorama')
+    expect(r[1].caption).toBe('Luftbild')
+  })
+
+  it('does not break on missing tags', async () => {
+    const r = await collectTagImages(base)
+    expect(r).toHaveLength(0)
   })
 })

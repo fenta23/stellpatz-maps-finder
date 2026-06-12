@@ -57,6 +57,10 @@ const MODE_ICON: Record<RoutingMode, string> = {
 
 const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>'
 
+// ── Gallery state ───────────────────────────────────────────────────────────
+let galleryImages: PoiImage[] = []
+let galleryIndex = 0
+
 export interface PanelConfig {
   readonly isCustom?: boolean
   readonly onEdit?: () => void
@@ -90,6 +94,13 @@ export class PoiDetailPanel {
 
     this.panel.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
+
+      if (target.closest('[data-gallery-trigger]')) {
+        e.preventDefault()
+        showGallery(0)
+        return
+      }
+
       const link = target.closest<HTMLElement>('[data-lightbox]')
       if (link?.dataset['lightbox']) {
         e.preventDefault()
@@ -250,6 +261,7 @@ export class PoiDetailPanel {
   }
 
   updateImages(images: PoiImage[]): void {
+    galleryImages = images
     const section = this.panel.querySelector<HTMLElement>('[data-section="images"]')
     if (!section) return
     if (images.length === 0) { section.innerHTML = ''; return }
@@ -436,14 +448,14 @@ function buildTags(poi: OsmPoi): TagRow[] {
 }
 
 function renderImages(images: PoiImage[]): string {
-  const items = images.map(img => {
-    const thumb = `<img src="${esc(img.src)}" alt="${esc(img.caption ?? '')}" loading="lazy" class="poi-img-thumb" />`
-    const caption = img.caption ? `<div class="poi-img-caption">${esc(img.caption)}</div>` : ''
-    return img.link
-      ? `<a href="${esc(safeUrl(img.link))}" target="_blank" rel="noopener" class="poi-img-item">${thumb}${caption}</a>`
-      : `<div class="poi-img-item">${thumb}${caption}</div>`
-  }).join('')
-  return `<div class="poi-img-strip">${items}</div>`
+  const first = images[0]
+  const badge = images.length > 1 ? `<span class="poi-gallery-count">${images.length}</span>` : ''
+  return `<div class="poi-gallery">
+    ${badge}
+    <a class="poi-gallery-hero" data-gallery-trigger role="button" tabindex="0" aria-label="Bilder ansehen">
+      <div class="poi-gallery-img-wrap"><img src="${esc(first.src)}" alt="" loading="lazy" class="poi-gallery-img" /></div>
+    </a>
+  </div>`
 }
 
 function renderNotes(notes: OsmNote[]): string {
@@ -527,24 +539,86 @@ function getLightbox(): HTMLElement {
     lb.innerHTML = `
       <div class="lightbox-backdrop"></div>
       <button class="lightbox-close" aria-label="Schließen">✕</button>
+      <button class="lightbox-prev" aria-label="Vorheriges">‹</button>
+      <button class="lightbox-next" aria-label="Nächstes">›</button>
       <img class="lightbox-img" src="" alt="" />
+      <span class="lightbox-counter"></span>
     `
     document.body.appendChild(lb)
     lb.querySelector('.lightbox-backdrop')!.addEventListener('click', hideLightbox)
     lb.querySelector('.lightbox-close')!.addEventListener('click', hideLightbox)
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideLightbox() })
+    lb.querySelector('.lightbox-prev')!.addEventListener('click', prevImage)
+    lb.querySelector('.lightbox-next')!.addEventListener('click', nextImage)
+
+    let navTimeout: ReturnType<typeof setTimeout> | undefined
+    document.addEventListener('keydown', (e) => {
+      const lightbox = document.getElementById('poi-lightbox')
+      if (!lightbox || lightbox.classList.contains('hidden')) return
+
+      if (e.key === 'Escape') { hideLightbox(); return }
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        clearTimeout(navTimeout)
+        navTimeout = setTimeout(() => { navTimeout = undefined }, 300)
+        if (e.key === 'ArrowLeft') prevImage()
+        else nextImage()
+      }
+    })
   }
   return lb
 }
 
 function showLightbox(src: string): void {
+  galleryImages = []
   const lb = getLightbox()
   lb.querySelector<HTMLImageElement>('.lightbox-img')!.src = src
+  lb.querySelector('.lightbox-prev')?.setAttribute('hidden', '')
+  lb.querySelector('.lightbox-next')?.setAttribute('hidden', '')
+  lb.querySelector('.lightbox-counter')?.setAttribute('hidden', '')
   lb.classList.remove('hidden')
+}
+
+function showGallery(index: number): void {
+  if (galleryImages.length === 0) return
+  galleryIndex = Math.min(index, galleryImages.length - 1)
+  const lb = getLightbox()
+  lb.querySelector('.lightbox-prev')?.removeAttribute('hidden')
+  lb.querySelector('.lightbox-next')?.removeAttribute('hidden')
+  lb.querySelector('.lightbox-counter')?.removeAttribute('hidden')
+  updateGalleryImage()
+  lb.classList.remove('hidden')
+}
+
+function nextImage(): void {
+  if (galleryImages.length < 2) return
+  galleryIndex = (galleryIndex + 1) % galleryImages.length
+  updateGalleryImage()
+}
+
+function prevImage(): void {
+  if (galleryImages.length < 2) return
+  galleryIndex = (galleryIndex - 1 + galleryImages.length) % galleryImages.length
+  updateGalleryImage()
+}
+
+function updateGalleryImage(): void {
+  const lb = document.getElementById('poi-lightbox')
+  if (!lb) return
+  const img = lb.querySelector<HTMLImageElement>('.lightbox-img')
+  const counter = lb.querySelector<HTMLElement>('.lightbox-counter')
+  const cur = galleryImages[galleryIndex]
+  if (img) img.src = cur.src
+  if (counter) {
+    const cap = cur.caption ? ` · ${cur.caption}` : ''
+    counter.textContent = `${galleryIndex + 1} / ${galleryImages.length}${cap}`
+  }
 }
 
 function hideLightbox(): void {
   document.getElementById('poi-lightbox')?.classList.add('hidden')
+  galleryImages = []
+  galleryIndex = 0
 }
 
 function esc(s: string): string {
