@@ -412,7 +412,6 @@ async function init() {
   const infoPanel = new InfoPanel(document.body)
 
   const menuItems: MenuItem[] = [
-    { icon: SVG_MAP, label: 'Karte', onSelect: () => { infoPanel.close(); favoritesPanel.close(); notesPanel.close() } },
     { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { infoPanel.close(); notesPanel.close(); favoritesPanel.open() } },
     { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { infoPanel.close(); favoritesPanel.close(); notesPanel.open() } },
   ]
