@@ -19,7 +19,7 @@ export function createAuth(client: SupabaseClient): Auth {
     async sendMagicLink(email) {
       const { error } = await client.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: window.location.origin + window.location.pathname },
       })
       return error ? { ok: false, error: error.message } : { ok: true }
     },
@@ -27,7 +27,7 @@ export function createAuth(client: SupabaseClient): Auth {
     async signInWithGoogle() {
       await client.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: window.location.origin + window.location.pathname },
       })
     },
 
