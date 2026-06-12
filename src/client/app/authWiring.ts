@@ -1,0 +1,56 @@
+import type { Auth } from '@/features/auth/auth.js'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SyncedFavoritesStore } from '@/features/favorites/RemoteFavoritesStore.js'
+import type { SyncedNotesStore } from '@/features/notes/RemoteNotesStore.js'
+import type { SyncedFilterStore } from '@/features/filters/RemoteFilterStore.js'
+import { createSupabaseFavoritesBackend } from '@/features/favorites/RemoteFavoritesStore.js'
+import { createSupabaseNotesBackend } from '@/features/notes/RemoteNotesStore.js'
+import { createSupabaseFilterBackend } from '@/features/filters/RemoteFilterStore.js'
+import { createSupabaseCustomPoiBackend, type CustomPoiBackend } from '@/features/custom-pois/RemoteCustomPoiStore.js'
+
+export interface AuthSyncDeps {
+  readonly auth: Auth
+  readonly supabase: SupabaseClient
+  readonly favorites: SyncedFavoritesStore
+  readonly notes: SyncedNotesStore
+  readonly filterStore: SyncedFilterStore
+  readonly connectCustomPois: (backend: CustomPoiBackend) => Promise<void>
+  readonly disconnectCustomPois: () => void
+  readonly onFavoritesSynced: () => void
+  readonly onCustomPoisSynced: () => void
+}
+
+export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
+  const { auth, supabase, favorites, notes, filterStore, connectCustomPois, disconnectCustomPois, onFavoritesSynced, onCustomPoisSynced } = deps
+
+  auth.onChange(user => {
+    if (user) {
+      void favorites
+        .connect(createSupabaseFavoritesBackend(supabase, user.id))
+        .then(() => onFavoritesSynced())
+      void notes.connect(createSupabaseNotesBackend(supabase, user.id))
+      void connectCustomPois(createSupabaseCustomPoiBackend(supabase, user.id))
+        .then(() => onCustomPoisSynced())
+      void filterStore.connect(createSupabaseFilterBackend(supabase, user.id))
+    } else {
+      favorites.disconnect()
+      notes.disconnect()
+      disconnectCustomPois()
+      filterStore.disconnect()
+    }
+  })
+
+  // Session recovery: wenn der Magic-Link im Browser geöffnet wurde
+  let lastUser: { id: string } | null = null
+  try { lastUser = await auth.currentUser() } catch { /* ignore */ }
+  const recover = async () => {
+    try {
+      const user = await auth.recoverSession()
+      if (user?.id !== lastUser?.id) lastUser = user
+    } catch { /* ignore */ }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void recover()
+  })
+  window.addEventListener('focus', () => void recover())
+}
