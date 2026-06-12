@@ -17,7 +17,7 @@ function renderChangelog(md: string): string {
     if (/^##\s/.test(line)) {
       closeUl()
       const title = line.replace(/^##\s+/, '').replace(/[`*]/g, '')
-      if (title) out.push(`<h4>${title}</h4>`)
+      if (title) out.push(`<h4>${title === '[Unreleased]' ? 'Aktuelle Version' : title}</h4>`)
     } else if (/^###\s/.test(line)) {
       closeUl()
       out.push(`<h5>${line.replace(/^###\s+/, '')}</h5>`)
