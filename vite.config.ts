@@ -68,7 +68,7 @@ export default defineConfig({
     root: resolve(__dirname, '.'),
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
-    exclude: ['src/server/**/*.test.ts'],
+    exclude: ['src/**/*.int.test.ts'],
     globals: true,
     coverage: {
       provider: 'v8',

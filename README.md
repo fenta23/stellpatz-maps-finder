@@ -30,9 +30,9 @@ Kartenbasierte Web-App zur Routenplanung mit automatischer Anzeige von **Parkpl�
 | Geocoding | [Nominatim](https://nominatim.org) |
 | Routing | [Valhalla](https://valhalla.github.io/valhalla/) (openstreetmap.de) |
 | Frontend | Vanilla TypeScript, [Vite](https://vite.dev), PWA ([vite-plugin-pwa](https://vite-pwa-org.netlify.app)) |
-| Backend | Node.js + Express (Proxy + Cache) |
-| Persistenz | [Supabase](https://supabase.com) Postgres — persistenter POI-Cache, Auth (Magic-Link) + Server-Favoriten (RLS) |
-| Deployment | [Render.com](https://render.com) |
+| Backend | [Supabase Edge Functions](https://supabase.com/edge-functions) (Deno) — Proxy + Cache |
+| Persistenz | [Supabase](https://supabase.com) Postgres — persistenter POI-Cache, Auth (Magic-Link), Favoriten + Notizen (RLS) |
+| Hosting | [GitHub Pages](https://pages.github.com) (statischer Build) |
 
 ## Lokale Entwicklung
 
@@ -40,7 +40,10 @@ Kartenbasierte Web-App zur Routenplanung mit automatischer Anzeige von **Parkpl�
 # Abhängigkeiten installieren
 npm install
 
-# Entwicklungsserver starten (Vite :5173 + Express :3000)
+# Supabase lokal starten (braucht Docker)
+supabase start
+
+# Entwicklungsserver starten (Vite :5173 + Edge Functions :54321)
 npm run dev
 
 # Tests ausführen
@@ -52,79 +55,90 @@ npm test
 **Optionale Umgebungsvariablen** (`.env` aus `.env.example` kopieren):
 ```
 MAPILLARY_ACCESS_TOKEN=   # Mapillary Street-Level-Fotos aktivieren
-SUPABASE_URL=             # persistenter POI-Cache (sonst In-Memory-Fallback)
-SUPABASE_SERVICE_KEY=     # service_role key — nur serverseitig, nie im Client
+SUPABASE_URL=             # für Overpass-Cache (optional)
+SUPABASE_SERVICE_KEY=     # service_role key
 ```
 
-## Deployment auf Render.com
+## Deployment
 
-Das Projekt enthält eine `render.yaml` — einfach das GitHub-Repo bei Render verbinden:
+### Frontend (GitHub Pages)
 
-1. [dashboard.render.com](https://dashboard.render.com) → **New → Web Service**
-2. Repo auswählen — Render liest `render.yaml` automatisch
-3. Optional: `MAPILLARY_ACCESS_TOKEN` unter **Environment** eintragen
+Bei jedem Push auf `main` baut die GitHub Action und deployt automatisch:
 
-Bei jedem `git push` auf `main` deployed Render automatisch neu.
+1. https://github.com/fenta23/stellpatz-maps-finder/settings/secrets/actions → folgende Secrets setzen:
+   - `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`
+2. Variable setzen:
+   - `VITE_API_BASE` = `https://<project>.supabase.co/functions/v1`
+
+### Backend (Supabase Edge Functions)
+
+```bash
+supabase login
+supabase link --project-ref <deine-ref>
+supabase functions deploy api --no-verify-jwt
+supabase secrets set MAPILLARY_ACCESS_TOKEN=...
+```
+
+`SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` sind automatisch in der Edge Function Runtime verfügbar.
 
 ## Als App installieren (PWA)
 
-Die App ist eine **Progressive Web App** — installierbar auf Handy & Desktop, lädt die Oberfläche offline (besuchte Karten-Kacheln werden gecacht).
+Die App ist eine **Progressive Web App** — installierbar auf Handy & Desktop.
 
 - **Android / Chrome / Edge:** „Installieren"-Button oben rechts oder Browser-Menü → „App installieren".
 - **iOS / Safari:** Teilen-Symbol → „Zum Home-Bildschirm".
 
-Der Service Worker ist nur im Production-Build aktiv. Lokal testen:
-
+Service Worker lokal testen:
 ```bash
-npm run build          # erzeugt sw.js + manifest.webmanifest in dist/client/
-node dist/server/index.js   # Express serviert den Build inkl. SW
+npm run build && npx serve dist/client
 ```
 
 App-Icon ändern: `public/logo.svg` anpassen, dann `npm run generate-pwa-assets`.
 
-## Später: native App via Capacitor (ohne Rewrite)
+## Später: native App via Capacitor
 
-Die Codebase ist darauf vorbereitet, die PWA in eine native iOS/Android-Shell zu wrappen:
-
-- Alle API-Aufrufe laufen über `apiUrl()` (`src/client/config.ts`). Im Web ist die Basis leer (relativ); für einen nativen Build `VITE_API_BASE=https://<dein-render-service>.onrender.com` setzen, damit die App den gehosteten Server trifft.
-- Dann: `npm i -D @capacitor/cli @capacitor/core`, `npx cap init`, `webDir` auf `dist/client` zeigen, `npx cap add ios` / `add android`. Die helmet-CSP (`connectSrc`) muss um die API-Origin erweitert werden.
+```bash
+npm i -D @capacitor/cli @capacitor/core
+npx cap init
+# webDir auf dist/client zeigen
+# VITE_API_BASE auf GitHub Pages URL setzen
+npx cap add ios / add android
+```
 
 ## Architektur
 
 ```
-Browser
+Browser (GitHub Pages)
   │
-  ├── GET /           → dist/client/ (Vite-Build, Leaflet-App)
-  └── GET /api/**     → Express-Server (Proxy + Cache)
-                            ├── /api/overpass   → Overpass API
+  ├── GET /            → dist/client/ (Vite-Build, Leaflet-App)
+  └── GET/POST /api/** → Supabase Edge Function `api`
+                            ├── /api/overpass   → Overpass API (gecached via Postgres)
                             ├── /api/geocode    → Nominatim
                             ├── /api/route      → Valhalla
                             ├── /api/nearby     → Overpass API
-                            ├── /api/mapillary  → Mapillary Graph API
+                            ├── /api/mapillary  → Mapillary Graph API (20 req/min limitiert)
                             └── /api/notes      → OSM Notes API
 ```
 
-Der Express-Server cached Overpass-Antworten (BBox-Snapping auf 0,05°-Raster) und setzt Security-Header via [helmet](https://helmetjs.github.io). Der POI-Cache ist **pluggable**: mit gesetzten Supabase-Variablen persistent in Postgres (TTL 7 Tage, überlebt Render-Kaltstarts), sonst In-Memory-Fallback.
+Die Edge Function cached Overpass-Antworten via Supabase Postgres (BBox-Snapping auf 0,05°-Raster, TTL 7 Tage).
 
-### Supabase (optional: persistenter Cache, Login, Server-Favoriten)
+### Supabase (persistenter Cache, Login, Favoriten, Notizen)
 
-1. Supabase-Projekt anlegen → **Project Settings → API**: Project URL + `service_role`-Key (Server) + `anon`-Key (Client) holen
-2. Migrationen im **SQL Editor** ausführen: `0001_poi_cache.sql` (POI-Cache), `0002_favorites.sql` (Server-Favoriten, RLS), `0003_favorites_snapshot.sql` (Name/Koordinaten für die Favoriten-Liste) und `0004_notes.sql` (persönliche Notizen, RLS) — alle unter `supabase/migrations/`
-3. Env-Vars setzen (Render-Dashboard / lokale `.env`):
-   - Server: `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` (service_role, **nur serverseitig**)
-   - Client (Login + Favoriten): `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (anon, öffentlich; zur Build-Zeit gebacken)
-4. **Authentication → URL Configuration**: Site URL = Produktions-URL, Redirect-URLs für `localhost` + Render eintragen (siehe `supabase/templates/README.md`)
-
-Ohne die Server-Variablen läuft der POI-Cache als In-Memory-Fallback; ohne die `VITE_`-Variablen sind Login + Server-Favoriten einfach aus.
+1. Supabase-Projekt anlegen → **Project Settings → API**: Project URL + Keys holen
+2. Migrationen im **SQL Editor** ausführen: alle unter `supabase/migrations/` (poi_cache, favorites, notes, custom_pois)
+3. Env-Vars setzen:
+   - Edge Function: `MAPILLARY_ACCESS_TOKEN` via `supabase secrets set`
+   - Client (Login + Favoriten): `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (Build-Zeit)
+4. **Authentication → URL Configuration**: Site URL + Redirect-URLs eintragen
 
 #### Login-Methoden
 
 - **Google (OAuth, ohne Mailversand — empfohlen):**
   1. [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services → Credentials** → „Create OAuth client ID" → Typ **Web application**.
-  2. **Authorized redirect URI**: `https://<project-ref>.supabase.co/auth/v1/callback` (die Callback-URL steht auch in Supabase unter dem Google-Provider).
-  3. Client-ID + Secret in **Supabase → Authentication → Providers → Google** eintragen und aktivieren.
-  4. Die App-Origin(s) (`localhost:5173`, Render-URL) müssen in der Redirect-URL-Allowlist stehen (s. o.) — der Client schickt `redirectTo = window.location.origin`.
-- **Magic-Link (E-Mail):** funktioniert ohne weiteres Setup, hängt aber am Mailversand (Rate-Limit) → für echten Betrieb eigenes SMTP, siehe `supabase/templates/README.md`.
+  2. **Authorized redirect URI**: `https://<project-ref>.supabase.co/auth/v1/callback`
+  3. Client-ID + Secret in **Supabase → Authentication → Providers → Google** eintragen.
+  4. GitHub Pages-URL in Redirect-Allowlist eintragen.
+- **Magic-Link (E-Mail):** funktioniert ohne Setup, hängt am Mailversand (Rate-Limit) → eigenes SMTP für Produktion.
 
 ## Datenquellen & Lizenzen
 

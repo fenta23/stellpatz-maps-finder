@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "generate-pwa-assets": "pwa-assets-generator",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:int": "vitest run --config vitest.config.int.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
