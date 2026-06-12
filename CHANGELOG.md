@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Detail-Panel blockierte die Karten-Controls (`pointer-events`).** Der Host `#detail-panel` ist ein 340 px breiter, absolut positionierter Streifen am rechten Rand (z-index 1) und fängt Klicks ab – auch wenn das eigentliche Panel `display: none` ist. Dadurch war u. a. der Layer-Switcher (Karte/Satellit) oben rechts nicht mehr bedienbar. Host jetzt `pointer-events: none`, das sichtbare `.poi-detail-panel` `pointer-events: auto` → der leere Streifen lässt Klicks zur Karte durch, das offene Panel fängt seine eigenen weiter ab. Mobil unberührt (Host dort `position: static`).
+
 ### Added
 - **Info-Panel im Side-Menü** – zeigt App-Info, Version und den CHANGELOG.md direkt in der App an
 - **Löschen-Button (X) in der Searchbar** – leert das Suchfeld mit einem Klick

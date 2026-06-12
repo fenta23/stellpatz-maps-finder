@@ -1222,6 +1222,10 @@
                 bottom: 0;
                 width: 340px;
                 z-index: 1;
+                /* Host spans the right strip even while empty — let clicks fall
+                   through to the map controls (layer switcher) underneath it.
+                   The visible panel re-enables pointer events for itself. */
+                pointer-events: none;
             }
 
             .poi-detail-panel {
@@ -1233,6 +1237,7 @@
                 display: flex;
                 flex-direction: column;
                 transition: transform 0.2s;
+                pointer-events: auto;
             }
             .poi-detail-panel.hidden {
                 display: none;
