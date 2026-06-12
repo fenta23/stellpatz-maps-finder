@@ -61,6 +61,10 @@ async function init() {
   const statusEl = document.getElementById('status')!
   const routingToggle = document.getElementById('routing-toggle')!
 
+  // ── Services + state (deklariert früh, da Auth-Closure darauf zugreift) ────
+  const favorites = new SyncedFavoritesStore(new LocalFavoritesStore())
+  const notes = new SyncedNotesStore(new LocalNotesStore())
+
   // Auth (only when Supabase is configured) — panel built here, menu assembled
   // further down once the services it links to (favorites list, map) exist.
   const supabase = getSupabaseClient()
@@ -84,7 +88,7 @@ async function init() {
   const userPos = await requestLocation(statusEl)
   setStatus('')
 
-  // ── Services + state ─────────────────────────────────────────────────────────
+  // ── Services + state (rest) ──────────────────────────────────────────────────
   const mapService = new MapService(mapContainer, userPos ?? DEFAULT_CENTER, userPos ? 13 : 6)
   const map = mapService.getMap()
   const filterPanel = new FilterPanel(
@@ -93,8 +97,6 @@ async function init() {
   )
   const detailPanel = new PoiDetailPanel(document.getElementById('detail-panel')!)
   const searchBar = new SearchBar(document.getElementById('search-bar')!)
-  const favorites = new SyncedFavoritesStore(new LocalFavoritesStore())
-  const notes = new SyncedNotesStore(new LocalNotesStore())
   const directions = new DirectionsService(map)
   const session = createSession(userPos ? { lat: userPos[0], lon: userPos[1] } : null)
 
