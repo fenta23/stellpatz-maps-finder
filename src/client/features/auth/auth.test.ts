@@ -6,6 +6,7 @@ function fakeClient(over: Record<string, unknown> = {}) {
   const unsubscribe = vi.fn()
   const auth = {
     signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
+    verifyOtp: vi.fn().mockResolvedValue({ error: null }),
     signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
     getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
@@ -31,6 +32,21 @@ describe('createAuth.sendMagicLink', () => {
     const { client } = fakeClient({ signInWithOtp: vi.fn().mockResolvedValue({ error: { message: 'rate limited' } }) })
     const res = await createAuth(client).sendMagicLink('me@example.com')
     expect(res).toEqual({ ok: false, error: 'rate limited' })
+  })
+})
+
+describe('createAuth.verifyOtp', () => {
+  it('returns ok and forwards email + token with type "email"', async () => {
+    const { client, auth } = fakeClient()
+    const res = await createAuth(client).verifyOtp('me@example.com', '123456')
+    expect(res).toEqual({ ok: true })
+    expect(auth.verifyOtp).toHaveBeenCalledWith({ email: 'me@example.com', token: '123456', type: 'email' })
+  })
+
+  it('maps a Supabase error to { ok:false, error }', async () => {
+    const { client } = fakeClient({ verifyOtp: vi.fn().mockResolvedValue({ error: { message: 'invalid token' } }) })
+    const res = await createAuth(client).verifyOtp('me@example.com', '000000')
+    expect(res).toEqual({ ok: false, error: 'invalid token' })
   })
 })
 

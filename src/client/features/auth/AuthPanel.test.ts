@@ -7,6 +7,7 @@ function fakeAuth(initialUser: User | null = null) {
   let changeCb: ((u: User | null) => void) | undefined
   const auth: Auth = {
     sendMagicLink: vi.fn<(e: string) => Promise<MagicLinkResult>>().mockResolvedValue({ ok: true }),
+    verifyOtp: vi.fn<(e: string, t: string) => Promise<MagicLinkResult>>().mockResolvedValue({ ok: true }),
     signInWithGoogle: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn().mockResolvedValue(undefined),
     currentUser: vi.fn().mockResolvedValue(initialUser),
@@ -24,7 +25,7 @@ describe('AuthPanel — logged out', () => {
     await flush()
     expect(c.querySelector('[data-ref="google"]')).not.toBeNull()
     expect(c.querySelector<HTMLInputElement>('.auth-input')).not.toBeNull()
-    expect(c.querySelector('.auth-btn-primary')?.textContent).toBe('Magic-Link senden')
+    expect(c.querySelector('[data-ref="send"]')?.textContent).toBe('Code senden')
   })
 
   it('starts the Google flow on click', async () => {
@@ -41,22 +42,52 @@ describe('AuthPanel — logged out', () => {
     const { auth } = fakeAuth(null)
     new AuthPanel(c, auth)
     await flush()
-    c.querySelector<HTMLInputElement>('.auth-input')!.value = 'nope'
-    c.querySelector<HTMLButtonElement>('.auth-btn-primary')!.click()
+    c.querySelector<HTMLInputElement>('[data-ref="input"]')!.value = 'nope'
+    c.querySelector<HTMLButtonElement>('[data-ref="send"]')!.click()
     expect(auth.sendMagicLink).not.toHaveBeenCalled()
     expect(c.querySelector('.auth-msg-error')?.textContent).toContain('gültige E-Mail')
   })
 
-  it('sends a magic link for a valid email', async () => {
+  it('sends a code for a valid email and reveals the code step', async () => {
     const c = document.createElement('div')
     const { auth } = fakeAuth(null)
     new AuthPanel(c, auth)
     await flush()
-    c.querySelector<HTMLInputElement>('.auth-input')!.value = 'me@example.com'
-    c.querySelector<HTMLButtonElement>('.auth-btn-primary')!.click()
+    c.querySelector<HTMLInputElement>('[data-ref="input"]')!.value = 'me@example.com'
+    c.querySelector<HTMLButtonElement>('[data-ref="send"]')!.click()
     await flush()
     expect(auth.sendMagicLink).toHaveBeenCalledWith('me@example.com')
     expect(c.querySelector('.auth-msg-ok')?.textContent).toContain('gesendet')
+    expect(c.querySelector<HTMLElement>('[data-ref="stepCode"]')!.hidden).toBe(false)
+    expect(c.querySelector<HTMLElement>('[data-ref="stepEmail"]')!.hidden).toBe(true)
+  })
+
+  it('verifies a 6-digit code via verifyOtp', async () => {
+    const c = document.createElement('div')
+    const { auth } = fakeAuth(null)
+    new AuthPanel(c, auth)
+    await flush()
+    c.querySelector<HTMLInputElement>('[data-ref="input"]')!.value = 'me@example.com'
+    c.querySelector<HTMLButtonElement>('[data-ref="send"]')!.click()
+    await flush()
+    c.querySelector<HTMLInputElement>('[data-ref="code"]')!.value = '123456'
+    c.querySelector<HTMLButtonElement>('[data-ref="verify"]')!.click()
+    await flush()
+    expect(auth.verifyOtp).toHaveBeenCalledWith('me@example.com', '123456')
+  })
+
+  it('rejects a malformed code without calling verifyOtp', async () => {
+    const c = document.createElement('div')
+    const { auth } = fakeAuth(null)
+    new AuthPanel(c, auth)
+    await flush()
+    c.querySelector<HTMLInputElement>('[data-ref="input"]')!.value = 'me@example.com'
+    c.querySelector<HTMLButtonElement>('[data-ref="send"]')!.click()
+    await flush()
+    c.querySelector<HTMLInputElement>('[data-ref="code"]')!.value = '12'
+    c.querySelector<HTMLButtonElement>('[data-ref="verify"]')!.click()
+    expect(auth.verifyOtp).not.toHaveBeenCalled()
+    expect(c.querySelector('.auth-msg-error')?.textContent).toContain('6-stelligen Code')
   })
 })
 
