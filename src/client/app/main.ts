@@ -41,6 +41,10 @@ import { LocalCustomPoiStore } from '@/features/custom-pois/CustomPoiStore.js'
 import { SyncedCustomPoiStore, createSupabaseCustomPoiBackend } from '@/features/custom-pois/RemoteCustomPoiStore.js'
 import { CustomPoiMarkerManager } from '@/features/custom-pois/CustomPoiMarkerManager.js'
 import { CustomPoiEditor } from '@/features/custom-pois/CustomPoiEditor.js'
+import { clone, ref } from '@/core/template.js'
+import { importGoogleMapsFile, type Geocoder } from '@/features/import/GoogleMapsImport.js'
+import importPanelHtml from '@/features/import/importPanel.html?raw'
+import { apiUrl } from '@/core/config.js'
 
 const SVG_MAP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>'
 const SVG_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>'
@@ -48,6 +52,7 @@ const SVG_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const SVG_USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
 const SVG_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
 const SVG_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
+const SVG_UPLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>'
 
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447] // Germany center
 
@@ -411,9 +416,66 @@ async function init() {
 
   const infoPanel = new InfoPanel(document.body)
 
+  // ── Google Maps Import ────────────────────────────────────────────────────────
+  const importPanel = clone(importPanelHtml)
+  importPanel.classList.remove('open')
+  document.body.appendChild(importPanel)
+  ref<HTMLButtonElement>(importPanel, 'btnJson').addEventListener('click', () => {
+    importInput.accept = '.json'
+    importInput.click()
+  })
+  ref<HTMLButtonElement>(importPanel, 'btnCsv').addEventListener('click', () => {
+    importInput.accept = '.csv'
+    importInput.click()
+  })
+  importPanel.querySelector('.fav-close')?.addEventListener('click', () => importPanel.classList.remove('open'))
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && importPanel.classList.contains('open')) importPanel.classList.remove('open') })
+
+  const importInput = document.createElement('input')
+  importInput.type = 'file'
+  importInput.accept = '.json,.csv'
+  importInput.style.display = 'none'
+  document.body.appendChild(importInput)
+
+  const geocoder: Geocoder = {
+    async geocode(name) {
+      const res = await fetch(apiUrl(`/api/geocode?q=${encodeURIComponent(name)}`))
+      if (!res.ok) return null
+      const data: unknown = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        const r = data[0] as Record<string, unknown>
+        const lat = typeof r['lat'] === 'string' ? parseFloat(r['lat']) : NaN
+        const lon = typeof r['lon'] === 'string' ? parseFloat(r['lon']) : NaN
+        if (isFinite(lat) && isFinite(lon)) return { lat, lon }
+      }
+      return null
+    },
+  }
+
+  importInput.addEventListener('change', () => {
+    const file = importInput.files?.[0]
+    if (!file) return
+    importPanel.classList.remove('open')
+    setStatus(`${file.name} wird importiert…`)
+    void importGoogleMapsFile(file, customPoiStore, {
+      geocoder,
+      onProgress: msg => setStatus(msg),
+    }).then(result => {
+      const parts: string[] = [`${result.imported} Orte aus „${file.name}" importiert`]
+      if (result.geocoded) parts.push(`${result.geocoded} geokodiert`)
+      if (result.skipped) parts.push(`${result.skipped} übersprungen`)
+      flashInfo(parts.join(', '))
+      refreshCustomMarkers()
+    }).catch((err: Error) => {
+      flashStatus(err.message)
+    })
+    importInput.value = ''
+  })
+
   const menuItems: MenuItem[] = [
     { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { infoPanel.close(); notesPanel.close(); favoritesPanel.open() } },
     { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { infoPanel.close(); favoritesPanel.close(); notesPanel.open() } },
+    { icon: SVG_UPLOAD, label: 'Google Maps importieren', onSelect: () => importPanel.classList.add('open') },
   ]
   if (authPanel) {
     menuItems.push({ icon: SVG_USER, label: 'Konto', onSelect: () => authPanel!.open() })

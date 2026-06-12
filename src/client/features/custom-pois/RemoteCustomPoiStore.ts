@@ -32,6 +32,15 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
     void this.backend?.upsert(poi).catch(err => console.warn('[custom-pois] remote sync failed:', err))
   }
 
+  addMany(pois: Iterable<CustomPoi>): void {
+    this.local.addMany(pois)
+    const copy = [...pois]
+    if (this.backend) {
+      void Promise.allSettled(copy.map(poi => this.backend!.upsert(poi)))
+        .catch(err => console.warn('[custom-pois] remote sync failed:', err))
+    }
+  }
+
   remove(id: string): void {
     this.local.remove(id)
     void this.backend?.remove(id).catch(err => console.warn('[custom-pois] remote sync failed:', err))

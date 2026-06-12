@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Google Maps Import.** Neue Funktion im Seitenmenü: „Google Maps importieren" öffnet ein Erklär-Panel mit zwei Varianten — JSON (`Meine Orte mit Beschriftungen`) und CSV (`Gespeicherte Orte`) inkl. Dateipfaden aus Google Takeout. Bei CSVs werden `/search/LAT,LNG`-URLs direkt importiert, `/place/NAME`-URLs via Nominatim-Geokodierung aufgelöst. Alle importierten POIs sind editierbar.
 - **Data-driven Filter-System.** Statt hartcodierter POI-Typen werden Filter jetzt über einen `FilterStore` (localStorage + Supabase-Sync) verwaltet. Neue `FilterConfigPanel` zum Anlegen/Bearbeiten/Löschen von Filtern inkl. 16 Vorlagen (Tankstelle, Supermarkt, Restaurant, …). Filter haben zwei Ebenen: `hidden` (Config-Switch → in Chip-Leiste ausblenden) und `enabled` (Chip-Klick → POIs auf Karte an/aus).
 - **Supabase-Tabelle `poi_filters`** (Migration 0006) für benutzersynchrone Filter-Definitionen.
 - **Overpass-Query data-driven:** `buildOverpassQuery` + `classifyElement` in `filterModel.ts` bauen Query und Klassifikation aus beliebigen `FilterDef[]`.
@@ -148,6 +149,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - POI-Metadaten (Typ-Icon/Label) nach `features/pois/poiMeta.ts` und `paginate` nach `src/shared/paginate.ts` ausgelagert — von Favoriten- und Notizen-Liste gemeinsam genutzt (DRY).
 - **Favoriten speichern jetzt einen POI-Snapshot** (Name + Koordinaten + Typ) statt nur der ID — damit die Liste ohne Live-Overpass-Abfrage funktioniert (auch offline / außerhalb des aktuellen Ausschnitts). `IFavoritesStore.toggle` nimmt nun ein `FavoritePoi`, neue `list()`-Methode; Migration `0003_favorites_snapshot.sql` ergänzt die Supabase-Spalten (nullable → alte Zeilen bleiben gültig). Alt-Favoriten (nur IDs) im localStorage werden migriert: Herz am Marker bleibt, in der Liste erscheinen sie erst nach erneutem Favorisieren.
 - Install-Button (⬇️) aus der Topbar entfernt — auf iOS war er nur ein Hinweis, kein echter Install-Trigger. Der `install`-Slice (`installPrompt.ts`) bleibt erhalten und wird später als Hilfe-Eintrag im Seitenmenü wiederverwendet.
+
+### Removed
+- **„v4"-Badge** aus dem App-Header entfernt.
+- **„Karte"-Menüpunkt** aus dem Seitenmenü entfernt (nicht mehr benötigt).
 
 ## [0.9.0] - 2026-06-07
 

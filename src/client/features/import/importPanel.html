@@ -1,0 +1,35 @@
+<div class="fav-panel import-panel" role="dialog" aria-label="Google Maps importieren">
+  <div class="fav-header">
+    <span class="fav-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Google Maps importieren</span>
+    <button class="fav-close" type="button" aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+  </div>
+  <div class="import-body">
+    <p class="import-intro">Importiere deine gespeicherten Orte aus Google Maps über den <a href="https://takeout.google.com" target="_blank" rel="noopener">Google Takeout</a>-Export. Wähle dort nur <strong>Maps</strong> aus.</p>
+
+    <div class="import-variant">
+      <div class="import-variant-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>Variante 1 – JSON (empfohlen)</span>
+      </div>
+      <p><strong>„Meine Orte mit Beschriftungen"</strong> — alle gespeicherten Orte inkl. selbst gesetzter Markierungen. Enthält Koordinaten und Adressen, alle Orte werden direkt importiert.</p>
+      <p class="import-path">Pfad: <code>Takeout/Maps/Meine Orte mit Beschriftungen/Orte mit Beschriftungen.json</code></p>
+      <button class="import-btn import-btn-json" type="button" data-ref="btnJson">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        JSON-Datei laden
+      </button>
+    </div>
+
+    <div class="import-variant">
+      <div class="import-variant-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Variante 2 – CSV</span>
+      </div>
+      <p><strong>„Gespeicherte Orte"</strong> — Favoriten (Sterne), Labels, Listen. Gesetzte Markierungen (Pins) werden direkt importiert. Orte ohne Koordinaten werden per Geokodierung aufgelöst (dauert ~1&thinsp;s pro Ort).</p>
+      <p class="import-path">Pfad: <code>Takeout/Maps/Gespeichert/Gespeicherte Orte.csv</code></p>
+      <button class="import-btn import-btn-csv" type="button" data-ref="btnCsv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        CSV-Datei laden
+      </button>
+    </div>
+  </div>
+</div>
