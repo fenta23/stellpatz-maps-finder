@@ -237,10 +237,12 @@ async function init() {
     favorites,
     panIntoView: poi => panPoiIntoView(map, mapContainer, poi),
     loadDetails,
-    onNoLocation: () => flashStatus('Standort unbekannt – Route nicht möglich'),
+    onNoLocation: () => flashStatus('Kein Startpunkt – Standort freigeben oder „Von hier starten" wählen'),
     getNote: poi => notes.get(String(poi.id)),
     onEditCustomPoi: editCustomPoi,
     onDeleteCustomPoi: deleteCustomPoi,
+    onStartSet: label => flashInfo(`Startpunkt: ${label} – jetzt Ziel wählen`),
+    onStartReset: () => flashInfo('Start: mein Standort'),
   })
 
   // ── POI refresh on map changes ───────────────────────────────────────────────
@@ -282,6 +284,8 @@ async function init() {
   })
 
   detailPanel.onNavigate(({ poi }) => void selection.navigate(poi))
+  detailPanel.onSetStart(() => selection.setStart())
+  detailPanel.onResetStart(() => void selection.resetStart())
   detailPanel.onClose(() => selection.clear())
   detailPanel.onFavoriteToggle(() => {
     if (!session.selectedPoi) return

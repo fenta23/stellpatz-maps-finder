@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Navigation: freier Startpunkt + „Losfahren"-Deeplink.** Routen gingen bisher immer vom aktuellen Standort aus. Jetzt:
+  - **Von hier starten**: ein POI lässt sich als Routenstart setzen (Button im Detail-Panel) → Folge-Ziele werden von dort geroutet (z.B. Parkplatz → Stellplatz). Funktioniert **auch ohne Standortfreigabe**. Das Panel zeigt den aktuellen Start („Start: …") mit Reset auf „Mein Standort".
+  - **Losfahren (Navi)**: öffnet echtes Turn-by-Turn in **Google bzw. Apple Maps** (plattform-erkannt) mit Start + Ziel + Verkehrsmittel — die App plant, das Telefon-Navi fährt. Ersetzt den alten reinen „In Google Maps öffnen"-Link.
+  - Routing-State über `session.routeOrigin` + `resolveOrigin`; Deeplink-Builder (`buildGoogleDirectionsLink`/`buildAppleDirectionsLink`/`buildNavLink`) in `DirectionsService`.
+  - **Kompaktere Aktions-Buttons**: die sekundären Panel-Aktionen (Losfahren, Von hier, OpenStreetMap) liegen jetzt in einem 2-Spalten-Raster statt full-width gestapelt.
+  - **Docked Action-Footer**: die Aktions-Leiste ist als Footer am unteren Panel-Rand fixiert (Header oben fix, Mitte scrollt) — Buttons bleiben immer erreichbar, auch bei viel Inhalt.
+  - **⋮-Overflow-Menü**: POI-bezogene Aktionen (Bearbeiten/Löschen für eigene POIs) wandern aus der Button-Leiste in ein Kebab-Menü im Header (schließt bei Außenklick/Escape, ARIA-Menu).
 - **Klettergebiete als POI-Typ.** Neuer Filter „Klettern" (Lucide-Berg-Icon, lila Marker) zeigt OSM-`sport=climbing` (Crags, Klettergärten, Hallen) als Nodes/Ways/Relations. Standardmäßig an, über die Filterleiste umschaltbar. Keine Server-Änderung nötig — die Query-Grammatik-Allowlist akzeptiert den Tag-Filter bereits.
 - **Eigene POIs (Custom POIs)** — Nutzer können eigene Punkte auf der Karte anlegen, bearbeiten und löschen:
   - Anlegen über den **„+"-Button** (Platzierungs-Modus) oder **Rechtsklick / Long-press** auf die Karte.

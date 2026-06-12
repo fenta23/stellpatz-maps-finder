@@ -8,6 +8,11 @@ export interface LatLon {
   readonly lon: number
 }
 
+/** A routing endpoint with a human-readable label (e.g. "Mein Standort", a POI name). */
+export interface RoutePoint extends LatLon {
+  readonly label: string
+}
+
 export interface RouteResult {
   readonly distanceMeters: number
   readonly durationSeconds: number
@@ -58,6 +63,48 @@ export function buildOsmPoiLink(destination: LatLon): string {
 
 export function buildGoogleMapsLink(destination: LatLon): string {
   return `https://www.google.com/maps?q=${destination.lat},${destination.lon}`
+}
+
+// ── Turn-by-turn hand-off (deeplink to the phone's nav app) ────────────────────
+// The app only *shows* the route; real navigation happens in Google/Apple Maps.
+
+export type NavPlatform = 'apple' | 'google'
+
+/** Apple Maps on iOS/iPadOS/macOS, Google Maps everywhere else. */
+export function detectNavPlatform(userAgent: string, platform: string): NavPlatform {
+  return /iphone|ipad|ipod|macintosh|mac os/i.test(`${userAgent} ${platform}`) ? 'apple' : 'google'
+}
+
+const GOOGLE_TRAVELMODE: Record<RoutingMode, string> = { driving: 'driving', cycling: 'bicycling', foot: 'walking' }
+// Apple Maps has no cycling flag → fall back to driving (bike ≈ road network).
+const APPLE_DIRFLG: Record<RoutingMode, string> = { driving: 'd', cycling: 'd', foot: 'w' }
+
+const coord = (p: LatLon) => `${p.lat},${p.lon}`
+
+export function buildGoogleDirectionsLink(to: LatLon, mode: RoutingMode, from?: LatLon | null): string {
+  const params = new URLSearchParams({ api: '1', destination: coord(to), travelmode: GOOGLE_TRAVELMODE[mode] })
+  if (from) params.set('origin', coord(from))
+  return `https://www.google.com/maps/dir/?${params.toString()}`
+}
+
+export function buildAppleDirectionsLink(to: LatLon, mode: RoutingMode, from?: LatLon | null): string {
+  const params = new URLSearchParams({ daddr: coord(to), dirflg: APPLE_DIRFLG[mode] })
+  if (from) params.set('saddr', coord(from))
+  return `https://maps.apple.com/?${params.toString()}`
+}
+
+/** Build a directions deeplink for the current platform. `from` omitted → the
+ *  nav app uses the device's own location as the start. */
+export function buildNavLink(
+  to: LatLon,
+  mode: RoutingMode,
+  opts: { from?: LatLon | null; platform?: NavPlatform } = {},
+): string {
+  const platform = opts.platform
+    ?? detectNavPlatform(navigator.userAgent, (navigator as { platform?: string }).platform ?? '')
+  return platform === 'apple'
+    ? buildAppleDirectionsLink(to, mode, opts.from)
+    : buildGoogleDirectionsLink(to, mode, opts.from)
 }
 
 export function buildRouteResult(

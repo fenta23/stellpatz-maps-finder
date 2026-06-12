@@ -1,6 +1,6 @@
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
-import { buildOsmPoiLink, buildGoogleMapsLink } from '@/features/routing/DirectionsService.js'
-import type { RouteResult, RoutingMode } from '@/features/routing/DirectionsService.js'
+import { buildOsmPoiLink, buildNavLink } from '@/features/routing/DirectionsService.js'
+import type { RouteResult, RoutingMode, LatLon } from '@/features/routing/DirectionsService.js'
 import type { CustomPoi } from '@/features/custom-pois/CustomPoi.js'
 import { customIdToNumber } from '@/features/custom-pois/CustomPoi.js'
 import { coalesce } from '@shared/fp.js'
@@ -63,6 +63,14 @@ export interface PanelConfig {
   readonly onDelete?: () => void
 }
 
+/** Route-start info for the panel: the effective start label, whether it's a
+ *  custom origin (→ show reset), and the coords to seed the nav deeplink. */
+export interface PanelRouting {
+  readonly originLabel: string
+  readonly isCustomOrigin: boolean
+  readonly from: LatLon | null
+}
+
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
   private readonly listeners: Array<(r: NavigateRequest) => void> = []
@@ -70,6 +78,8 @@ export class PoiDetailPanel {
   private readonly favListeners: Array<() => void> = []
   private readonly noteListeners: Array<(text: string) => void> = []
   private readonly nearbyListeners: Array<(item: NearbyItem) => void> = []
+  private readonly setStartListeners: Array<() => void> = []
+  private readonly resetStartListeners: Array<() => void> = []
   private nearbyItems: NearbyItem[] = []
 
   constructor(private readonly container: HTMLElement) {
@@ -96,9 +106,16 @@ export class PoiDetailPanel {
       }
     })
 
+    // Close the ⋮ overflow menu on any outside click.
+    document.addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('.poi-menu-wrap')) this.closeMenu()
+    })
+
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return
       if (this.panel.classList.contains('hidden')) return
+      // An open overflow menu eats ESC first.
+      if (this.closeMenu()) return
       // Lightbox handles its own ESC — don't also close the panel behind it
       const lightbox = document.getElementById('poi-lightbox')
       if (lightbox && !lightbox.classList.contains('hidden')) return
@@ -106,7 +123,16 @@ export class PoiDetailPanel {
     })
   }
 
-  show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig): void {
+  /** Close the open overflow menu (if any). Returns true if one was open. */
+  private closeMenu(): boolean {
+    const menu = this.panel.querySelector<HTMLElement>('.poi-menu')
+    if (!menu || menu.hidden) return false
+    menu.hidden = true
+    this.panel.querySelector('.btn-kebab')?.setAttribute('aria-expanded', 'false')
+    return true
+  }
+
+  show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig, routing?: PanelRouting): void {
     this.panel.classList.remove('hidden')
     this.panel.innerHTML = ''
     const view = clone(panelHtml)
@@ -137,12 +163,16 @@ export class PoiDetailPanel {
       for (const l of this.listeners) l({ poi })
     })
 
-    // Custom POI actions (edit / delete)
-    const customActions = ref(view, 'customActions')
+    // Custom POI actions (edit / delete) live in a ⋮ overflow menu in the header.
     if (isCustom) {
-      customActions.hidden = false
-      ref(view, 'editBtn').addEventListener('click', () => config?.onEdit?.())
-      ref(view, 'deleteBtn').addEventListener('click', () => config?.onDelete?.())
+      const menuWrap = ref(view, 'menuWrap')
+      const menuBtn = ref(view, 'menuBtn')
+      const menu = ref(view, 'menu')
+      menuWrap.hidden = false
+      const setMenu = (open: boolean) => { menu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)) }
+      menuBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.hidden) })
+      ref(view, 'editBtn').addEventListener('click', () => { setMenu(false); config?.onEdit?.() })
+      ref(view, 'deleteBtn').addEventListener('click', () => { setMenu(false); config?.onDelete?.() })
     }
 
     // Opening-hours badge
@@ -162,6 +192,18 @@ export class PoiDetailPanel {
         `Luftlinie: ${formatMeters(route.straightLineMeters)} (×${route.detourFactor.toFixed(1)})`
     }
 
+    // Route start row (which point routes start from) + reset to current location
+    if (routing) {
+      ref(view, 'routeStart').hidden = false
+      ref(view, 'routeStartLabel').textContent = routing.originLabel
+      const resetBtn = ref(view, 'resetStartBtn')
+      resetBtn.hidden = !routing.isCustomOrigin
+      resetBtn.addEventListener('click', () => { for (const l of this.resetStartListeners) l() })
+      // "Losfahren" deeplink (turn-by-turn in the phone's nav app)
+      ref<HTMLAnchorElement>(view, 'nav').href = buildNavLink({ lat: poi.lat, lon: poi.lon }, mode, { from: routing.from })
+    }
+    ref(view, 'setStartBtn').addEventListener('click', () => { for (const l of this.setStartListeners) l() })
+
     // Tags table
     renderList(ref(view, 'tags'), buildTags(poi), {
       row: r => ({ label: r.label, value: r.href ? '' : r.value }),
@@ -178,7 +220,6 @@ export class PoiDetailPanel {
 
     // External links
     ref<HTMLAnchorElement>(view, 'osm').href = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
-    ref<HTMLAnchorElement>(view, 'gmaps').href = buildGoogleMapsLink({ lat: poi.lat, lon: poi.lon })
 
     // Hide data sections for custom POIs (no nearby, images, OSM notes)
     if (isCustom) {
@@ -282,6 +323,24 @@ export class PoiDetailPanel {
     return () => {
       const idx = this.listeners.indexOf(listener)
       if (idx !== -1) this.listeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when "Von hier starten" is tapped (use this POI as the route start). */
+  onSetStart(listener: () => void): () => void {
+    this.setStartListeners.push(listener)
+    return () => {
+      const idx = this.setStartListeners.indexOf(listener)
+      if (idx !== -1) this.setStartListeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when the start is reset to the current location. */
+  onResetStart(listener: () => void): () => void {
+    this.resetStartListeners.push(listener)
+    return () => {
+      const idx = this.resetStartListeners.indexOf(listener)
+      if (idx !== -1) this.resetStartListeners.splice(idx, 1)
     }
   }
 }
