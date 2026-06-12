@@ -109,6 +109,7 @@ export class SearchBar {
   private selectResult(r: NominatimResult): void {
     this.input.value = r.display_name
     this.hideDropdown()
+    this.input.blur()
     for (const l of this.listeners) {
       l({ lat: Number(r.lat), lng: Number(r.lon), name: r.display_name })
     }
