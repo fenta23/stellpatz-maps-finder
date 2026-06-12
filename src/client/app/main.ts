@@ -1,7 +1,7 @@
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { MapService } from '@/features/map/MapService.js'
+import { MapService, getUserLocation } from '@/features/map/MapService.js'
 import { createLeafletMarkerAdapter } from '@/features/map/leafletAdapter.js'
 import { createLocationMarker } from '@/features/map/locationMarker.js'
 import { panPoiIntoView } from '@/features/map/panIntoView.js'
@@ -114,6 +114,23 @@ async function init() {
     () => { /* ignore watch errors */ },
     { maximumAge: 30000, enableHighAccuracy: false },
   )
+
+  // "My location" map control → recenter (requests a fix if we don't have one yet)
+  mapService.onLocate(() => {
+    if (session.userPos) {
+      locationMarker.update([session.userPos.lat, session.userPos.lon])
+      mapService.setCenter(session.userPos.lat, session.userPos.lon, 15)
+      return
+    }
+    setStatus('Standort wird ermittelt…')
+    void getUserLocation().then(pos => {
+      if (!pos) { flashStatus('Standort nicht verfügbar'); return }
+      session.userPos = { lat: pos[0], lon: pos[1] }
+      locationMarker.update(pos)
+      mapService.setCenter(pos[0], pos[1], 15)
+      setStatus('')
+    })
+  })
 
   // ── POI markers ──────────────────────────────────────────────────────────────
   const markerManager = new PoiMarkerManager(

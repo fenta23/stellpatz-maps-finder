@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **„Mein Standort"-Button auf der Karte.** Ein Control unten links zentriert die Karte (Zoom 15) auf den aktuellen Standort; ist noch keiner bekannt, wird einer angefragt (mit Status-Hinweis, Fehlertoleranz bei Ablehnung). `MapService.onLocate` + `createLocateControl`.
+- **Einheitlicher Map-Control-Look.** Zoom-In/Out, Layer-Switcher und Standort-Button haben jetzt dieselbe Optik (Größe, Hover-Tint, Lucide-Icons): Leaflets „+/−"-Glyphen wurden durch Lucide-Plus/Minus ersetzt, das Zoom-Styling an Layer/Locate angeglichen (`#map`-gescopt, um Leaflets eigenes CSS zu überschreiben).
 - **Navigation: freier Startpunkt + „Losfahren"-Deeplink.** Routen gingen bisher immer vom aktuellen Standort aus. Jetzt:
   - **Von hier starten**: ein POI lässt sich als Routenstart setzen (Button im Detail-Panel) → Folge-Ziele werden von dort geroutet (z.B. Parkplatz → Stellplatz). Funktioniert **auch ohne Standortfreigabe**. Das Panel zeigt den aktuellen Start („Start: …") mit Reset auf „Mein Standort".
   - **Losfahren (Navi)**: öffnet echtes Turn-by-Turn in **Google bzw. Apple Maps** (plattform-erkannt) mit Start + Ziel + Verkehrsmittel — die App plant, das Telefon-Navi fährt. Ersetzt den alten reinen „In Google Maps öffnen"-Link.
