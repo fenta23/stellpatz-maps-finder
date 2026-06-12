@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { wikimediaTitle, wikimediaApiUrl, resolveWikimediaImage } from './poiData.js'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
+import { wikimediaTitle, wikimediaApiUrl, resolveWikimediaImage, collectTagImages, loadMapillaryImages, loadNearby, loadNotes } from './poiData.js'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -35,5 +35,101 @@ describe('resolveWikimediaImage', () => {
   it('returns null on network error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
     expect(await resolveWikimediaImage('Foo.jpg')).toBeNull()
+  })
+})
+
+describe('collectTagImages', () => {
+  type POI = Parameters<typeof collectTagImages>[0]
+  const base: POI = { id: 1, type: 'campsite', lat: 0, lon: 0, tags: {} }
+
+  it('returns empty when no image tags exist', async () => {
+    expect(await collectTagImages(base)).toEqual([])
+  })
+
+  it('collects the image tag', async () => {
+    const r = await collectTagImages({ ...base, tags: { image: 'https://example.com/pic.jpg' } })
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({ src: 'https://example.com/pic.jpg', caption: 'OSM' })
+  })
+
+  it('resolves a wikimedia_commons tag', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ query: { pages: { '1': { imageinfo: [{ url: 'u', thumburl: 'https://thumb/x.jpg' }] } } } }),
+    }))
+    const r = await collectTagImages({ ...base, tags: { wikimedia_commons: 'Foo.jpg' } })
+    expect(r).toHaveLength(1)
+    expect(r[0].caption).toBe('Wikimedia Commons')
+  })
+
+  it('includes both image and wikimedia_commons', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ query: { pages: { '1': { imageinfo: [{ url: 'u', thumburl: 'https://thumb/y.jpg' }] } } } }),
+    }))
+    const r = await collectTagImages({ ...base, tags: { image: 'https://x.com/a.jpg', wikimedia_commons: 'Bar.jpg' } })
+    expect(r).toHaveLength(2)
+    expect(r[0].src).toBe('https://x.com/a.jpg')
+    expect(r[1].caption).toBe('Wikimedia Commons')
+  })
+
+  it('skips wikimedia_commons when resolution fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('fail')))
+    const r = await collectTagImages({ ...base, tags: { wikimedia_commons: 'Foo.jpg' } })
+    expect(r).toHaveLength(0)
+  })
+})
+
+describe('loadMapillaryImages', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()) })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('returns images on success', async () => {
+    const data = [{ src: 'https://mapillary.com/img.jpg', caption: 'Mapillary' }]
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(data) })
+    const r = await loadMapillaryImages({ lat: 48.1, lon: 11.2 })
+    expect(r).toEqual(data)
+  })
+
+  it('returns empty on HTTP error', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false })
+    expect(await loadMapillaryImages({ lat: 48.1, lon: 11.2 })).toEqual([])
+  })
+
+  it('returns empty on network error', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('net'))
+    expect(await loadMapillaryImages({ lat: 48.1, lon: 11.2 })).toEqual([])
+  })
+})
+
+describe('loadNearby', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()) })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('returns items on success', async () => {
+    const data = [{ kind: 'fuel', name: 'Tanke', distance: 200, lat: 48.2, lon: 11.3 }]
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(data) })
+    const r = await loadNearby({ lat: 48.1, lon: 11.2 })
+    expect(r).toEqual(data)
+  })
+
+  it('returns empty on error', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('net'))
+    expect(await loadNearby({ lat: 48.1, lon: 11.2 })).toEqual([])
+  })
+})
+
+describe('loadNotes', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()) })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('returns notes on success', async () => {
+    const data = [{ id: 1, date: '2026-06-12', text: 'Wasser' }]
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(data) })
+    const r = await loadNotes({ lat: 48.1, lon: 11.2 })
+    expect(r).toEqual(data)
+  })
+
+  it('returns empty on error', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('net'))
+    expect(await loadNotes({ lat: 48.1, lon: 11.2 })).toEqual([])
   })
 })

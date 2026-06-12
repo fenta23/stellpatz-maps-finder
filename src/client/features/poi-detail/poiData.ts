@@ -1,6 +1,8 @@
 import { apiUrl } from '@/core/config.js'
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
-import type { PoiImage, NearbyItem, OsmNote } from './PoiDetailPanel.js'
+import type { PoiImage } from './imageGallery.js'
+import type { NearbyItem } from './PoiDetailPanel.js'
+import type { OsmNote } from './noteRenderer.js'
 
 // ── Wikimedia Commons (pure helpers) ──────────────────────────────────────────
 
