@@ -2,47 +2,56 @@
   <div class="panel-header">
     <h2 data-ref="name"></h2>
     <button class="btn-favorite" type="button" data-ref="fav" aria-label="Favorit"></button>
+    <div class="poi-menu-wrap" data-ref="menuWrap" hidden>
+      <button class="btn-kebab" type="button" data-ref="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Mehr Aktionen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+      <div class="poi-menu" data-ref="menu" role="menu" hidden>
+        <button class="poi-menu-item" type="button" data-ref="editBtn" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Bearbeiten</button>
+        <button class="poi-menu-item poi-menu-item--danger" type="button" data-ref="deleteBtn" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Löschen</button>
+      </div>
+    </div>
     <button class="btn-close" type="button" data-ref="close" aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
   </div>
 
-  <div class="oh-badge" data-ref="ohBadge" hidden></div>
+  <div class="poi-detail-scroll">
+    <div class="oh-badge" data-ref="ohBadge" hidden></div>
 
-  <div class="route-summary" data-ref="routeSummary" hidden>
-    <span data-ref="routeMain"></span>
-    <span class="detour" data-ref="routeDetour"></span>
-  </div>
-
-  <div class="route-start" data-ref="routeStart" hidden>
-    <span class="route-start-label">Start: <strong data-ref="routeStartLabel"></strong></span>
-    <button type="button" class="route-start-reset" data-ref="resetStartBtn" hidden>auf meinen Standort</button>
-  </div>
-
-  <div data-section="images"></div>
-
-  <table class="poi-tags">
-    <tbody data-ref="tags" data-list>
-      <template data-row>
-        <tr>
-          <th data-text="label"></th>
-          <td data-ref="cell" data-text="value"></td>
-        </tr>
-      </template>
-    </tbody>
-  </table>
-
-  <div data-section="nearby"></div>
-
-  <div class="poi-mynote">
-    <h3 class="mynote-heading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></svg> Meine Notiz</h3>
-    <textarea class="mynote-input" data-ref="note" rows="3" placeholder="Eigene Notiz zu diesem Ort…"></textarea>
-    <div class="mynote-row">
-      <button class="mynote-save" type="button">Speichern</button>
-      <span class="mynote-status" aria-live="polite"></span>
+    <div class="route-summary" data-ref="routeSummary" hidden>
+      <span data-ref="routeMain"></span>
+      <span class="detour" data-ref="routeDetour"></span>
     </div>
-  </div>
 
-  <div data-section="notes" class="poi-notes">
-    <p class="notes-loading">Community-Hinweise werden geladen…</p>
+    <div class="route-start" data-ref="routeStart" hidden>
+      <span class="route-start-label">Start: <strong data-ref="routeStartLabel"></strong></span>
+      <button type="button" class="route-start-reset" data-ref="resetStartBtn" hidden>auf meinen Standort</button>
+    </div>
+
+    <div data-section="images"></div>
+
+    <table class="poi-tags">
+      <tbody data-ref="tags" data-list>
+        <template data-row>
+          <tr>
+            <th data-text="label"></th>
+            <td data-ref="cell" data-text="value"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+
+    <div data-section="nearby"></div>
+
+    <div class="poi-mynote">
+      <h3 class="mynote-heading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M15 3v5a1 1 0 0 0 1 1h5"/></svg> Meine Notiz</h3>
+      <textarea class="mynote-input" data-ref="note" rows="3" placeholder="Eigene Notiz zu diesem Ort…"></textarea>
+      <div class="mynote-row">
+        <button class="mynote-save" type="button">Speichern</button>
+        <span class="mynote-status" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div data-section="notes" class="poi-notes">
+      <p class="notes-loading">Community-Hinweise werden geladen…</p>
+    </div>
   </div>
 
   <div class="panel-actions">
@@ -50,8 +59,6 @@
     <div class="panel-actions-grid">
       <a class="btn-secondary btn-go" data-ref="nav" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 22 2l-9 19-2-8z"/></svg> Losfahren ↗</a>
       <button class="btn-secondary btn-set-start" type="button" data-ref="setStartBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg> Von hier</button>
-      <button class="btn-secondary btn-edit" type="button" data-ref="editBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Bearbeiten</button>
-      <button class="btn-secondary btn-delete" type="button" data-ref="deleteBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Löschen</button>
       <a class="btn-secondary btn-osm" data-ref="osm" target="_blank" rel="noopener">OpenStreetMap ↗</a>
     </div>
   </div>

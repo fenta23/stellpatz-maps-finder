@@ -106,14 +106,30 @@ export class PoiDetailPanel {
       }
     })
 
+    // Close the ⋮ overflow menu on any outside click.
+    document.addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('.poi-menu-wrap')) this.closeMenu()
+    })
+
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return
       if (this.panel.classList.contains('hidden')) return
+      // An open overflow menu eats ESC first.
+      if (this.closeMenu()) return
       // Lightbox handles its own ESC — don't also close the panel behind it
       const lightbox = document.getElementById('poi-lightbox')
       if (lightbox && !lightbox.classList.contains('hidden')) return
       this.hide()
     })
+  }
+
+  /** Close the open overflow menu (if any). Returns true if one was open. */
+  private closeMenu(): boolean {
+    const menu = this.panel.querySelector<HTMLElement>('.poi-menu')
+    if (!menu || menu.hidden) return false
+    menu.hidden = true
+    this.panel.querySelector('.btn-kebab')?.setAttribute('aria-expanded', 'false')
+    return true
   }
 
   show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig, routing?: PanelRouting): void {
@@ -147,14 +163,16 @@ export class PoiDetailPanel {
       for (const l of this.listeners) l({ poi })
     })
 
-    // Custom POI actions (edit / delete) — shown only for custom POIs
+    // Custom POI actions (edit / delete) live in a ⋮ overflow menu in the header.
     if (isCustom) {
-      const editBtn = ref(view, 'editBtn')
-      const deleteBtn = ref(view, 'deleteBtn')
-      editBtn.hidden = false
-      deleteBtn.hidden = false
-      editBtn.addEventListener('click', () => config?.onEdit?.())
-      deleteBtn.addEventListener('click', () => config?.onDelete?.())
+      const menuWrap = ref(view, 'menuWrap')
+      const menuBtn = ref(view, 'menuBtn')
+      const menu = ref(view, 'menu')
+      menuWrap.hidden = false
+      const setMenu = (open: boolean) => { menu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)) }
+      menuBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.hidden) })
+      ref(view, 'editBtn').addEventListener('click', () => { setMenu(false); config?.onEdit?.() })
+      ref(view, 'deleteBtn').addEventListener('click', () => { setMenu(false); config?.onDelete?.() })
     }
 
     // Opening-hours badge
