@@ -4,3 +4,6 @@ dist/
 *.local
 coverage/
 .DS_Store
+
+# Supabase CLI temp files
+supabase/.temp/

@@ -56,6 +56,13 @@ function requestLocation(statusEl: HTMLElement): Promise<[number, number] | null
 }
 
 async function init() {
+  // GitHub Pages SPA redirect: restore path saved by 404.html
+  const redirect = sessionStorage.getItem('redirect')
+  if (redirect) {
+    sessionStorage.removeItem('redirect')
+    history.replaceState(null, '', redirect)
+  }
+
   // ── DOM ────────────────────────────────────────────────────────────────────
   const mapContainer = document.getElementById('map')!
   const statusEl = document.getElementById('status')!
