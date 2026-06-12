@@ -10,7 +10,6 @@
     "supabase:login": "npx supabase login",
     "supabase:link": "npx supabase link --project-ref hhonilnfkmqppcsrwzbk",
     "deploy:edge": "npx supabase functions deploy api --no-verify-jwt",
-    "supabase": "npx supabase start",
     "dev": "vite",
     "build": "npm run build:client",
     "build:client": "vite build",
