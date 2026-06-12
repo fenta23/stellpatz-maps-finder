@@ -7,7 +7,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "supabase": "supabase start",
+    "deploy:edge": "npx supabase functions deploy api --no-verify-jwt",
+    "supabase": "npx supabase start",
     "dev": "vite",
     "build": "npm run build:client",
     "build:client": "vite build",
