@@ -10,6 +10,7 @@ import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 import { DirectionsService, type RoutingMode } from '@/features/routing/DirectionsService.js'
 import { PoiDetailPanel, customPoiToOsmPoi } from '@/features/poi-detail/PoiDetailPanel.js'
 import { collectTagImages, loadMapillaryImages, loadNearby, loadNotes } from '@/features/poi-detail/poiData.js'
+import { nearbyRouteMessage } from '@/features/poi-detail/nearbyMessage.js'
 import { FilterPanel } from '@/features/filters/FilterPanel.js'
 import { SearchBar } from '@/features/search/SearchBar.js'
 import { LocalFavoritesStore } from '@/features/favorites/FavoritesStore.js'
@@ -297,7 +298,7 @@ async function init() {
     if (!poi) return
     void directions
       .routeSecondary({ lat: poi.lat, lon: poi.lon }, { lat: item.lat, lon: item.lon })
-      .then(r => flashInfo(`${item.icon} ${item.name} · ${r.distanceText} · ${r.durationText} zu Fuß`))
+      .then(r => flashInfo(nearbyRouteMessage(item, r)))
       .catch(() => flashStatus('Route zum Ziel nicht möglich'))
   })
 
