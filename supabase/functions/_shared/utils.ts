@@ -12,21 +12,22 @@ export const OVERPASS_ENDPOINTS = [
 export const USER_AGENT = 'stellpatz-maps-finder/0.1 (https://github.com/local/stellpatz)'
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
+// Allow exactly the origins that serve our app + optional extras.
+// Falls back to * only when no origin header is set (curl, server-to-server).
 
 const ALLOWED_ORIGINS: readonly string[] = (
   Deno.env.get('ALLOWED_ORIGINS') ?? ''
 ).split(',').map(s => s.trim()).filter(Boolean)
 
+const APP_ORIGINS = [
+  'https://fenta23.github.io',
+  'capacitor://localhost',
+  ...ALLOWED_ORIGINS,
+]
+
 export function corsHeaders(origin: string | null): Headers {
-  const allowOrigin = (() => {
-    if (!origin) return '*'
-    const host = origin.replace(/^https?:\/\//, '').split('/')[0]
-    try {
-      if (new URL(origin).host === host) return origin
-    } catch { /* ignore */ }
-    if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.pages.dev') || origin.endsWith('.github.io')) return origin
-    return '*'
-  })()
+  const allowOrigin = !origin ? '*' :
+    APP_ORIGINS.includes(origin) ? origin : 'null'
 
   return new Headers({
     'Access-Control-Allow-Origin': allowOrigin,
@@ -161,4 +162,68 @@ async function createSupabaseClient() {
 export async function getSupabase() {
   if (!_supabase) _supabase = await createSupabaseClient()
   return _supabase
+}
+
+// ── Rate limiting (Supabase-backed, best-effort) ────────────────────────────
+// Uses the existing poi_cache table to track request counts per window.
+// Race-condition-tolerant: a few extra requests may slip through, which is
+// acceptable for a soft rate limit protecting external API tokens.
+
+interface RateLimitConfig {
+  maxRequests: number
+  windowMs: number
+}
+
+const RATE_LIMITS: Record<string, RateLimitConfig> = {
+  mapillary: { maxRequests: 20, windowMs: 60_000 },
+}
+
+export async function checkRateLimit(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabase>>>,
+  bucket: string,
+  clientIp: string,
+): Promise<{ allowed: boolean; retryAfterMs?: number }> {
+  const config = RATE_LIMITS[bucket]
+  if (!config) return { allowed: true }
+
+  const key = `ratelimit:${bucket}:${clientIp}`
+  const now = Date.now()
+
+  try {
+    const { data } = await supabase
+      .from('poi_cache')
+      .select('data')
+      .eq('key', key)
+      .single()
+
+    if (data?.data) {
+      const entry = data.data as { count: number; windowStart: number }
+      if (now - entry.windowStart < config.windowMs) {
+        if (entry.count >= config.maxRequests) {
+          const retryAfterMs = config.windowMs - (now - entry.windowStart)
+          return { allowed: false, retryAfterMs }
+        }
+        await supabase.from('poi_cache').upsert({
+          key,
+          data: { count: entry.count + 1, windowStart: entry.windowStart },
+          fetched_at: new Date().toISOString(),
+        })
+      } else {
+        await supabase.from('poi_cache').upsert({
+          key,
+          data: { count: 1, windowStart: now },
+          fetched_at: new Date().toISOString(),
+        })
+      }
+    } else {
+      await supabase.from('poi_cache').upsert({
+        key,
+        data: { count: 1, windowStart: now },
+        fetched_at: new Date().toISOString(),
+      })
+    }
+    return { allowed: true }
+  } catch {
+    return { allowed: true }
+  }
 }
