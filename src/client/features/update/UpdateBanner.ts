@@ -28,6 +28,7 @@ export class UpdateBanner {
 
 export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<void> {
   if (!('serviceWorker' in navigator)) return
+  if (import.meta.env.DEV) return // no SW in dev mode
 
   const swUrl = `${import.meta.env.BASE_URL}sw.js`
   const reg = await navigator.serviceWorker.register(swUrl)
