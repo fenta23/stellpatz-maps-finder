@@ -738,8 +738,29 @@
     }
     .btn-secondary:hover { background: var(--accent-soft); }
 
-    .btn-edit svg,
-    .btn-delete svg { width: 16px; height: 16px; vertical-align: middle; margin-right: 4px; }
+    /* Compact 2-column grid for the secondary actions (the panel grew a lot). */
+    .panel-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .panel-actions-grid .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 9px 8px;
+      font-size: 0.82rem;
+      white-space: nowrap;
+      margin: 0;
+    }
+    .panel-actions-grid .btn-secondary svg {
+      width: 15px; height: 15px; margin: 0; flex-shrink: 0;
+    }
+    .panel-actions-grid .btn-secondary[hidden] { display: none; }
+    /* OpenStreetMap link spans the full width on its own row. */
+    .btn-osm { grid-column: 1 / -1; }
+
     .btn-delete {
       border-color: #E53935;
       color: #E53935;

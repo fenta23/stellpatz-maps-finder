@@ -147,12 +147,14 @@ export class PoiDetailPanel {
       for (const l of this.listeners) l({ poi })
     })
 
-    // Custom POI actions (edit / delete)
-    const customActions = ref(view, 'customActions')
+    // Custom POI actions (edit / delete) — shown only for custom POIs
     if (isCustom) {
-      customActions.hidden = false
-      ref(view, 'editBtn').addEventListener('click', () => config?.onEdit?.())
-      ref(view, 'deleteBtn').addEventListener('click', () => config?.onDelete?.())
+      const editBtn = ref(view, 'editBtn')
+      const deleteBtn = ref(view, 'deleteBtn')
+      editBtn.hidden = false
+      deleteBtn.hidden = false
+      editBtn.addEventListener('click', () => config?.onEdit?.())
+      deleteBtn.addEventListener('click', () => config?.onDelete?.())
     }
 
     // Opening-hours badge
