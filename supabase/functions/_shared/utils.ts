@@ -1,5 +1,5 @@
-export const BBOX_SNAP_DEG = 0.05
-export const POI_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+export const BBOX_SNAP_DEG = 0.2
+export const POI_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 export const OVERPASS_ENDPOINTS = [
   'https://osm.hpi.de/overpass/api/interpreter',
