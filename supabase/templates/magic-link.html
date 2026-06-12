@@ -1,13 +1,18 @@
 <!--
   Supabase → Authentication → Email Templates → "Magic Link"
-  Betreff: Dein Login-Link – Stellplatz Finder
+  Betreff: Dein Login-Code – Stellplatz Finder
+  Enthält den 6-stelligen Code ({{ .Token }}) für den PWA-Login per verifyOtp
+  UND den Link als Browser-Fallback.
 -->
 <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:480px;margin:0 auto;color:#2C2822">
   <h2 style="color:#4B5640;margin:0 0 12px">🅿️ Stellplatz Finder</h2>
-  <p style="font-size:15px;line-height:1.5">Klicke zum Anmelden — kein Passwort nötig.</p>
-  <p style="margin:24px 0">
+  <p style="font-size:15px;line-height:1.5">Dein Anmelde-Code — gib ihn in der App ein:</p>
+  <p style="margin:20px 0">
+    <span style="display:inline-block;background:#F4F1EA;color:#4B5640;font-size:30px;font-weight:700;letter-spacing:6px;padding:14px 24px;border-radius:8px">{{ .Token }}</span>
+  </p>
+  <p style="font-size:13px;color:#6F665A;line-height:1.5">Oder per Link im Browser anmelden:</p>
+  <p style="margin:12px 0 24px">
     <a href="{{ .ConfirmationURL }}" style="background:#4B5640;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">Jetzt anmelden</a>
   </p>
-  <p style="font-size:13px;color:#6F665A;line-height:1.5">Oder diesen Link kopieren:<br><a href="{{ .ConfirmationURL }}" style="color:#B5562F;word-break:break-all">{{ .ConfirmationURL }}</a></p>
-  <p style="font-size:12px;color:#9A9082;margin-top:24px">Der Link ist ca. 1 Stunde gültig. Nicht du? Mail ignorieren.</p>
+  <p style="font-size:12px;color:#9A9082;margin-top:24px">Code &amp; Link sind ca. 1 Stunde gültig. Nicht du? Mail ignorieren.</p>
 </div>

@@ -71,29 +71,62 @@ export class AuthPanel {
     const view = clone(loggedOutHtml)
     ref(view, 'google').addEventListener('click', () => void this.auth.signInWithGoogle())
 
+    const stepEmail = ref(view, 'stepEmail')
+    const stepCode = ref(view, 'stepCode')
     const input = ref<HTMLInputElement>(view, 'input')
     const send = ref<HTMLButtonElement>(view, 'send')
+    const code = ref<HTMLInputElement>(view, 'code')
+    const verify = ref<HTMLButtonElement>(view, 'verify')
+    const back = ref<HTMLButtonElement>(view, 'back')
     const msg = ref(view, 'msg')
+
+    const setMsg = (text: string, kind: '' | 'ok' | 'error' = '') => {
+      msg.textContent = text
+      msg.className = kind ? `auth-msg auth-msg-${kind}` : 'auth-msg'
+    }
+    const showStep = (step: 'email' | 'code') => {
+      stepEmail.hidden = step !== 'email'
+      stepCode.hidden = step !== 'code'
+    }
 
     send.addEventListener('click', async () => {
       const email = input.value.trim()
       if (!isValidEmail(email)) {
-        msg.textContent = 'Bitte eine gültige E-Mail eingeben.'
-        msg.className = 'auth-msg auth-msg-error'
+        setMsg('Bitte eine gültige E-Mail eingeben.', 'error')
         return
       }
       send.disabled = true
-      msg.textContent = 'Wird gesendet…'
-      msg.className = 'auth-msg'
+      setMsg('Wird gesendet…')
       const res = await this.auth.sendMagicLink(email)
       send.disabled = false
       if (res.ok) {
-        msg.textContent = `E-Mail an ${email} gesendet — Link zum Anmelden klicken.`
-        msg.className = 'auth-msg auth-msg-ok'
+        showStep('code')
+        code.focus()
+        setMsg(`Code an ${email} gesendet — gib ihn hier ein.`, 'ok')
       } else {
-        msg.textContent = res.error
-        msg.className = 'auth-msg auth-msg-error'
+        setMsg(res.error, 'error')
       }
+    })
+
+    verify.addEventListener('click', async () => {
+      const email = input.value.trim()
+      const token = code.value.trim()
+      if (!/^\d{6}$/.test(token)) {
+        setMsg('Bitte den 6-stelligen Code eingeben.', 'error')
+        return
+      }
+      verify.disabled = true
+      setMsg('Wird geprüft…')
+      const res = await this.auth.verifyOtp(email, token)
+      verify.disabled = false
+      if (!res.ok) setMsg(res.error, 'error')
+      // On success the onChange handler re-renders into the profile view.
+    })
+
+    back.addEventListener('click', () => {
+      code.value = ''
+      showStep('email')
+      setMsg('')
     })
 
     return view

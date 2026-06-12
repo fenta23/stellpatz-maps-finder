@@ -3,8 +3,15 @@ import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 export type MagicLinkResult = { ok: true } | { ok: false; error: string }
 
 export interface Auth {
-  /** Sends a passwordless magic-link to the given email. */
+  /**
+   * Sends a passwordless one-time code (and magic-link) to the given email.
+   * The code path is what makes login work inside an installed PWA: the user
+   * stays in the app and types the code back via {@link verifyOtp} — no browser
+   * redirect, so the session lands in the PWA's own storage context.
+   */
   sendMagicLink(email: string): Promise<MagicLinkResult>
+  /** Verifies the 6-digit code from the login email and creates the session. */
+  verifyOtp(email: string, token: string): Promise<MagicLinkResult>
   /** Starts the Google OAuth flow (full-page redirect; no email involved). */
   signInWithGoogle(): Promise<void>
   signOut(): Promise<void>
@@ -34,6 +41,11 @@ export function createAuth(client: SupabaseClient): Auth {
         email,
         options: { emailRedirectTo: window.location.origin + window.location.pathname },
       })
+      return error ? { ok: false, error: error.message } : { ok: true }
+    },
+
+    async verifyOtp(email, token) {
+      const { error } = await client.auth.verifyOtp({ email, token, type: 'email' })
       return error ? { ok: false, error: error.message } : { ok: true }
     },
 
