@@ -8,6 +8,11 @@ const SVG_SATELLITE = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height
 // Lucide "locate-fixed" — crosshair with centre dot
 const SVG_LOCATE = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>'
 
+// Lucide plus / minus — replace Leaflet's default "+"/"−" glyphs so the zoom
+// control matches the icon style of the layer switcher / locate button.
+const SVG_PLUS = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>'
+const SVG_MINUS = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" x2="19" y1="12" y2="12"/></svg>'
+
 /** A control button that recenters the map on the user's location. */
 export function createLocateControl(onClick: () => void): L.Control {
   const control = L.control({ position: 'bottomleft' })
@@ -111,6 +116,13 @@ export class MapService {
     baseLayers[BASE_LAYER_CONFIGS[0]!.label]!.addTo(this.map)
     createLayerSwitcher(baseLayers, this.map).addTo(this.map)
     createLocateControl(() => { for (const l of this.locateListeners) l() }).addTo(this.map)
+
+    // Swap Leaflet's "+"/"−" zoom glyphs for Lucide icons (styled like the other controls).
+    const c = this.map.getContainer()
+    const zin = c.querySelector('.leaflet-control-zoom-in')
+    const zout = c.querySelector('.leaflet-control-zoom-out')
+    if (zin) zin.innerHTML = SVG_PLUS
+    if (zout) zout.innerHTML = SVG_MINUS
 
     this.map.on('moveend', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)

@@ -486,30 +486,41 @@
     .routing-opt.active { background: var(--accent); color: #fff; }
     .routing-opt svg { width: 18px; height: 18px; display: block; }
 
-    /* ── Layer switcher (top-right map corner) ── */
+    /* ── Map controls: one consistent look for zoom, layer switcher & locate.
+       Zoom selectors are #map-scoped to outrank Leaflet's own (later-injected) CSS. ── */
     .layer-switcher { display: flex; flex-direction: column; gap: 1px; background: transparent; }
-    .layer-btn {
+    .locate-control { background: transparent; }
+
+    .layer-btn,
+    .locate-btn,
+    #map .leaflet-bar a.leaflet-control-zoom-in,
+    #map .leaflet-bar a.leaflet-control-zoom-out {
       display: flex; align-items: center; justify-content: center;
       width: 34px; height: 34px; border: none; cursor: pointer;
       background: #fff; color: var(--ink-muted);
       transition: background 0.15s, color 0.15s;
     }
+    .layer-btn:hover,
+    .locate-btn:hover,
+    #map .leaflet-bar a.leaflet-control-zoom-in:hover,
+    #map .leaflet-bar a.leaflet-control-zoom-out:hover {
+      background: var(--surface-2); color: var(--accent);
+    }
+    .layer-btn svg,
+    .locate-btn svg,
+    #map .leaflet-bar a.leaflet-control-zoom-in svg,
+    #map .leaflet-bar a.leaflet-control-zoom-out svg { width: 20px; height: 20px; display: block; }
+
     .layer-btn:first-child { border-radius: 4px 4px 0 0; }
     .layer-btn:last-child { border-radius: 0 0 4px 4px; }
-    .layer-btn:hover { background: var(--surface-2); color: var(--accent); }
     .layer-btn.active { background: var(--accent-soft); color: var(--accent); }
-    .layer-btn svg { width: 20px; height: 20px; display: block; }
+    .locate-btn { border-radius: 4px; }
 
-    .locate-control { background: transparent; }
-    .locate-btn {
-      display: flex; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border: none; cursor: pointer;
-      background: #fff; color: var(--ink-muted); border-radius: 4px;
-      transition: background 0.15s, color 0.15s;
-    }
-    .locate-btn:hover { background: var(--surface-2); color: var(--accent); }
-    .locate-btn:active { color: var(--terracotta); }
-    .locate-btn svg { width: 20px; height: 20px; display: block; }
+    /* Hairline between + / − (matches the layer switcher's 1px gap look). */
+    #map .leaflet-bar a.leaflet-control-zoom-in { border-bottom: 1px solid var(--border-soft); }
+    /* Disabled zoom (at min/max) stays neutral, no hover tint. */
+    #map .leaflet-bar a.leaflet-disabled,
+    #map .leaflet-bar a.leaflet-disabled:hover { color: var(--ink-faint); background: #fff; cursor: default; }
 
     /* ── Placement mode (adding custom POI) ── */
     .placing-poi,
