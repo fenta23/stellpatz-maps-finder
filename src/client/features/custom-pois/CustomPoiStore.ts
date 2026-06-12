@@ -9,7 +9,7 @@ export interface ICustomPoiStore {
 }
 
 export class LocalCustomPoiStore implements ICustomPoiStore {
-  private static readonly KEY = 'stellpatz:custom-pois'
+  private static readonly KEY = 'stellplatz:custom-pois'
   private items = new Map<string, CustomPoi>()
   private readonly listeners: Array<() => void> = []
 

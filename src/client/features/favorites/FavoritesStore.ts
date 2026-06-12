@@ -27,7 +27,7 @@ function isFavoritePoi(value: unknown): value is FavoritePoi {
 }
 
 export class LocalFavoritesStore implements IFavoritesStore {
-  private static readonly KEY = 'stellpatz-favorites'
+  private static readonly KEY = 'stellplatz-favorites'
   private items: Map<string, FavoritePoi>
   private readonly listeners: Array<() => void> = []
 

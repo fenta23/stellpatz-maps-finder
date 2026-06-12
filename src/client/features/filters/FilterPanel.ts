@@ -1,7 +1,7 @@
 import type { PoiType } from '@/features/pois/OverpassClient.js'
 import { typeIcon } from '@/features/pois/poiMeta.js'
 
-const STORAGE_KEY = 'stellpatz:filters'
+const STORAGE_KEY = 'stellplatz:filters'
 const ALL_TYPES: readonly PoiType[] = ['parking', 'camper', 'campsite', 'dump', 'water', 'climbing']
 
 const TYPE_LABELS: Record<PoiType, string> = {

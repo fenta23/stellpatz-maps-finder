@@ -114,7 +114,7 @@ describe('LocalCustomPoiStore', () => {
   })
 
   it('ignores malformed entries in storage', () => {
-    localStorage.setItem('stellpatz:custom-pois', JSON.stringify([
+    localStorage.setItem('stellplatz:custom-pois', JSON.stringify([
       { id: 'valid', iconId: 'parking', lat: 1, lon: 2, name: 'ok', createdAt: 0, updatedAt: 0 },
       { id: 'bad', noicon: true, lat: 1, lon: 2 },
       'string entry',
@@ -126,7 +126,7 @@ describe('LocalCustomPoiStore', () => {
   })
 
   it('recovers from corrupt JSON', () => {
-    localStorage.setItem('stellpatz:custom-pois', 'not json')
+    localStorage.setItem('stellplatz:custom-pois', 'not json')
     const store = new LocalCustomPoiStore()
     expect(store.getAll()).toHaveLength(0)
   })

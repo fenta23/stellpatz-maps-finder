@@ -197,7 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 13 neue Tests (`apiUrl`-Auflösung, Install-Affordance + Plattform-Erkennung)
 
 ### Changed
-- `.claude/launch.json` — Production-Launch-Config (`stellpatz-prod`, `node dist/server/index.js`) für PWA-/SW-Tests gegen den echten Express-Build
+- `.claude/launch.json` — Production-Launch-Config (`stellplatz-prod`, `node dist/server/index.js`) für PWA-/SW-Tests gegen den echten Express-Build
 
 ## [0.3.9] - 2026-06-06
 

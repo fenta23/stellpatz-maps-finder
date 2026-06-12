@@ -9,7 +9,7 @@ export const OVERPASS_ENDPOINTS = [
   'https://overpass.openstreetmap.ru/api/interpreter',
 ] as const
 
-export const USER_AGENT = 'stellpatz-maps-finder/0.1 (https://github.com/local/stellpatz)'
+export const USER_AGENT = 'stellplatz-maps-finder/0.1 (https://github.com/local/stellplatz)'
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 // Allow exactly the origins that serve our app + optional extras.

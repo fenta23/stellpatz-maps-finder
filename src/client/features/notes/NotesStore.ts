@@ -48,7 +48,7 @@ function isPoiNote(value: unknown): value is PoiNote {
 }
 
 export class LocalNotesStore implements INotesStore {
-  private static readonly KEY = 'stellpatz-notes'
+  private static readonly KEY = 'stellplatz-notes'
   private notes: Map<string, PoiNote>
   private readonly listeners: Array<() => void> = []
 

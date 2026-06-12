@@ -88,7 +88,7 @@ describe('LocalFavoritesStore', () => {
   })
 
   it('migrates legacy id-only entries: heart stays, but they are not listed', () => {
-    localStorageMock.setItem('stellpatz-favorites', JSON.stringify(['123', '456']))
+    localStorageMock.setItem('stellplatz-favorites', JSON.stringify(['123', '456']))
     const store = new LocalFavoritesStore()
     expect(store.has('123')).toBe(true) // marker heart still works
     expect(store.list()).toHaveLength(0) // no coordinates → not navigable

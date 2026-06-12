@@ -7,8 +7,8 @@ deployt — manuell ins Supabase-Dashboard kopieren, sobald möglich:
 
 | Datei | Template | Betreff |
 |---|---|---|
-| `confirm-signup.html` | Confirm signup | `Willkommen bei Stellpatz Finder – E-Mail bestätigen` |
-| `magic-link.html` | Magic Link | `Dein Login-Link – Stellpatz Finder` |
+| `confirm-signup.html` | Confirm signup | `Willkommen bei Stellplatz Finder – E-Mail bestätigen` |
+| `magic-link.html` | Magic Link | `Dein Login-Link – Stellplatz Finder` |
 
 Variablen: `{{ .ConfirmationURL }}` (Login-Link), `{{ .Token }}` (6-stelliger Code,
 falls man auf OTP umstellt), `{{ .SiteURL }}`, `{{ .Email }}`.
@@ -46,7 +46,7 @@ Mit Resend (kostenloses Kontingent) am einfachsten:
    | Username | `resend` |
    | Password | dein Resend-API-Key |
    | Sender email | `login@<deine-domain>` (zum Testen: `onboarding@resend.dev`) |
-   | Sender name | `Stellpatz Finder` |
+   | Sender name | `Stellplatz Finder` |
 3. Speichern → das Supabase-Rate-Limit greift dann nicht mehr.
 
 > Für eine eigene Absender-Domain muss diese in Resend verifiziert sein

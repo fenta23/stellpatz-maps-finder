@@ -65,7 +65,7 @@ SUPABASE_SERVICE_KEY=     # service_role key
 
 Bei jedem Push auf `main` baut die GitHub Action und deployt automatisch:
 
-1. https://github.com/fenta23/stellpatz-maps-finder/settings/secrets/actions → folgende Secrets setzen:
+1. https://github.com/fenta23/stellplatz-maps-finder/settings/secrets/actions → folgende Secrets setzen:
    - `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`
 2. Variable setzen:
    - `VITE_API_BASE` = `https://<project>.supabase.co/functions/v1`
