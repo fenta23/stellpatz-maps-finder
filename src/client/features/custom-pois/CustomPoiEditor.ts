@@ -90,11 +90,12 @@ export class CustomPoiEditor {
     this.container.appendChild(view)
 
     const root = this.container
-    const q = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)
+    const panel = root.querySelector<HTMLElement>('.custom-poi-editor')!
+    const q = <T extends HTMLElement>(sel: string) => panel.querySelector<T>(sel)
 
     const cleanup = () => {
-      q('.modal-backdrop')?.remove()
-      q('.custom-poi-editor')?.remove()
+      root.querySelector('.modal-backdrop')?.remove()
+      panel.remove()
     }
 
     const getVal = (name: string): string =>
@@ -149,9 +150,9 @@ export class CustomPoiEditor {
     q<HTMLButtonElement>('[data-ref="cancelBtn"]')?.addEventListener('click', () => { cleanup(); onDone(null) })
 
     // Icon selection
-    root.querySelectorAll('.icon-opt').forEach(btn => {
+    panel.querySelectorAll('.icon-opt').forEach(btn => {
       btn.addEventListener('click', () => {
-        root.querySelectorAll('.icon-opt').forEach(b => b.classList.remove('selected'))
+        panel.querySelectorAll('.icon-opt').forEach(b => b.classList.remove('selected'))
         btn.classList.add('selected')
       })
     })
@@ -163,7 +164,7 @@ export class CustomPoiEditor {
     document.addEventListener('keydown', keyHandler)
 
     // Close on backdrop click
-    q('.modal-backdrop')?.addEventListener('click', () => { cleanup(); onDone(null) })
+    root.querySelector('.modal-backdrop')?.addEventListener('click', () => { cleanup(); onDone(null) })
   }
 
   private setIconSelected(view: DocumentFragment, iconId: string): void {

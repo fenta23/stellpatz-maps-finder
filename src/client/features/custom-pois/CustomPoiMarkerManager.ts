@@ -31,6 +31,7 @@ export class CustomPoiMarkerManager {
   }
 
   updatePois(pois: readonly CustomPoi[]): void {
+    const prevMap = new Map(this.last.map(p => [p.id, p] as const))
     this.last = pois
     const incoming = new Set(pois.map(p => p.id))
 
@@ -42,13 +43,23 @@ export class CustomPoiMarkerManager {
     }
 
     for (const poi of pois) {
-      if (this.markers.has(poi.id)) continue
-      const icon = svgToDataUrl(buildIcon(poi, this.color))
+      const iconUrl = svgToDataUrl(buildIcon(poi, this.color))
+      const prev = prevMap.get(poi.id)
+      if (this.markers.has(poi.id)) {
+        const handle = this.markers.get(poi.id)!
+        if (prev && (poi.name !== prev.name || poi.lat !== prev.lat || poi.lon !== prev.lon || poi.iconId !== prev.iconId)) {
+          handle.remove()
+          this.markers.delete(poi.id)
+        } else {
+          handle.updateIcon(iconUrl)
+          continue
+        }
+      }
       const handle = this.adapter.createMarker({
         lat: poi.lat,
         lon: poi.lon,
         title: poi.name || findIcon(poi.iconId).label,
-        icon,
+        icon: iconUrl,
         onClick: () => this.onSelect(poi),
       })
       handle.setVisible(this.visible)
