@@ -4,6 +4,7 @@ export interface ICustomPoiStore {
   get(id: string): CustomPoi | undefined
   getAll(): readonly CustomPoi[]
   put(poi: CustomPoi): void
+  addMany(pois: Iterable<CustomPoi>): void
   remove(id: string): void
   onChange(cb: () => void): () => void
 }
