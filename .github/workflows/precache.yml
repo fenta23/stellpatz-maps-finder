@@ -50,19 +50,23 @@ jobs:
             IFS=',' read -r name s w n e <<< "$region"
             echo "  → $name ($s,$w,$n,$e)"
 
-            query="[out:json][timeout:30];(node[\"amenity\"=\"parking\"][\"motorhome\"!=\"yes\"]($s,$w,$n,$e);way[\"amenity\"=\"parking\"][\"motorhome\"!=\"yes\"]($s,$w,$n,$e);node[\"tourism\"=\"camp_pitch\"]($s,$w,$n,$e);way[\"tourism\"=\"camp_pitch\"]($s,$w,$n,$e);relation[\"tourism\"=\"camp_pitch\"]($s,$w,$n,$e);node[\"amenity\"=\"parking\"][\"motorhome\"=\"yes\"]($s,$w,$n,$e);way[\"amenity\"=\"parking\"][\"motorhome\"=\"yes\"]($s,$w,$n,$e);node[\"tourism\"=\"caravan_site\"]($s,$w,$n,$e);way[\"tourism\"=\"caravan_site\"]($s,$w,$n,$e);relation[\"tourism\"=\"caravan_site\"]($s,$w,$n,$e);node[\"tourism\"=\"camp_site\"]($s,$w,$n,$e);way[\"tourism\"=\"camp_site\"]($s,$w,$n,$e);relation[\"tourism\"=\"camp_site\"]($s,$w,$n,$e);node[\"amenity\"=\"sanitary_dump_station\"]($s,$w,$n,$e);way[\"amenity\"=\"sanitary_dump_station\"]($s,$w,$n,$e);node[\"amenity\"=\"water_point\"]($s,$w,$n,$e);way[\"amenity\"=\"water_point\"]($s,$w,$n,$e);node[\"sport\"=\"climbing\"]($s,$w,$n,$e);way[\"sport\"=\"climbing\"]($s,$w,$n,$e);relation[\"sport\"=\"climbing\"]($s,$w,$n,$e));out center tags;"
+            query="[out:json][timeout:30];(node[\"amenity\"=\"parking\"][\"motorhome\"!=\"yes\"]($s,$w,$n,$e);way[\"amenity\"=\"parking\"][\"motorhome\"!=\"yes\"]($s,$w,$n,$e);node[\"tourism\"=\"camp_pitch\"]($s,$w,$n,$e);way[\"tourism\"=\"camp_pitch\"]($s,$w,$n,$e);relation[\"tourism\"=\"camp_pitch\"]($s,$w,$n,$e);node[\"amenity\"=\"parking\"][\"motorhome\"=\"yes\"]($s,$w,$n,$e);way[\"amenity\"=\"parking\"][\"motorhome\"=\"yes\"]($s,$w,$n,$e);node[\"tourism\"=\"caravan_site\"]($s,$w,$n,$e);way[\"tourism\"=\"caravan_site\"]($s,$w,$n,$e);relation[\"tourism\"=\"caravan_site\"]($s,$w,$n,$e);node[\"tourism\"=\"camp_site\"]($s,$w,$n,$e);way[\"tourism\"=\"camp_site\"]($s,$w,$n,$e);relation[\"tourism\"=\"camp_site\"]($s,$w,$n,$e);node[\"amenity\"=\"sanitary_dump_station\"]($s,$w,$n,$e);way[\"amenity\"=\"sanitary_dump_station\"]($s,$w,$n,$e);node[\"amenity\"=\"water_point\"]($s,$w,$n,$e);way[\"amenity\"=\"water_point\"]($s,$w,$n,$e);node[\"sport\"=\"climbing\"]($s,$w,$n,$e);way[\"sport\"=\"climbing\"]($s,$w,$n,$e);relation[\"sport\"=\"climbing\"]($s,$w,$n,$e););out center tags;"
 
+            # NB: plain --data (literal), NOT --data-urlencode. The proxy runs
+            # decodeURIComponent on the body; curl's re-encoding doesn't round-trip
+            # cleanly and the query fails validation (400). The literal body does.
             status=$(curl -s -o /dev/null -w "%{http_code}" \
-              --max-time 60 \
-              --data-urlencode "data=$query" \
+              --max-time 90 \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              --data "data=$query" \
               "$API" || echo "000")
 
             if [ "$status" = "200" ]; then
               echo "    ✓ $status"
-              ((ok++))
+              ok=$((ok + 1))
             else
               echo "    ✗ $status"
-              ((fail++))
+              fail=$((fail + 1))
             fi
           done
 
