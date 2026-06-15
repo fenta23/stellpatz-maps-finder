@@ -57,12 +57,15 @@ export function haversineMeters(a: LatLon, b: LatLon): number {
   return 2 * R * Math.asin(Math.sqrt(chord))
 }
 
-export function buildOsmPoiLink(destination: LatLon): string {
-  return `https://www.openstreetmap.org/?mlat=${destination.lat}&mlon=${destination.lon}&zoom=16`
-}
-
-export function buildGoogleMapsLink(destination: LatLon): string {
-  return `https://www.google.com/maps?q=${destination.lat},${destination.lon}`
+/**
+ * Google Maps link to the POI. With a name we query "name lat,lon" so Maps
+ * resolves to the matching place card (POI selected); coordinates alone just
+ * drop a pin. Uses the official Maps URL search API.
+ */
+export function buildGoogleMapsPoiLink(destination: LatLon, name?: string): string {
+  const coords = `${destination.lat},${destination.lon}`
+  const query = name && name.trim() ? `${name.trim()} ${coords}` : coords
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
 }
 
 // ── Turn-by-turn hand-off (deeplink to the phone's nav app) ────────────────────

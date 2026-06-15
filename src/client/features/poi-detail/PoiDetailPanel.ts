@@ -1,5 +1,5 @@
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
-import { buildOsmPoiLink, buildNavLink } from '@/features/routing/DirectionsService.js'
+import { buildGoogleMapsPoiLink, buildNavLink } from '@/features/routing/DirectionsService.js'
 import type { RouteResult, RoutingMode, LatLon } from '@/features/routing/DirectionsService.js'
 import type { CustomPoi } from '@/features/custom-pois/CustomPoi.js'
 import { customIdToNumber } from '@/features/custom-pois/CustomPoi.js'
@@ -165,8 +165,8 @@ export class PoiDetailPanel {
     // Tags
     this.renderTags(view, poi)
 
-    // OSM link
-    ref<HTMLAnchorElement>(view, 'osm').href = buildOsmPoiLink({ lat: poi.lat, lon: poi.lon })
+    // Google Maps link (name + coords → lands on the matching place card)
+    ref<HTMLAnchorElement>(view, 'maps').href = buildGoogleMapsPoiLink({ lat: poi.lat, lon: poi.lon }, poi.tags.name)
 
     // Detail sections visibility
     if (isCustom) {
