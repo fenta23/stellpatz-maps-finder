@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Funktionsloses 3-Punkte-Menü bei OSM-POIs entfernt.** Das Kebab-Menü (Bearbeiten/Löschen) ist nur für eigene/importierte POIs gedacht. Bei OSM-POIs erschien der Button trotzdem — ohne Funktion —, weil `.poi-menu-wrap { display: inline-flex }` das `hidden`-Attribut der Vorlage überstimmte. Der Wrapper wird für Nicht-Custom-POIs jetzt gar nicht mehr gerendert. Regressionstest in `PoiDetailPanel.test.ts`.
+
+### Changed
+- **Detail-Panel auf Mobile kompakter.** Das untere Sheet ist jetzt `50dvh` hoch (statt `60dvh + 30px`), sodass mehr von der Karte sichtbar bleibt. Header und die Button-Leiste (Route hierhin / Losfahren / Von hier / Google Maps) haben auf Mobile reduzierte Paddings und Schriftgrößen — die Aktionen bleiben gut tippbar, brauchen aber weniger Höhe.
+- **Sekundäre Aktionen 3-spaltig auf Mobile.** „Losfahren", „Von hier" und „Google Maps" stehen auf Mobile nebeneinander in einer Zeile (spart eine Button-Zeile, Footer 128 → 91 px). Desktop bleibt unverändert beim 2 + 1-Layout (Google Maps volle Breite in eigener Zeile).
+- **Filter-Leiste bleibt einzeilig (Overflow-Menü).** Chips, die nicht in eine Zeile passen, wandern hinter einen „…"-Button, der ein Dropdown mit den restlichen Filtern öffnet — statt wie bisher (`flex-wrap`) auf Mobile in eine zweite Zeile umzubrechen. Die Anzahl sichtbarer Chips wird per Messung der verfügbaren Breite bestimmt (pure `computeVisibleCount`, getestet) und bei jedem Resize/Re-Render neu berechnet; „+" und „⚙️" bleiben fix angepinnt. Skaliert auf beliebig viele Filter und greift auf allen Breiten (Desktop zeigt bei genug Platz weiterhin alle Chips).
+
 ### Added
 - **`createEventScope()` (core/events).** Utility, das `addEventListener`-Aufrufe unter einem `AbortController` bündelt. `dispose()` entfernt alle registrierten Listener in einem Zug — kein manuelles `removeEventListener` mehr nötig. Typed Overloads für `Document`, `Window` und `HTMLElement`.
 

@@ -749,7 +749,22 @@
 
             #poi-filter {
                 display: flex;
+                align-items: center;
                 gap: 7px;
+                flex: 1;
+                min-width: 0;
+                position: relative;
+            }
+
+            /* The chip row absorbs the leftover width and clips overflow; chips
+               that don't fit are moved into the "…" menu by FilterPanel. */
+            .filter-chips {
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                flex: 1 1 auto;
+                min-width: 0;
+                overflow: hidden;
             }
 
             .filter-btn {
@@ -792,6 +807,72 @@
             .filter-config:hover {
                 background: var(--accent);
                 color: #fff;
+            }
+
+            /* "…" overflow toggle — sits at the end of the chip row. */
+            .filter-more {
+                flex: 0 0 auto;
+            }
+            .filter-more.active {
+                border-color: var(--accent);
+                background: var(--accent-soft);
+                color: var(--accent);
+            }
+
+            /* Dropdown listing the chips that didn't fit on the row. */
+            .filter-more-menu {
+                position: absolute;
+                top: calc(100% + 6px);
+                right: 0;
+                min-width: 180px;
+                max-height: min(60vh, 360px);
+                overflow-y: auto;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                box-shadow: var(--shadow);
+                padding: 6px;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .filter-more-menu.hidden {
+                display: none;
+            }
+            .filter-more-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 10px;
+                border: none;
+                border-radius: var(--radius-sm);
+                background: none;
+                cursor: pointer;
+                font-size: 0.85rem;
+                color: var(--ink);
+                text-align: left;
+                width: 100%;
+            }
+            .filter-more-item:hover {
+                background: var(--surface-2);
+            }
+            .filter-more-icon {
+                display: inline-flex;
+                flex: 0 0 auto;
+                color: var(--ink-muted);
+            }
+            .filter-more-icon svg {
+                width: 20px;
+                height: 20px;
+                display: block;
+            }
+            .filter-more-item.active .filter-more-icon {
+                color: var(--chip-color, var(--accent));
+            }
+            .filter-more-item.active .filter-more-label {
+                font-weight: 600;
+                color: var(--chip-color, var(--accent));
             }
 
             /* ── Filter configuration panel (reuses .fav-panel shell) ── */
@@ -1314,7 +1395,7 @@
             .map-actions-sep {
                 width: 1px;
                 height: 24px;
-                background: var(--border);
+                border-left: 1.5px solid var(--accent);
                 flex-shrink: 0;
             }
             .map-actions .routing-toggle {
@@ -1970,6 +2051,7 @@
                 font-size: 0.82rem;
                 white-space: nowrap;
                 margin: 0;
+                min-width: 0;
             }
             .panel-actions-grid .btn-secondary svg {
                 width: 15px;
@@ -2379,9 +2461,6 @@
                 #filter-panel {
                     padding: 8px;
                 }
-                #poi-filter {
-                    flex-wrap: wrap;
-                }
 
                 /* fixed (not absolute): the #detail-panel host collapses to 0 width on
          mobile because its only child is out of flow — anchor to the viewport.
@@ -2392,7 +2471,7 @@
                     left: 0;
                     right: 0;
                     width: 100%;
-                    height: calc(60dvh + 30px);
+                    height: 50dvh;
                     border-left: none;
                     border-top: 1px solid var(--border);
                     border-radius: var(--radius) var(--radius) 0 0;
@@ -2400,8 +2479,32 @@
                     z-index: 1100;
                     padding-bottom: env(safe-area-inset-bottom);
                 }
+
+                /* Compact header + action footer on mobile so the panel stays
+                   short and more of the map remains visible. */
+                .poi-detail-panel .panel-header {
+                    padding: 12px 16px 8px;
+                }
                 .poi-detail-panel .panel-actions {
-                    padding-bottom: 12px;
+                    padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
+                    gap: 6px;
+                }
+                .poi-detail-panel .btn-primary {
+                    padding: 9px;
+                    font-size: 0.85rem;
+                }
+                /* On mobile the three secondary actions sit side by side; Google
+                   Maps loses its full-width row to save vertical space. */
+                .poi-detail-panel .panel-actions-grid {
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 6px;
+                }
+                .poi-detail-panel .btn-maps {
+                    grid-column: auto;
+                }
+                .poi-detail-panel .panel-actions-grid .btn-secondary {
+                    padding: 7px 6px;
+                    font-size: 0.78rem;
                 }
             }
         </style>
