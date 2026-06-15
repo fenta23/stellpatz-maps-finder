@@ -1,5 +1,6 @@
 import type { LatLngBounds } from '@/features/pois/OverpassClient.js'
 import { apiUrl } from '@/core/config.js'
+import { createEventScope, type EventScope } from '@/core/events.js'
 
 export type PlaceSelectedEvent = {
   readonly lat: number
@@ -17,6 +18,7 @@ export class SearchBar {
   private readonly input: HTMLInputElement
   private readonly dropdown: HTMLElement
   private readonly listeners: Array<(e: PlaceSelectedEvent) => void> = []
+  private readonly events: EventScope = createEventScope()
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private bounds: LatLngBounds | null = null
 
@@ -78,7 +80,7 @@ export class SearchBar {
       setTimeout(() => this.hideDropdown(), 150)
     })
 
-    document.addEventListener('keydown', (e) => {
+    this.events.on(document, 'keydown', (e) => {
       if (e.key === 'Escape') this.hideDropdown()
     })
   }
@@ -162,4 +164,6 @@ export class SearchBar {
       if (idx !== -1) this.listeners.splice(idx, 1)
     }
   }
+
+  destroy(): void { this.events.dispose() }
 }

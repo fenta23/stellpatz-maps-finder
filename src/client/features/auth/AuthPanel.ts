@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import type { Auth } from './auth.js'
 import { isValidEmail } from './isValidEmail.js'
 import { clone, ref } from '@/core/template.js'
+import { createEventScope, type EventScope } from '@/core/events.js'
 import panelHtml from './authPanel.html?raw'
 import loggedInHtml from './authLoggedIn.html?raw'
 import loggedOutHtml from './authLoggedOut.html?raw'
@@ -25,6 +26,7 @@ export class AuthPanel {
   private readonly backdrop: HTMLElement
   private readonly panel: HTMLElement
   private readonly body: HTMLElement
+  private readonly events: EventScope = createEventScope()
   private user: User | null = null
 
   constructor(container: HTMLElement, private readonly auth: Auth, private readonly opts: AuthPanelOptions = {}) {
@@ -39,13 +41,14 @@ export class AuthPanel {
 
     void this.auth.currentUser().then(u => { this.user = u; this.render() })
     this.auth.onChange(u => { this.user = u; this.render() })
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
+    this.events.on(document, 'keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
     this.render()
   }
 
   isOpen(): boolean { return this.panel.classList.contains('open') }
   open(): void { this.render(); this.panel.classList.add('open'); this.backdrop.classList.add('open') }
   close(): void { this.panel.classList.remove('open'); this.backdrop.classList.remove('open') }
+  destroy(): void { this.events.dispose() }
 
   private render(): void {
     this.body.innerHTML = ''

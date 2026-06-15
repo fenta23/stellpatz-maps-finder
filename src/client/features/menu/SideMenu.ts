@@ -1,5 +1,6 @@
 import { clone, ref } from '@/core/template.js'
 import { renderList } from '@/core/bind.js'
+import { createEventScope, type EventScope } from '@/core/events.js'
 import menuHtml from './sideMenu.html?raw'
 
 export interface MenuItem {
@@ -12,6 +13,7 @@ export interface MenuItem {
 export class SideMenu {
   private readonly panel: HTMLElement
   private readonly backdrop: HTMLElement
+  private readonly events: EventScope = createEventScope()
 
   constructor(container: HTMLElement, items: readonly MenuItem[]) {
     this.backdrop = clone('<div class="side-menu-backdrop"></div>')
@@ -30,7 +32,7 @@ export class SideMenu {
 
     container.append(this.backdrop, this.panel)
 
-    document.addEventListener('keydown', e => {
+    this.events.on(document, 'keydown', e => {
       if (e.key === 'Escape' && this.isOpen()) this.close()
     })
   }
@@ -39,4 +41,5 @@ export class SideMenu {
   open(): void { this.panel.classList.add('open'); this.backdrop.classList.add('open') }
   close(): void { this.panel.classList.remove('open'); this.backdrop.classList.remove('open') }
   toggle(): void { this.isOpen() ? this.close() : this.open() }
+  destroy(): void { this.events.dispose() }
 }

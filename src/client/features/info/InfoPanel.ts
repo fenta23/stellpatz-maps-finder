@@ -1,4 +1,5 @@
 import { clone, ref } from '@/core/template.js'
+import { createEventScope, type EventScope } from '@/core/events.js'
 import panelHtml from './infoPanel.html?raw'
 import changelogRaw from '../../../../CHANGELOG.md?raw'
 
@@ -33,6 +34,7 @@ function renderChangelog(md: string): string {
 
 export class InfoPanel {
   private readonly panel: HTMLElement
+  private readonly events: EventScope = createEventScope()
 
   constructor(container: HTMLElement) {
     this.panel = clone(panelHtml)
@@ -41,7 +43,7 @@ export class InfoPanel {
     this.panel.querySelector('.fav-close')?.addEventListener('click', () => this.close())
     container.appendChild(this.panel)
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
+    this.events.on(document, 'keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
   }
 
   isOpen(): boolean { return this.panel.classList.contains('open') }
@@ -49,4 +51,5 @@ export class InfoPanel {
   open(): void { this.panel.classList.add('open') }
 
   close(): void { this.panel.classList.remove('open') }
+  destroy(): void { this.events.dispose() }
 }

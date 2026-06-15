@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`createEventScope()` (core/events).** Utility, das `addEventListener`-Aufrufe unter einem `AbortController` bündelt. `dispose()` entfernt alle registrierten Listener in einem Zug — kein manuelles `removeEventListener` mehr nötig. Typed Overloads für `Document`, `Window` und `HTMLElement`.
+
+### Changed
+- **Event-Listener-Cleanup in 9 Klassen.** `SideMenu`, `SearchBar`, `AuthPanel`, `FilterConfigPanel`, `NotesListPanel`, `FavoritesListPanel`, `InfoPanel`, `PoiDetailPanel` und `AiSearchModal` nutzen jetzt `createEventScope()` statt loser `document.addEventListener`-Aufrufe ohne Gegenstück. Alle Klassen haben ein neues `destroy()`.
+
 ### Removed
 - **Google-OAuth-Login.** Provider war nie fertig konfiguriert und entfällt — Anmeldung läuft jetzt ausschließlich passwortlos per E-Mail-OTP-Code. Google-Button, `signInWithGoogle`/`signInWithOAuth`, OAuth-Styles und der „oder per E-Mail"-Divider entfernt. (Google-Maps-**Import** und Routing-Links sind davon unberührt.)
 
