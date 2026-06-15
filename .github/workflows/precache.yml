@@ -72,4 +72,10 @@ jobs:
 
           echo ""
           echo "Warmup done: $ok ok, $fail failed"
-          [ "$fail" -eq 0 ] || exit 1
+          # Best-effort: ein paar transiente Overpass-Aussetzer sind ok (die
+          # Regionen werden beim nächsten Lauf/Besuch gewärmt). Nur bei einem
+          # breiten Ausfall scheitern (gar nichts geht oder >8 Regionen fehlschlagen).
+          if [ "$ok" -eq 0 ] || [ "$fail" -gt 8 ]; then
+            echo "Zu viele Fehler – Warmup gilt als fehlgeschlagen."
+            exit 1
+          fi
