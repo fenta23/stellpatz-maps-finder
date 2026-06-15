@@ -64,4 +64,5 @@ _shared/    utils.ts (CORS, Query-Validation, BBox-Snap, Supabase-Client, Rate-L
 - Vanilla TypeScript, kein Framework
 - `readonly`, pure functions, explizite Dependencies
 - Jedes Feature hat Unit Tests
+- **Jeder Bug bekommt einen Test** — ein Regressionstest, der den Bug reproduziert (gegen den alten Code rot, mit dem Fix grün), gehört zum Bugfix dazu
 - Changelog in CHANGELOG.md (Keep a Changelog) — NACH jedem Commit/PR ergänzen, nicht erst am Ende!

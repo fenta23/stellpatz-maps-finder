@@ -11,7 +11,9 @@ import { customPoiToOsmPoi } from '@/features/poi-detail/PoiDetailPanel.js'
 export interface CustomPoiWiringDeps {
   readonly adapter: MapAdapter
   readonly mapService: MapService
-  readonly selection: Selection
+  /** Lazy: `selection` is created *after* this wiring (circular dep), so we
+   *  read it through a getter that resolves once it's assigned. */
+  readonly getSelection: () => Selection
   readonly color: string
 }
 
@@ -27,7 +29,7 @@ export interface CustomPoiWiringResult {
 }
 
 export function initCustomPois(deps: CustomPoiWiringDeps): CustomPoiWiringResult {
-  const { adapter, mapService, selection, color } = deps
+  const { adapter, mapService, getSelection, color } = deps
 
   const store = new SyncedCustomPoiStore(new LocalCustomPoiStore())
   const editor = new CustomPoiEditor(document.body)
@@ -37,7 +39,7 @@ export function initCustomPois(deps: CustomPoiWiringDeps): CustomPoiWiringResult
     adapter,
     poi => {
       currentCustomPoi = poi
-      void selection.select(customPoiToOsmPoi(poi))
+      void getSelection().select(customPoiToOsmPoi(poi))
     },
     color,
   )
@@ -52,7 +54,7 @@ export function initCustomPois(deps: CustomPoiWiringDeps): CustomPoiWiringResult
       store.put(updated)
       currentCustomPoi = updated
       refreshMarkers()
-      void selection.select(customPoiToOsmPoi(updated))
+      void getSelection().select(customPoiToOsmPoi(updated))
     })
   }
 
@@ -63,7 +65,7 @@ export function initCustomPois(deps: CustomPoiWiringDeps): CustomPoiWiringResult
     store.remove(p.id)
     currentCustomPoi = undefined
     refreshMarkers()
-    selection.clear()
+    getSelection().clear()
   }
 
   store.onChange(() => refreshMarkers())

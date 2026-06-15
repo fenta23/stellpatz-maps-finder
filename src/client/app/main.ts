@@ -185,7 +185,7 @@ async function init() {
 
   // ── Custom POIs ─────────────────────────────────────────────────────────────
   const adapter = createLeafletMarkerAdapter(map)
-  const customPois = initCustomPois({ adapter, mapService, selection, color: filterStore.get(PERSONAL_FILTER_ID)?.color ?? DEFAULT_PERSONAL_COLOR })
+  const customPois = initCustomPois({ adapter, mapService, getSelection: () => selection, color: filterStore.get(PERSONAL_FILTER_ID)?.color ?? DEFAULT_PERSONAL_COLOR })
   const personalInit = filterStore.get(PERSONAL_FILTER_ID)
   customPois.markerManager.setVisible(personalInit ? !personalInit.hidden && personalInit.enabled : true)
   customPois.refreshMarkers()
