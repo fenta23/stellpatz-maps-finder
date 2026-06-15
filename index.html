@@ -1076,7 +1076,9 @@
             }
             .fc-color.selected {
                 border-color: var(--ink);
-                box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+                box-shadow:
+                    0 0 0 2px var(--surface),
+                    0 0 0 4px var(--ink);
             }
             .fc-kinds {
                 display: flex;
@@ -2409,25 +2411,7 @@
             <button id="btn-menu" type="button" title="Menü" aria-label="Menü">
                 ☰
             </button>
-            <h1>
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    style="
-                        width: 1.1em;
-                        height: 1.1em;
-                        vertical-align: middle;
-                        margin-right: 2px;
-                    "
-                >
-                    <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
-                </svg>
-                Stellplatz Finder
-            </h1>
+            <h1>Stellplatz Finder</h1>
             <div id="search-bar"></div>
         </div>
         <div id="filter-panel">

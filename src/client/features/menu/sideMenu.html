@@ -1,19 +1,30 @@
 <aside class="side-menu" aria-label="Menü">
-  <div class="side-menu-header">
-    <div class="side-menu-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1em;height:1.1em;vertical-align:middle;margin-right:4px"><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>
-      <strong>Stellplatz Finder</strong>
-    </div>
-    <button class="side-menu-close" type="button" aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-  </div>
-  <ul class="side-menu-list" data-ref="list" data-list>
-    <template data-row>
-      <li>
-        <button class="side-menu-item" type="button" data-on="select">
-          <span class="side-menu-icon" data-text="icon"></span>
-          <span data-text="label"></span>
+    <div class="side-menu-header">
+        <div class="side-menu-title">
+            <strong>Stellplatz Finder</strong>
+        </div>
+        <button class="side-menu-close" type="button" aria-label="Schließen">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+            </svg>
         </button>
-      </li>
-    </template>
-  </ul>
+    </div>
+    <ul class="side-menu-list" data-ref="list" data-list>
+        <template data-row>
+            <li>
+                <button class="side-menu-item" type="button" data-on="select">
+                    <span class="side-menu-icon" data-text="icon"></span>
+                    <span data-text="label"></span>
+                </button>
+            </li>
+        </template>
+    </ul>
 </aside>
