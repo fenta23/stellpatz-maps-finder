@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Overpass-Query data-driven:** `buildOverpassQuery` + `classifyElement` in `filterModel.ts` bauen Query und Klassifikation aus beliebigen `FilterDef[]`.
 
 ### Changed
+- **Detail-Panel: „OpenStreetMap"-Link → „Google Maps".** Der externe Link öffnet jetzt Google Maps statt OSM. `buildGoogleMapsPoiLink` baut einen Such-Link aus Name + Koordinaten (`?api=1&query=<Name> <lat>,<lon>`), sodass im besten Fall direkt die passende Place-Karte selektiert ist; ohne Name fällt es auf einen Koordinaten-Pin zurück.
 - **`main.ts` refactored** (501→350 Zeilen). Import-Wiring, Custom-POI-Wiring, Auth-Sync und SVG-Icons in eigene Module unter `app/` ausgelagert.
 - **`PoiDetailPanel` aufgeräumt:** `show()` in Sub-Renderer (`renderFav`/`renderMenu`/`renderRoute`/`renderTags`) aufgeteilt, Constructor-Event-Wiring in `wireGlobalEvents()`, Listener mit generischem `subscribe()`-Helper DRY gemacht (337→316 Zeilen).
 - **`FilterConfigPanel` verkleinert:** `buildEditorForm` in `buildTemplates`/`buildNameField`/`buildAppearance`/`buildTagsSection`/`buildActions` aufgeteilt, `el()`-DOM-Helper (381→328 Zeilen).

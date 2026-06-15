@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  haversineMeters, buildOsmPoiLink, buildRouteResult,
+  haversineMeters, buildGoogleMapsPoiLink, buildRouteResult,
   detectNavPlatform, buildGoogleDirectionsLink, buildAppleDirectionsLink, buildNavLink,
 } from './DirectionsService.js'
 
@@ -22,12 +22,23 @@ describe('haversineMeters', () => {
   })
 })
 
-describe('buildOsmPoiLink', () => {
-  it('includes destination coordinates', () => {
-    const url = buildOsmPoiLink({ lat: 48.123, lon: 11.456 })
+describe('buildGoogleMapsPoiLink', () => {
+  it('points at Google Maps with the destination coordinates', () => {
+    const url = buildGoogleMapsPoiLink({ lat: 48.123, lon: 11.456 })
+    expect(url).toContain('google.com/maps/search/')
     expect(url).toContain('48.123')
     expect(url).toContain('11.456')
-    expect(url).toContain('openstreetmap.org')
+  })
+
+  it('includes the POI name (URL-encoded) so Maps selects the matching place', () => {
+    const url = buildGoogleMapsPoiLink({ lat: 48.1, lon: 11.5 }, 'Stellplatz am See')
+    expect(url).toContain(encodeURIComponent('Stellplatz am See 48.1,11.5'))
+  })
+
+  it('falls back to coordinates only when no name is given', () => {
+    const url = buildGoogleMapsPoiLink({ lat: 48.1, lon: 11.5 }, '   ')
+    expect(url).toContain(encodeURIComponent('48.1,11.5'))
+    expect(url).not.toContain('+')
   })
 })
 
