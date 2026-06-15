@@ -4,6 +4,7 @@ import type { RouteResult, RoutingMode, LatLon } from '@/features/routing/Direct
 import type { CustomPoi } from '@/features/custom-pois/CustomPoi.js'
 import { customIdToNumber } from '@/features/custom-pois/CustomPoi.js'
 import { clone, ref } from '@/core/template.js'
+import { createEventScope, type EventScope } from '@/core/events.js'
 import { renderList } from '@/core/bind.js'
 import { esc, safeUrl, formatMeters, typeLabel } from './poiLabels.js'
 import { buildTags } from './buildTags.js'
@@ -67,6 +68,7 @@ function subscribe<T>(listeners: T[], listener: T): () => void {
 
 export class PoiDetailPanel {
   private readonly panel: HTMLElement
+  private readonly events: EventScope = createEventScope()
   private readonly navListeners: Array<(r: NavigateRequest) => void> = []
   private readonly closeListeners: Array<() => void> = []
   private readonly favListeners: Array<() => void> = []
@@ -110,11 +112,11 @@ export class PoiDetailPanel {
       }
     })
 
-    document.addEventListener('click', (e) => {
+    this.events.on(document, 'click', (e) => {
       if (!(e.target as HTMLElement).closest('.poi-menu-wrap')) this.closeMenu()
     })
 
-    document.addEventListener('keydown', (e) => {
+    this.events.on(document, 'keydown', (e) => {
       if (e.key !== 'Escape') return
       if (this.panel.classList.contains('hidden')) return
       if (this.closeMenu()) return
@@ -289,6 +291,8 @@ export class PoiDetailPanel {
     hideLightbox()
     for (const l of this.closeListeners) l()
   }
+
+  destroy(): void { this.events.dispose() }
 }
 
 export function customPoiToOsmPoi(cp: CustomPoi): OsmPoi {

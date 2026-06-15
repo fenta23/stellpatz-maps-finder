@@ -4,6 +4,7 @@ import { paginate } from '@shared/paginate.js'
 import { clone, ref } from '@/core/template.js'
 import { renderList } from '@/core/bind.js'
 import { renderPagination } from '@/core/pagination.js'
+import { createEventScope, type EventScope } from '@/core/events.js'
 import panelHtml from './notesPanel.html?raw'
 
 export interface NotesListPanelDeps {
@@ -20,6 +21,7 @@ export class NotesListPanel {
   private readonly panel: HTMLElement
   private readonly listEl: HTMLElement
   private readonly footer: HTMLElement
+  private readonly events: EventScope = createEventScope()
   private page = 1
 
   constructor(container: HTMLElement, private readonly deps: NotesListPanelDeps) {
@@ -29,10 +31,11 @@ export class NotesListPanel {
     this.panel.querySelector('.fav-close')?.addEventListener('click', () => this.close())
     container.appendChild(this.panel)
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
+    this.events.on(document, 'keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
   }
 
   isOpen(): boolean { return this.panel.classList.contains('open') }
+  destroy(): void { this.events.dispose() }
 
   open(): void {
     this.page = 1

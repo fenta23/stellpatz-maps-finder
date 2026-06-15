@@ -1,4 +1,5 @@
 import { clone, ref } from '@/core/template.js'
+import { createEventScope, type EventScope } from '@/core/events.js'
 import { generateCustomId } from '@/features/custom-pois/CustomPoi.js'
 import {
   FILTER_ICONS, FILTER_COLORS, FILTER_TEMPLATES, ALL_ELEMENT_KINDS,
@@ -30,6 +31,7 @@ interface EditorState {
 export class FilterConfigPanel {
   private readonly panel: HTMLElement
   private readonly body: HTMLElement
+  private readonly events: EventScope = createEventScope()
   private mode: 'list' | 'editor' = 'list'
 
   constructor(container: HTMLElement, private readonly store: IFilterStore) {
@@ -37,13 +39,14 @@ export class FilterConfigPanel {
     this.body = ref(this.panel, 'body')
     this.panel.querySelector('.fav-close')?.addEventListener('click', () => this.close())
     container.appendChild(this.panel)
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
+    this.events.on(document, 'keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })
     this.store.onChange(() => { if (this.isOpen() && this.mode === 'list') this.renderList() })
   }
 
   isOpen(): boolean { return this.panel.classList.contains('open') }
   open(): void { this.renderList(); this.panel.classList.add('open') }
   close(): void { this.panel.classList.remove('open') }
+  destroy(): void { this.events.dispose() }
 
   // ── List view ──────────────────────────────────────────────────────────────
 
