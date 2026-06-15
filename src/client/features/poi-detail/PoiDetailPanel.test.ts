@@ -159,6 +159,28 @@ describe('PoiDetailPanel', () => {
     expect(row!.classList.contains('active')).toBe(true)
   })
 
+  it('does not render the kebab menu for OSM POIs', () => {
+    const container = document.createElement('div')
+    new PoiDetailPanel(container).show(poi) // id 1 → OSM POI
+    expect(container.querySelector('.poi-menu-wrap')).toBeNull()
+    expect(container.querySelector('.btn-favorite')).not.toBeNull() // heart stays for OSM
+  })
+
+  it('renders the kebab menu with edit/delete for custom POIs', () => {
+    const container = document.createElement('div')
+    const onEdit = vi.fn()
+    const onDelete = vi.fn()
+    new PoiDetailPanel(container).show(
+      { ...poi, id: -1 }, undefined, undefined, false, '',
+      { isCustom: true, onEdit, onDelete },
+    )
+    const wrap = container.querySelector('.poi-menu-wrap')
+    expect(wrap).not.toBeNull()
+    expect((wrap as HTMLElement).hidden).toBe(false)
+    container.querySelector<HTMLButtonElement>('.poi-menu-item')!.click() // edit
+    expect(onEdit).toHaveBeenCalledOnce()
+  })
+
   it('escapes HTML in tag values', () => {
     const container = document.createElement('div')
     const panel = new PoiDetailPanel(container)

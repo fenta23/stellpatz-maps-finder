@@ -150,7 +150,11 @@ export class PoiDetailPanel {
     view.querySelector('.btn-navigate')?.addEventListener('click', () => {
       for (const l of this.navListeners) l({ poi })
     })
+    // The kebab menu only carries edit/delete for custom POIs. OSM POIs have no
+    // such actions, so drop it entirely (the .poi-menu-wrap CSS would otherwise
+    // override the template's `hidden` attribute and leave a dead button).
     if (isCustom) this.renderMenu(view, config!)
+    else ref(view, 'menuWrap').remove()
 
     // Opening hours badge
     const oh = t.opening_hours ? parseOpenHours(t.opening_hours) : null
