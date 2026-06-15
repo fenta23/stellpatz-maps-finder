@@ -665,6 +665,11 @@
             .search-input::placeholder {
                 color: var(--ink-faint);
             }
+            /* Hide the browser's native search-cancel "x" — we have our own .search-clear button. */
+            .search-input::-webkit-search-cancel-button {
+                -webkit-appearance: none;
+                appearance: none;
+            }
 
             .search-clear {
                 position: absolute;

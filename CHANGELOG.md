@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lade-Banner** umbenannt: „Lade Stellplätze…" → „Suche Orte…"
 
 ### Fixed
+- **Doppeltes „X" in der Suchleiste.** Das `<input type="search">` zeigte zusätzlich das native Browser-Cancel-X (`::-webkit-search-cancel-button`) neben dem eigenen `.search-clear`-Button. Natives X jetzt per `appearance: none` ausgeblendet.
 - **Overpass-Cache-Warmup scheiterte bei einzelnen transienten Region-Fehlern.** Die strikte `fail=0`-Prüfung färbte den nächtlichen Warmup rot, sobald auch nur 1 von 27 Regionen einen Overpass-Aussetzer hatte (z. B. „25 ok, 2 failed"). Jetzt best-effort: Abbruch nur bei breitem Ausfall (`ok=0` oder `>8` Fehler).
 - **Crash beim Klick auf Custom-/Google-Import-POIs (`Cannot read properties of undefined (reading 'select')`).** `initCustomPois` destrukturierte `selection` aus den Deps, während es in `main.ts` noch nicht zugewiesen war (Zirkulärabhängigkeit: `selection` braucht `customPois.editCurrent`, `customPois` braucht `selection`) → die Klick-Closure hielt für immer `undefined`. OSM-POIs waren ok (lazy `let`-Zugriff), Custom-POIs brachen. Fix: `selection` wird jetzt als Getter (`getSelection: () => selection`) lazy reingereicht.
 - **Custom-POI-Editor: „Bitte einen Namen eingeben" beim Editieren importierter POIs.** `querySelector('[data-ref="name"]')` fand das `<h2>` aus dem Detail-Panel vor dem `<input>` im Editor → Name wurde immer als leer erkannt. Queries jetzt auf `.custom-poi-editor` gescoped.
