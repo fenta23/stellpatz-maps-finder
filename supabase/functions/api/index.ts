@@ -7,6 +7,7 @@ import { handleRoute } from './routeHandler.ts'
 import { handleNearby } from './nearbyHandler.ts'
 import { handleMapillary } from './mapillaryHandler.ts'
 import { handleNotes } from './notesHandler.ts'
+import { handleAi } from './aiHandler.ts'
 
 serve(async (req) => {
   const url = new URL(req.url)
@@ -50,6 +51,11 @@ serve(async (req) => {
     if (path === '/api/notes') {
       if (method !== 'GET') return methodNotAllowed(origin)
       return await handleNotes(req, origin)
+    }
+
+    if (path === '/api/ai') {
+      if (method !== 'POST') return methodNotAllowed(origin)
+      return await handleAi(req, origin)
     }
 
     return errorResponse('Not found', 404, origin)

@@ -182,6 +182,8 @@ interface RateLimitConfig {
 
 const RATE_LIMITS: Record<string, RateLimitConfig> = {
   mapillary: { maxRequests: 20, windowMs: 60_000 },
+  // LLM calls cost money/tokens — keep this tighter than the upstream proxies.
+  ai: { maxRequests: 30, windowMs: 60_000 },
 }
 
 export async function checkRateLimit(

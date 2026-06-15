@@ -18,6 +18,8 @@ import panelHtml from './poiDetailPanel.html?raw'
 
 const SVG_MAP_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>'
 
+const SVG_SPARKLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>'
+
 export type NavigateRequest = { readonly poi: OsmPoi }
 
 export interface NearbyItem {
@@ -266,6 +268,23 @@ export class PoiDetailPanel {
     const section = this.panel.querySelector<HTMLElement>('[data-section="images"]')
     if (!section) return
     section.innerHTML = images.length === 0 ? '' : renderImages(images)
+  }
+
+  /** Show a loading placeholder in the AI-summary block (called before fetch). */
+  setSummaryLoading(): void {
+    const section = this.panel.querySelector<HTMLElement>('[data-section="ai-summary"]')
+    if (!section) return
+    section.hidden = false
+    section.innerHTML = `<h3 class="ai-summary-heading">${SVG_SPARKLE} KI-Zusammenfassung</h3><p class="ai-summary-loading">wird erstellt…</p>`
+  }
+
+  /** Fill the AI-summary block, or hide it when there's nothing to show. */
+  updateSummary(text: string | null): void {
+    const section = this.panel.querySelector<HTMLElement>('[data-section="ai-summary"]')
+    if (!section) return
+    if (!text) { section.innerHTML = ''; section.hidden = true; return }
+    section.hidden = false
+    section.innerHTML = `<h3 class="ai-summary-heading">${SVG_SPARKLE} KI-Zusammenfassung</h3><p class="ai-summary-text">${esc(text)}</p>`
   }
 
   updateNearby(items: NearbyItem[]): void {
