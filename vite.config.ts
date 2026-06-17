@@ -71,7 +71,9 @@ export default defineConfig({
   test: {
     root: resolve(__dirname, '.'),
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
+    // src/** are the frontend unit tests; supabase/** picks up pure (Deno-free)
+    // backend logic such as the Overpass endpoint ranking heuristic.
+    include: ['src/**/*.test.ts', 'supabase/functions/**/*.test.ts'],
     exclude: ['src/**/*.int.test.ts'],
     globals: true,
     coverage: {

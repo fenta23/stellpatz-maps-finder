@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`createEventScope()` (core/events).** Utility, das `addEventListener`-Aufrufe unter einem `AbortController` bündelt. `dispose()` entfernt alle registrierten Listener in einem Zug — kein manuelles `removeEventListener` mehr nötig. Typed Overloads für `Document`, `Window` und `HTMLElement`.
 
 ### Changed
+- **Overpass-Endpunkte: paralleles Racing + selbstlernende Reihenfolge.** `handleOverpass()` racet nicht mehr streng sequenziell (immer ab `osm.hpi.de`, bis zu 5×15 s), sondern feuert die zwei gesündesten Endpunkte parallel (`Promise.any`, Timeout 10 s) und fällt nur bei Bedarf durch den Rest. Neue pure Heuristik [`overpassRanking.ts`](supabase/functions/_shared/overpassRanking.ts) sortiert die Endpunkte pro Edge-Isolate nach beobachteter Latenz (EWMA) und Fehlern: ein langsamer/abstürzender Mirror wird automatisch nach hinten geschoben und erholt sich nach einer Cooldown-Phase wieder. Best-effort In-Memory-State, keine DB-Schreiblast.
 - **Event-Listener-Cleanup in 9 Klassen.** `SideMenu`, `SearchBar`, `AuthPanel`, `FilterConfigPanel`, `NotesListPanel`, `FavoritesListPanel`, `InfoPanel`, `PoiDetailPanel` und `AiSearchModal` nutzen jetzt `createEventScope()` statt loser `document.addEventListener`-Aufrufe ohne Gegenstück. Alle Klassen haben ein neues `destroy()`.
 
 ### Removed
