@@ -18,7 +18,9 @@ export class SearchBar {
   private readonly input: HTMLInputElement
   private readonly dropdown: HTMLElement
   private readonly listeners: Array<(e: PlaceSelectedEvent) => void> = []
+  private readonly aiListeners: Array<(query: string) => void> = []
   private readonly events: EventScope = createEventScope()
+  private readonly aiBtn: HTMLButtonElement
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private bounds: LatLngBounds | null = null
 
@@ -50,8 +52,23 @@ export class SearchBar {
     clearBtn.setAttribute('aria-label', 'Suche löschen')
     clearBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
 
+    // "✨ KI-Suche" — opens the chat modal with the current text as the seed query.
+    const aiBtn = document.createElement('button')
+    aiBtn.type = 'button'
+    aiBtn.className = 'search-ai'
+    aiBtn.setAttribute('aria-label', 'Mit KI suchen')
+    aiBtn.title = 'Mit KI suchen'
+    aiBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>'
+    aiBtn.addEventListener('click', () => {
+      const q = this.input.value.trim()
+      for (const l of this.aiListeners) l(q)
+    })
+    aiBtn.hidden = true // KI-Suche nur für eingeloggte Nutzer — via setAiEnabled freigeschaltet
+    this.aiBtn = aiBtn
+
     form.appendChild(this.input)
     form.appendChild(clearBtn)
+    form.appendChild(aiBtn)
     wrapper.appendChild(form)
     wrapper.appendChild(this.dropdown)
     this.container.appendChild(wrapper)
@@ -163,6 +180,20 @@ export class SearchBar {
       const idx = this.listeners.indexOf(listener)
       if (idx !== -1) this.listeners.splice(idx, 1)
     }
+  }
+
+  /** Fires with the current input text when the "✨ KI-Suche" button is clicked. */
+  onAiSearch(listener: (query: string) => void): () => void {
+    this.aiListeners.push(listener)
+    return () => {
+      const idx = this.aiListeners.indexOf(listener)
+      if (idx !== -1) this.aiListeners.splice(idx, 1)
+    }
+  }
+
+  /** Show/hide the "✨ KI-Suche" button — only logged-in users may use the AI. */
+  setAiEnabled(enabled: boolean): void {
+    this.aiBtn.hidden = !enabled
   }
 
   destroy(): void { this.events.dispose() }

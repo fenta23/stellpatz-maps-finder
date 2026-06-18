@@ -10,6 +10,9 @@ import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 import { DirectionsService, type RoutingMode } from '@/features/routing/DirectionsService.js'
 import { PoiDetailPanel } from '@/features/poi-detail/PoiDetailPanel.js'
 import { collectTagImages, loadMapillaryImages, loadNearby, loadNotes } from '@/features/poi-detail/poiData.js'
+import { loadPoiSummary } from '@/features/ai/AiClient.js'
+import { AiSearchModal } from '@/features/ai/AiSearchModal.js'
+import type { AiIntent } from '@/features/ai/intentSchema.js'
 import { nearbyRouteMessage } from '@/features/poi-detail/nearbyMessage.js'
 import { FilterPanel } from '@/features/filters/FilterPanel.js'
 import { LocalFilterStore } from '@/features/filters/FilterStore.js'
@@ -40,7 +43,7 @@ import { createPoiRefresher } from './poiRefresher.js'
 import { initImport } from './importWiring.js'
 import { initCustomPois } from './customPoiWiring.js'
 import { initAuthSync } from './authWiring.js'
-import { API_BASE } from '@/core/config.js'
+import { API_BASE, apiUrl } from '@/core/config.js'
 import {
   SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD,
 } from './icons.js'
@@ -152,6 +155,10 @@ async function init() {
   // ── POI detail ──────────────────────────────────────────────────────────────
   const detailPanel = new PoiDetailPanel(document.getElementById('detail-panel')!)
 
+  // KI-Features (POI-Zusammenfassung + Chat-Suche) nur für eingeloggte Nutzer.
+  // Wird nach dem Auth-Setup über auth.onChange gesetzt (siehe unten).
+  let aiAllowed = false
+
   function loadDetails(poi: OsmPoi): void {
     const stillSelected = () => session.selectedPoi?.id === poi.id
     void collectTagImages(poi).then(base => {
@@ -162,6 +169,12 @@ async function init() {
     })
     void loadNearby(poi).then(items => { if (stillSelected()) detailPanel.updateNearby(items) })
     void loadNotes(poi).then(n => { if (stillSelected()) detailPanel.updateNotes(n) })
+    if (aiAllowed) {
+      detailPanel.setSummaryLoading()
+      void loadPoiSummary(poi).then(summary => { if (stillSelected()) detailPanel.updateSummary(summary) })
+    } else {
+      detailPanel.updateSummary(null) // KI-Zusammenfassung nur für eingeloggte Nutzer
+    }
   }
 
   // ── OSM POI markers ─────────────────────────────────────────────────────────
@@ -270,6 +283,45 @@ async function init() {
   // ── Search + routing ────────────────────────────────────────────────────────
   const searchBar = new SearchBar(document.getElementById('search-bar')!)
   searchBar.onPlaceSelected(({ lat, lng }) => mapService.setCenter(lat, lng, 14))
+
+  // ── KI-Suche (Chat-Modal) ─────────────────────────────────────────────────────
+  // Translates a chat conversation into the existing FilterStore + geocode paths.
+  const applyAiIntent = async (intent: AiIntent): Promise<void> => {
+    for (const id of intent.enableFilters) {
+      const f = filterStore.get(id)
+      if (!f) continue
+      if (f.hidden) filterStore.setHidden(id, false)
+      filterStore.setEnabled(id, true)
+    }
+    for (const def of intent.adHocFilters) filterStore.put(def)
+
+    if (intent.place) {
+      try {
+        const res = await fetch(apiUrl(`/api/geocode?q=${encodeURIComponent(intent.place)}&limit=1`))
+        if (res.ok) {
+          const hits = await res.json() as Array<{ lat: string; lon: string }>
+          const hit = hits[0]
+          if (hit) mapService.setCenter(Number(hit.lat), Number(hit.lon), 12)
+        }
+      } catch { /* filters still apply even if geocoding fails */ }
+    }
+    void refresh()
+  }
+  const aiModal = new AiSearchModal(document.body, { onApply: applyAiIntent })
+  searchBar.onAiSearch(query => aiModal.open(query))
+
+  // KI nur für eingeloggte Nutzer: ✨-Button ein-/ausblenden + Summary-Gate (aiAllowed).
+  const setAiAccess = (loggedIn: boolean): void => {
+    aiAllowed = loggedIn
+    searchBar.setAiEnabled(loggedIn)
+    if (!loggedIn) aiModal.close()
+  }
+  if (auth) {
+    auth.onChange(user => setAiAccess(!!user))
+    void auth.currentUser().then(user => setAiAccess(!!user)).catch(() => setAiAccess(false))
+  } else {
+    setAiAccess(false) // ohne konfiguriertes Supabase kein Login → keine KI
+  }
 
   routingToggle.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest('.routing-opt') as HTMLButtonElement
