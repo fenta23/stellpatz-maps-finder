@@ -1,5 +1,4 @@
-import { clone, ref } from '@/core/template.js'
-import { renderList } from '@/core/bind.js'
+import { clone } from '@/core/template.js'
 import { createEventScope, type EventScope } from '@/core/events.js'
 import menuHtml from './sideMenu.html?raw'
 
@@ -9,26 +8,58 @@ export interface MenuItem {
   readonly onSelect: () => void
 }
 
+export interface MenuDivider { readonly kind: 'divider' }
+export interface MenuSection { readonly kind: 'section'; readonly label: string }
+export type MenuEntry = MenuItem | MenuDivider | MenuSection
+
+function isMenuItem(entry: MenuEntry): entry is MenuItem {
+  return !('kind' in entry)
+}
+
 /** Slide-in drawer menu with a backdrop. Items are data — add more later. */
 export class SideMenu {
   private readonly panel: HTMLElement
   private readonly backdrop: HTMLElement
   private readonly events: EventScope = createEventScope()
 
-  constructor(container: HTMLElement, items: readonly MenuItem[]) {
+  constructor(container: HTMLElement, items: readonly MenuEntry[]) {
     this.backdrop = clone('<div class="side-menu-backdrop"></div>')
     this.backdrop.addEventListener('click', () => this.close())
 
     this.panel = clone(menuHtml)
     this.panel.querySelector('.side-menu-close')?.addEventListener('click', () => this.close())
-    renderList(ref(this.panel, 'list'), items, {
-      row: item => ({ icon: item.icon, label: item.label }),
-      on: { select: item => { this.close(); item.onSelect() } },
-      decorate: (row, item) => {
-        const iconEl = row.querySelector('.side-menu-icon')
-        if (iconEl) iconEl.innerHTML = item.icon
-      },
-    })
+
+    const list = this.panel.querySelector('.side-menu-list')!
+    for (const entry of items) {
+      if (!isMenuItem(entry) && entry.kind === 'divider') {
+        const hr = document.createElement('hr')
+        hr.className = 'side-menu-divider'
+        list.appendChild(hr)
+      } else if (!isMenuItem(entry) && entry.kind === 'section') {
+        const li = document.createElement('li')
+        const span = document.createElement('span')
+        span.className = 'side-menu-section-label'
+        span.textContent = entry.label
+        li.appendChild(span)
+        list.appendChild(li)
+      } else {
+        const item = entry as MenuItem
+        const li = document.createElement('li')
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'side-menu-item'
+        const iconSpan = document.createElement('span')
+        iconSpan.className = 'side-menu-icon'
+        iconSpan.innerHTML = item.icon
+        const labelSpan = document.createElement('span')
+        labelSpan.textContent = item.label
+        btn.appendChild(iconSpan)
+        btn.appendChild(labelSpan)
+        btn.addEventListener('click', () => { this.close(); item.onSelect() })
+        li.appendChild(btn)
+        list.appendChild(li)
+      }
+    }
 
     container.append(this.backdrop, this.panel)
 
