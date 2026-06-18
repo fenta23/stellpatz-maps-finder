@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **KI-Suche-Button („✨") blieb für ausgeloggte Nutzer sichtbar.** Das Login-Gating setzte das `hidden`-Attribut des Buttons, aber `.search-ai { display: flex }` (Klassen-Selektor) überstimmt das Attribut — derselbe Spezifitäts-Fehler wie beim 3-Punkte-Menü (s. u.). Jetzt wird die `.hidden`-Klasse getoggelt (wie beim Clear-Button); Button startet `search-ai hidden`. Backend-Gate (401) und die POI-Zusammenfassung waren korrekt — nur der Button war optisch nicht versteckt. Regressionstest in `SearchBar.test.ts` (prüft die `.hidden`-Klasse, nicht das Attribut).
 - **Funktionsloses 3-Punkte-Menü bei OSM-POIs entfernt.** Das Kebab-Menü (Bearbeiten/Löschen) ist nur für eigene/importierte POIs gedacht. Bei OSM-POIs erschien der Button trotzdem — ohne Funktion —, weil `.poi-menu-wrap { display: inline-flex }` das `hidden`-Attribut der Vorlage überstimmte. Der Wrapper wird für Nicht-Custom-POIs jetzt gar nicht mehr gerendert. Regressionstest in `PoiDetailPanel.test.ts`.
 
 ### Changed
