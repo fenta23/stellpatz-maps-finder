@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Funktionsloses 3-Punkte-Menü bei OSM-POIs entfernt.** Das Kebab-Menü (Bearbeiten/Löschen) ist nur für eigene/importierte POIs gedacht. Bei OSM-POIs erschien der Button trotzdem — ohne Funktion —, weil `.poi-menu-wrap { display: inline-flex }` das `hidden`-Attribut der Vorlage überstimmte. Der Wrapper wird für Nicht-Custom-POIs jetzt gar nicht mehr gerendert. Regressionstest in `PoiDetailPanel.test.ts`.
+
+### Changed
+- **Detail-Panel auf Mobile kompakter.** Das untere Sheet ist jetzt `50dvh` hoch (statt `60dvh + 30px`), sodass mehr von der Karte sichtbar bleibt. Header und die Button-Leiste (Route hierhin / Losfahren / Von hier / Google Maps) haben auf Mobile reduzierte Paddings und Schriftgrößen — die Aktionen bleiben gut tippbar, brauchen aber weniger Höhe.
+- **Sekundäre Aktionen 3-spaltig auf Mobile.** „Losfahren", „Von hier" und „Google Maps" stehen auf Mobile nebeneinander in einer Zeile (spart eine Button-Zeile, Footer 128 → 91 px). Desktop bleibt unverändert beim 2 + 1-Layout (Google Maps volle Breite in eigener Zeile).
+- **Filter-Leiste bleibt einzeilig (Overflow-Menü).** Chips, die nicht in eine Zeile passen, wandern hinter einen „…"-Button, der ein Dropdown mit den restlichen Filtern öffnet — statt wie bisher (`flex-wrap`) auf Mobile in eine zweite Zeile umzubrechen. Die Anzahl sichtbarer Chips wird per Messung der verfügbaren Breite bestimmt (pure `computeVisibleCount`, getestet) und bei jedem Resize/Re-Render neu berechnet; „+" und „⚙️" bleiben fix angepinnt. Skaliert auf beliebig viele Filter und greift auf allen Breiten (Desktop zeigt bei genug Platz weiterhin alle Chips).
+
 ### Added
 - **`createEventScope()` (core/events).** Utility, das `addEventListener`-Aufrufe unter einem `AbortController` bündelt. `dispose()` entfernt alle registrierten Listener in einem Zug — kein manuelles `removeEventListener` mehr nötig. Typed Overloads für `Document`, `Window` und `HTMLElement`.
 
 ### Changed
-- **Datenschutzerklärung im InfoPanel überarbeitet.** Vollständige DSGVO-konforme Fassung statt der bisherigen Kurzfassung: Verantwortlicher, Rechtsgrundlagen je Datenart (Art. 6 DSGVO), transparente Verarbeiter-Liste (Supabase EU, GitHub Pages, netcup, Resend), Trennung zwischen serverseitig geproxyten Diensten (Overpass, Nominatim, Valhalla — ohne IP-Weitergabe) und direkt vom Browser geladenen Kartenkacheln (mit IP), IP-Verarbeitung fürs Rate-Limiting, Drittlandhinweis (USA) und Betroffenenrechte. **Korrektur:** Routing wird über `valhalla1.openstreetmap.de` (Dritter) abgewickelt, nicht über einen „selbstgehosteten" Dienst, wie bisher fälschlich angegeben. Der Klarname des Verantwortlichen wird zur Build-Zeit aus `VITE_DSGVO_VERANTWORTLICHER` (GitHub-Secret) injiziert statt im Repo hinterlegt — auf der Live-Seite sichtbar (rechtlich nötig), aber nicht in der Git-History. Fallback ohne Env: „der Betreiber dieser App".
+- **Overpass-Endpunkte: paralleles Racing + selbstlernende Reihenfolge.** `handleOverpass()` racet nicht mehr streng sequenziell (immer ab `osm.hpi.de`, bis zu 5×15 s), sondern feuert die zwei gesündesten Endpunkte parallel (`Promise.any`, Timeout 10 s) und fällt nur bei Bedarf durch den Rest. Neue pure Heuristik [`overpassRanking.ts`](supabase/functions/_shared/overpassRanking.ts) sortiert die Endpunkte pro Edge-Isolate nach beobachteter Latenz (EWMA) und Fehlern: ein langsamer/abstürzender Mirror wird automatisch nach hinten geschoben und erholt sich nach einer Cooldown-Phase wieder. Best-effort In-Memory-State, keine DB-Schreiblast.
 - **Event-Listener-Cleanup in 9 Klassen.** `SideMenu`, `SearchBar`, `AuthPanel`, `FilterConfigPanel`, `NotesListPanel`, `FavoritesListPanel`, `InfoPanel`, `PoiDetailPanel` und `AiSearchModal` nutzen jetzt `createEventScope()` statt loser `document.addEventListener`-Aufrufe ohne Gegenstück. Alle Klassen haben ein neues `destroy()`.
 
 ### Removed

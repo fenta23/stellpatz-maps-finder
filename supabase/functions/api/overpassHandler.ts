@@ -1,4 +1,5 @@
 import { jsonResponse, errorResponse, snapBboxInQuery, isValidPoiQuery, OVERPASS_ENDPOINTS, USER_AGENT, POI_CACHE_TTL_MS, getSupabase } from '../_shared/utils.ts'
+import { rankEndpoints, recordSuccess, recordFailure, type StatStore } from '../_shared/overpassRanking.ts'
 
 export async function handleOverpass(req: Request, origin: string | null): Promise<Response> {
   const bodyText = await req.text()
@@ -17,43 +18,72 @@ export async function handleOverpass(req: Request, origin: string | null): Promi
   }
 
   const body = 'data=' + encodeURIComponent(snappedQuery)
-  const n = OVERPASS_ENDPOINTS.length
-  let endpointIdx = 0
+  const data = await fetchFromOverpass(body)
 
-  for (let i = 0; i < n; i++) {
-    const url = OVERPASS_ENDPOINTS[endpointIdx % n]!
-    endpointIdx++
-    const isLast = i === n - 1
+  if (!data) {
+    return errorResponse('All Overpass endpoints unreachable', 503, origin)
+  }
+
+  if (supabase) await setCache(supabase, snappedQuery, data)
+  return jsonResponse(data, 200, origin)
+}
+
+// ── Overpass fetch: race the healthiest endpoints, fall back through the rest ──
+
+const OVERPASS_TIMEOUT_MS = 10_000
+/** Race this many of the top-ranked endpoints in parallel; first success wins. */
+const RACE_COUNT = 2
+
+// Per-isolate, best-effort health stats. Warms up over a few requests and resets
+// on a cold start — a soft ranking hint, not persisted (see overpassRanking.ts).
+const stats: StatStore = new Map()
+
+/** Single attempt; records latency on success and a failure on any error. */
+async function fetchOne(url: string, body: string): Promise<unknown> {
+  const start = Date.now()
+  try {
+    const upstream = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT },
+      body,
+      signal: AbortSignal.timeout(OVERPASS_TIMEOUT_MS),
+    })
+    // 429 / 5xx are upstream trouble — treat as failure so the mirror is demoted.
+    if (upstream.status === 429 || upstream.status >= 500) {
+      throw new Error(`Overpass ${upstream.status}`)
+    }
+    if (!upstream.ok) {
+      throw new Error(`Overpass error: ${upstream.statusText}`)
+    }
+    const json = await upstream.json() as unknown
+    recordSuccess(stats, url, Date.now() - start)
+    return json
+  } catch (err) {
+    recordFailure(stats, url, Date.now())
+    throw err
+  }
+}
+
+async function fetchFromOverpass(body: string): Promise<unknown | null> {
+  const ranked = rankEndpoints(OVERPASS_ENDPOINTS, stats, Date.now())
+
+  // Race the top RACE_COUNT in parallel — fastest healthy mirror wins.
+  const racers = ranked.slice(0, RACE_COUNT)
+  try {
+    return await Promise.any(racers.map((url) => fetchOne(url, body)))
+  } catch {
+    // All racers failed; fall through to the remaining endpoints sequentially.
+  }
+
+  for (const url of ranked.slice(RACE_COUNT)) {
     try {
-      const upstream = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT },
-        body,
-        signal: AbortSignal.timeout(15_000),
-      })
-
-      if (upstream.status === 429 || upstream.status >= 500) {
-        if (!isLast) continue
-        return jsonResponse(
-          { error: 'Overpass unavailable on all endpoints' },
-          upstream.status === 429 ? 429 : 503,
-          origin,
-        )
-      }
-      if (!upstream.ok) {
-        return errorResponse(`Overpass error: ${upstream.statusText}`, upstream.status, origin)
-      }
-
-      const data = await upstream.json() as unknown
-      if (supabase) await setCache(supabase, snappedQuery, data)
-      return jsonResponse(data, 200, origin)
+      return await fetchOne(url, body)
     } catch {
-      if (!isLast) continue
-      return errorResponse('All Overpass endpoints unreachable', 503, origin)
+      continue
     }
   }
 
-  return errorResponse('All Overpass endpoints unreachable', 503, origin)
+  return null
 }
 
 async function checkCache(

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { FilterPanel } from './FilterPanel.js'
+import { FilterPanel, computeVisibleCount } from './FilterPanel.js'
 import { LocalFilterStore } from './FilterStore.js'
 import type { FilterDef } from './filterModel.js'
 
@@ -63,5 +63,47 @@ describe('FilterPanel', () => {
     el.querySelector<HTMLButtonElement>('.filter-config')!.click()
     expect(onAdd).toHaveBeenCalledOnce()
     expect(onOpenConfig).toHaveBeenCalledOnce()
+  })
+
+  it('renders a hidden overflow button and menu, hidden when nothing overflows', () => {
+    const el = makeContainer()
+    new FilterPanel(el, new LocalFilterStore(), { onAdd: noop, onOpenConfig: noop })
+    const more = el.querySelector<HTMLButtonElement>('.filter-more')!
+    expect(more).toBeTruthy()
+    // jsdom reports zero geometry → computeVisibleCount keeps everything visible.
+    expect(more.style.display).toBe('none')
+    expect(el.querySelector('.filter-more-menu')!.classList.contains('hidden')).toBe(true)
+  })
+})
+
+describe('computeVisibleCount', () => {
+  const gap = 7
+  const more = 40
+
+  it('shows every chip when they all fit (no "more" reserved)', () => {
+    expect(computeVisibleCount([40, 40, 40], 200, gap, more)).toBe(3)
+  })
+
+  it('keeps everything when the total exactly fills the row', () => {
+    // 3×40 + 2×7 = 134
+    expect(computeVisibleCount([40, 40, 40], 134, gap, more)).toBe(3)
+  })
+
+  it('reserves room for the "more" button once anything overflows', () => {
+    // 4×40 + 3×7 = 181 > 150 → must overflow. budget = 150 - 40 - 7 = 103.
+    // fits 40, +47=87, +47=134 > 103 → 2 chips visible.
+    expect(computeVisibleCount([40, 40, 40, 40], 150, gap, more)).toBe(2)
+  })
+
+  it('can collapse to zero visible chips on a very narrow row', () => {
+    expect(computeVisibleCount([40, 40], 30, gap, more)).toBe(0)
+  })
+
+  it('returns all when width is unknown (no layout yet)', () => {
+    expect(computeVisibleCount([40, 40, 40], 0, gap, more)).toBe(3)
+  })
+
+  it('handles an empty chip list', () => {
+    expect(computeVisibleCount([], 100, gap, more)).toBe(0)
   })
 })

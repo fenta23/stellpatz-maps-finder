@@ -1,6 +1,9 @@
 export const BBOX_SNAP_DEG = 0.2
 export const POI_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
+// Cold-start priority order (healthiest-known first) — overpassHandler races the
+// top two. At runtime overpassRanking.ts re-sorts these by observed latency and
+// failures, so a slow/flapping mirror is demoted automatically.
 export const OVERPASS_ENDPOINTS = [
   'https://osm.hpi.de/overpass/api/interpreter',
   'https://overpass-api.de/api/interpreter',
