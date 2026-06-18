@@ -23,6 +23,8 @@ const ALLOWED_ORIGINS: readonly string[] = (
 ).split(',').map(s => s.trim()).filter(Boolean)
 
 const APP_ORIGINS = [
+  'https://camp-finder.de',
+  'https://www.camp-finder.de',
   'https://fenta23.github.io',
   'capacitor://localhost',
   'http://localhost:5173',
