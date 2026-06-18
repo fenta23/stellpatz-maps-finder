@@ -30,13 +30,15 @@ import { toFavoritePoi, favoriteToPoi } from '@/features/favorites/poiLabel.js'
 import { LocalNotesStore, toNoteTarget, noteToPoi } from '@/features/notes/NotesStore.js'
 import { SyncedNotesStore } from '@/features/notes/RemoteNotesStore.js'
 import { NotesListPanel } from '@/features/notes/NotesListPanel.js'
-import { SideMenu, type MenuItem } from '@/features/menu/SideMenu.js'
+import { SideMenu, type MenuEntry } from '@/features/menu/SideMenu.js'
 import { clearAppCache } from '@/features/menu/clearAppCache.js'
 import { UpdateBanner, watchServiceWorkerUpdates } from '@/features/update/UpdateBanner.js'
 import { getSupabaseClient } from '@/features/auth/authClient.js'
 import { createAuth, type Auth } from '@/features/auth/auth.js'
 import { AuthPanel } from '@/features/auth/AuthPanel.js'
 import { InfoPanel } from '@/features/info/InfoPanel.js'
+import { DatenschutzPanel } from '@/features/info/DatenschutzPanel.js'
+import { ImpressumPanel } from '@/features/info/ImpressumPanel.js'
 import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
@@ -45,7 +47,7 @@ import { initCustomPois } from './customPoiWiring.js'
 import { initAuthSync } from './authWiring.js'
 import { API_BASE, apiUrl } from '@/core/config.js'
 import {
-  SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD,
+  SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD, SVG_SHIELD, SVG_BUILDING,
 } from './icons.js'
 
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447]
@@ -373,15 +375,28 @@ async function init() {
 
   // ── Side menu ───────────────────────────────────────────────────────────────
   const infoPanel = new InfoPanel(document.body)
-  const menuItems: MenuItem[] = [
-    { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { infoPanel.close(); notesPanel.close(); favoritesPanel.open() } },
-    { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { infoPanel.close(); favoritesPanel.close(); notesPanel.open() } },
+  const datenschutzPanel = new DatenschutzPanel(document.body)
+  const impressumPanel = new ImpressumPanel(document.body)
+
+  const closeAll = () => {
+    infoPanel.close(); datenschutzPanel.close(); impressumPanel.close()
+    favoritesPanel.close(); notesPanel.close()
+  }
+
+  const menuItems: MenuEntry[] = [
+    { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { closeAll(); favoritesPanel.open() } },
+    { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { closeAll(); notesPanel.open() } },
     { icon: SVG_UPLOAD, label: 'Google Maps importieren', onSelect: () => importHandle.open() },
   ]
   if (authPanel) {
     menuItems.push({ icon: SVG_USER, label: 'Konto', onSelect: () => authPanel!.open() })
   }
-  menuItems.push({ icon: SVG_INFO, label: 'Info', onSelect: () => infoPanel.open() })
+  menuItems.push({ icon: SVG_INFO, label: 'Info', onSelect: () => { closeAll(); infoPanel.open() } })
+  menuItems.push({ kind: 'divider' })
+  menuItems.push({ kind: 'section', label: 'Rechtliches' })
+  menuItems.push({ icon: SVG_SHIELD, label: 'Datenschutz', onSelect: () => { closeAll(); datenschutzPanel.open() } })
+  menuItems.push({ icon: SVG_BUILDING, label: 'Impressum', onSelect: () => { closeAll(); impressumPanel.open() } })
+  menuItems.push({ kind: 'divider' })
   menuItems.push({
     icon: SVG_TRASH,
     label: 'Cache leeren & neu laden',

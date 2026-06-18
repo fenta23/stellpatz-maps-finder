@@ -13,17 +13,14 @@ describe('InfoPanel', () => {
     expect(c.textContent).toContain('Changelog')
   })
 
-  it('renders the privacy section with controller and processors', async () => {
+  it('renders open source and map data sections', async () => {
     const c = document.createElement('div')
     new InfoPanel(c)
     await flush()
-    expect(c.textContent).toContain('Verantwortlicher')
-    expect(c.textContent).toContain('Supabase')
-    expect(c.textContent).toContain('GitHub Pages')
-    expect(c.textContent).toContain('netcup')
-    // Routing-Korrektur: kein „selbstgehosteter" Dienst, sondern Valhalla
-    expect(c.textContent).not.toContain('selbstgehosteten Routing-Dienst')
-    expect(c.textContent).toContain('Valhalla')
+    expect(c.textContent).toContain('Open Source')
+    expect(c.textContent).toContain('Leaflet')
+    expect(c.textContent).toContain('Kartendaten')
+    expect(c.textContent).toContain('OpenStreetMap')
   })
 
   it('open and close via class', async () => {
