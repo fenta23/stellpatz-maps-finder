@@ -5,6 +5,11 @@ import changelogRaw from '../../../../CHANGELOG.md?raw'
 
 const VERSION = '0.9.0'
 
+// DSGVO-Verantwortlicher: per Build-Env injiziert (GitHub Secret), damit der
+// Klarname nicht im öffentlichen Repo steht. Auf der Live-Seite ist er sichtbar
+// (rechtlich erforderlich), nur eben nicht in der Git-History.
+const CONTROLLER = import.meta.env.VITE_DSGVO_VERANTWORTLICHER ?? 'der Betreiber dieser App'
+
 /** Render the KAC-style markdown changelog into basic HTML. */
 function renderChangelog(md: string): string {
   const out: string[] = []
@@ -39,6 +44,7 @@ export class InfoPanel {
   constructor(container: HTMLElement) {
     this.panel = clone(panelHtml)
     ref(this.panel, 'version').textContent = `v${VERSION}`
+    this.panel.querySelectorAll('[data-ref="controller"]').forEach(el => { el.textContent = CONTROLLER })
     ref(this.panel, 'changelog').innerHTML = renderChangelog(changelogRaw)
     this.panel.querySelector('.fav-close')?.addEventListener('click', () => this.close())
     container.appendChild(this.panel)

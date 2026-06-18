@@ -35,18 +35,41 @@
 
     <section class="info-section">
       <h3>Datenschutz</h3>
-      <p>Diese App speichert folgende Daten:</p>
+      <p><strong>Grundsatz:</strong> Diese App funktioniert vollständig ohne Konto und setzt <strong>keine Cookies, kein Tracking, keine Analyse-Werkzeuge und keine Werbung</strong> ein. Verarbeitet werden nur Daten, die für die jeweilige Funktion technisch nötig sind.</p>
+
+      <p><strong>Verantwortlicher</strong> i.&nbsp;S.&nbsp;d. Art.&nbsp;4 Nr.&nbsp;7 DSGVO: <span data-ref="controller"></span> · Kontakt: <a href="mailto:fenta23+camp-finder-datenschutz@gmail.com">fenta23+camp-finder-datenschutz@gmail.com</a></p>
+
+      <p><strong>Welche Daten verarbeitet werden:</strong></p>
       <ul class="info-legal-list">
-        <li><strong>Persönliche Notizen, Favoriten, eigene POIs</strong> – nur lokal im Browser (localStorage). Bei freiwilliger Anmeldung zusätzlich auf einem <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a>-Server in Frankfurt (EU).</li>
-        <li><strong>Anmeldedaten</strong> (E-Mail-Adresse) – nur bei freiwilliger Registrierung, verwaltet via Supabase Auth.</li>
-        <li><strong>Standort</strong> – nur mit deiner Erlaubnis, wird nie gespeichert oder versendet (außer zur Routenberechnung an den selbstgehosteten Routing-Dienst).</li>
+        <li><strong>Notizen, Favoriten, eigene POIs, Einstellungen</strong> – standardmäßig <em>nur lokal</em> in deinem Browser (localStorage), sie verlassen dein Gerät nicht. Erst bei freiwilliger Anmeldung werden sie zusätzlich auf einem <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a>-Server (EU, Frankfurt) gespeichert, um sie zwischen Geräten zu synchronisieren. Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO.</li>
+        <li><strong>Anmeldedaten (E-Mail-Adresse)</strong> – nur bei freiwilliger Registrierung. Der Login ist passwortlos per Einmal-Code, der dir per E-Mail zugeschickt wird (verwaltet über Supabase Auth). Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;a/b DSGVO. Du kannst dein Konto jederzeit löschen.</li>
+        <li><strong>Standort</strong> – nur nach ausdrücklicher Freigabe durch dein Gerät, ausschließlich lokal zur Kartenanzeige, wird <em>nicht gespeichert</em>. Für eine Routenberechnung werden Start-/Zielkoordinaten an den Routing-Dienst übermittelt (siehe unten). Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;a DSGVO.</li>
+        <li><strong>IP-Adresse</strong> – beim Abruf der App und der Server-Funktionen technisch unvermeidbar. Zur Missbrauchs- und Überlastungsabwehr (Rate-Limiting) wird sie kurzzeitig serverseitig verarbeitet; es werden keine dauerhaften Nutzungsprofile erstellt. Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;f DSGVO.</li>
       </ul>
-      <p>Es werden keine Tracking-Dienste, Analyse-Werkzeuge oder Werbung eingesetzt. Die App funktioniert vollständig ohne Konto.</p>
+
+      <p><strong>Eingesetzte Dienste:</strong></p>
+      <ul class="info-legal-list">
+        <li><a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a> (Server in der EU/Frankfurt) – Konto, Authentifizierung &amp; Synchronisation.</li>
+        <li><a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Pages</a> (GitHub Inc., USA) – Hosting der App; verarbeitet Zugriffs-Logs inkl. IP-Adresse.</li>
+        <li><a href="https://www.netcup.com/de/kontakt/datenschutzerklaerung" target="_blank" rel="noopener">netcup</a> (Deutschland) – Domain &amp; DNS.</li>
+        <li><a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend</a> (USA) – Versand der Login-Codes per E-Mail.</li>
+      </ul>
+
+      <p><strong>Karten- &amp; POI-Daten von Dritten:</strong></p>
+      <ul class="info-legal-list">
+        <li>Kartenkacheln werden direkt von <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Servern in deinen Browser geladen – dabei wird deine IP-Adresse an diese übermittelt.</li>
+        <li>POI-Abfragen (<a href="https://overpass-api.de" target="_blank" rel="noopener">Overpass</a>), Adresssuche (<a href="https://nominatim.org" target="_blank" rel="noopener">Nominatim</a>) und Routing (<a href="https://valhalla1.openstreetmap.de" target="_blank" rel="noopener">Valhalla</a>) laufen über unseren Server-Proxy; übermittelt werden nur Koordinaten bzw. Suchbegriffe, nicht deine IP-Adresse.</li>
+        <li>Straßenfotos über <a href="https://mapillary.com" target="_blank" rel="noopener">Mapillary</a> (Meta, USA) – werden serverseitig anhand des Kartenausschnitts abgerufen.</li>
+      </ul>
+
+      <p><strong>Drittlandübermittlung:</strong> Einige Dienste (GitHub, Mapillary, Resend) sitzen in den USA. Die Übermittlung erfolgt auf Basis von EU-Standardvertragsklauseln bzw. des EU-US Data Privacy Framework.</p>
+
+      <p><strong>Deine Rechte:</strong> Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch (Art.&nbsp;15–21 DSGVO) sowie Beschwerde bei einer Aufsichtsbehörde. Lokale Daten löschst du über „Cache leeren" bzw. die Browser-Einstellungen, Konto-Daten durch Löschen deines Kontos. Es findet keine automatisierte Entscheidungsfindung oder Profilbildung statt.</p>
     </section>
 
     <section class="info-section">
       <h3>Impressum</h3>
-      <p>Dies ist ein privates Open-Source-Projekt. Bei Fragen oder Problemen bitte ein <a href="https://github.com/fenta23/stellplatz-maps-finder/issues" target="_blank" rel="noopener">GitHub-Issue</a> eröffnen.</p>
+      <p>Privates, nicht-kommerzielles Open-Source-Projekt. Verantwortlich: <span data-ref="controller"></span>, Kontakt: <a href="mailto:fenta23+camp-finder-datenschutz@gmail.com">fenta23+camp-finder-datenschutz@gmail.com</a>. Bei Fragen oder Problemen gern auch ein <a href="https://github.com/fenta23/stellplatz-maps-finder/issues" target="_blank" rel="noopener">GitHub-Issue</a> eröffnen.</p>
     </section>
 
     <section class="info-section">

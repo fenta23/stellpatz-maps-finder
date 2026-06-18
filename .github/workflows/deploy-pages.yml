@@ -44,6 +44,7 @@ jobs:
           VITE_API_BASE: ${{ vars.VITE_API_BASE }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DSGVO_VERANTWORTLICHER: ${{ secrets.VITE_DSGVO_VERANTWORTLICHER }}
 
       - uses: actions/configure-pages@v4
 
