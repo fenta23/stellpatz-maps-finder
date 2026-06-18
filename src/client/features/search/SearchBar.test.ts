@@ -33,11 +33,13 @@ describe('SearchBar', () => {
     const sb = new SearchBar(container)
     const aiBtn = container.querySelector<HTMLButtonElement>('.search-ai')!
     expect(aiBtn).toBeTruthy()
-    expect(aiBtn.hidden).toBe(true) // ausgeloggt: versteckt
+    // Regression: muss die `.hidden`-Klasse nutzen, NICHT das hidden-Attribut —
+    // `.search-ai { display:flex }` (Klassen-Selektor) überstimmt das Attribut.
+    expect(aiBtn.classList.contains('hidden')).toBe(true) // ausgeloggt: versteckt
     sb.setAiEnabled(true)
-    expect(aiBtn.hidden).toBe(false) // eingeloggt: sichtbar
+    expect(aiBtn.classList.contains('hidden')).toBe(false) // eingeloggt: sichtbar
     sb.setAiEnabled(false)
-    expect(aiBtn.hidden).toBe(true)
+    expect(aiBtn.classList.contains('hidden')).toBe(true)
   })
 
   it('dropdown is hidden initially', () => {
