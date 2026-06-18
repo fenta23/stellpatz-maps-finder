@@ -155,6 +155,10 @@ async function init() {
   // ── POI detail ──────────────────────────────────────────────────────────────
   const detailPanel = new PoiDetailPanel(document.getElementById('detail-panel')!)
 
+  // KI-Features (POI-Zusammenfassung + Chat-Suche) nur für eingeloggte Nutzer.
+  // Wird nach dem Auth-Setup über auth.onChange gesetzt (siehe unten).
+  let aiAllowed = false
+
   function loadDetails(poi: OsmPoi): void {
     const stillSelected = () => session.selectedPoi?.id === poi.id
     void collectTagImages(poi).then(base => {
@@ -165,8 +169,12 @@ async function init() {
     })
     void loadNearby(poi).then(items => { if (stillSelected()) detailPanel.updateNearby(items) })
     void loadNotes(poi).then(n => { if (stillSelected()) detailPanel.updateNotes(n) })
-    detailPanel.setSummaryLoading()
-    void loadPoiSummary(poi).then(summary => { if (stillSelected()) detailPanel.updateSummary(summary) })
+    if (aiAllowed) {
+      detailPanel.setSummaryLoading()
+      void loadPoiSummary(poi).then(summary => { if (stillSelected()) detailPanel.updateSummary(summary) })
+    } else {
+      detailPanel.updateSummary(null) // KI-Zusammenfassung nur für eingeloggte Nutzer
+    }
   }
 
   // ── OSM POI markers ─────────────────────────────────────────────────────────
@@ -301,6 +309,19 @@ async function init() {
   }
   const aiModal = new AiSearchModal(document.body, { onApply: applyAiIntent })
   searchBar.onAiSearch(query => aiModal.open(query))
+
+  // KI nur für eingeloggte Nutzer: ✨-Button ein-/ausblenden + Summary-Gate (aiAllowed).
+  const setAiAccess = (loggedIn: boolean): void => {
+    aiAllowed = loggedIn
+    searchBar.setAiEnabled(loggedIn)
+    if (!loggedIn) aiModal.close()
+  }
+  if (auth) {
+    auth.onChange(user => setAiAccess(!!user))
+    void auth.currentUser().then(user => setAiAccess(!!user)).catch(() => setAiAccess(false))
+  } else {
+    setAiAccess(false) // ohne konfiguriertes Supabase kein Login → keine KI
+  }
 
   routingToggle.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest('.routing-opt') as HTMLButtonElement

@@ -32,8 +32,8 @@ async function aiGate(
   req: Request,
   origin: string | null,
 ): Promise<{ ok: true; supabase: Awaited<ReturnType<typeof getSupabase>> } | { ok: false; res: Response }> {
-  // Optional auth gate (off by default) — flip AI_REQUIRE_AUTH=true to require login.
-  if ((Deno.env.get('AI_REQUIRE_AUTH') ?? '').trim() === 'true') {
+  // Auth gate: login required by default. Set AI_REQUIRE_AUTH=false to open it up.
+  if ((Deno.env.get('AI_REQUIRE_AUTH') ?? 'true').trim() !== 'false') {
     const authed = await isAuthenticated(req)
     if (!authed) return { ok: false, res: errorResponse('Login required', 401, origin) }
   }

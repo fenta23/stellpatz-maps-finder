@@ -57,7 +57,7 @@ export async function loadPoiSummary(poi: OsmPoi): Promise<string | null> {
   try {
     const resp = await fetch(apiUrl('/api/ai'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({ task: 'summarize', poiId: poi.id, tags: poi.tags }),
     })
     if (!resp.ok) return null

@@ -29,6 +29,17 @@ describe('SearchBar', () => {
     expect(input?.placeholder).toBe('Ort suchen…')
   })
 
+  it('hides the KI-Suche button until setAiEnabled(true) — login only', () => {
+    const sb = new SearchBar(container)
+    const aiBtn = container.querySelector<HTMLButtonElement>('.search-ai')!
+    expect(aiBtn).toBeTruthy()
+    expect(aiBtn.hidden).toBe(true) // ausgeloggt: versteckt
+    sb.setAiEnabled(true)
+    expect(aiBtn.hidden).toBe(false) // eingeloggt: sichtbar
+    sb.setAiEnabled(false)
+    expect(aiBtn.hidden).toBe(true)
+  })
+
   it('dropdown is hidden initially', () => {
     new SearchBar(container)
     const dropdown = container.querySelector('.search-dropdown')

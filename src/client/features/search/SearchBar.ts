@@ -20,6 +20,7 @@ export class SearchBar {
   private readonly listeners: Array<(e: PlaceSelectedEvent) => void> = []
   private readonly aiListeners: Array<(query: string) => void> = []
   private readonly events: EventScope = createEventScope()
+  private readonly aiBtn: HTMLButtonElement
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private bounds: LatLngBounds | null = null
 
@@ -62,6 +63,8 @@ export class SearchBar {
       const q = this.input.value.trim()
       for (const l of this.aiListeners) l(q)
     })
+    aiBtn.hidden = true // KI-Suche nur für eingeloggte Nutzer — via setAiEnabled freigeschaltet
+    this.aiBtn = aiBtn
 
     form.appendChild(this.input)
     form.appendChild(clearBtn)
@@ -186,6 +189,11 @@ export class SearchBar {
       const idx = this.aiListeners.indexOf(listener)
       if (idx !== -1) this.aiListeners.splice(idx, 1)
     }
+  }
+
+  /** Show/hide the "✨ KI-Suche" button — only logged-in users may use the AI. */
+  setAiEnabled(enabled: boolean): void {
+    this.aiBtn.hidden = !enabled
   }
 
   destroy(): void { this.events.dispose() }
