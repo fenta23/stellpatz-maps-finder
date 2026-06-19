@@ -79,6 +79,7 @@ export class PoiDetailPanel {
   private readonly setStartListeners: Array<() => void> = []
   private readonly resetStartListeners: Array<() => void> = []
   private nearbyItems: NearbyItem[] = []
+  private _collapsed = false
 
   constructor(private readonly container: HTMLElement) {
     this.panel = document.createElement('aside')
@@ -97,10 +98,30 @@ export class PoiDetailPanel {
   onSetStart = (listener: () => void): (() => void) => subscribe(this.setStartListeners, listener)
   onResetStart = (listener: () => void): (() => void) => subscribe(this.resetStartListeners, listener)
 
+  // ── Public collapse/expand (mobile map-drag) ────────────────────────────────
+  /** Shrink to header-only strip. No-op when the panel is hidden. */
+  collapse(): void {
+    if (this.panel.classList.contains('hidden')) return
+    this._collapsed = true
+    this.panel.classList.add('poi-detail-panel--collapsed')
+  }
+
+  expand(): void {
+    this._collapsed = false
+    this.panel.classList.remove('poi-detail-panel--collapsed')
+  }
+
   // ── Event delegation + global key handling ──────────────────────────────────
   private wireGlobalEvents(): void {
     this.panel.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
+
+      // Tap on collapsed strip: expand (unless closing the panel)
+      if (this._collapsed) {
+        if (!target.closest('.btn-close')) this.expand()
+        return
+      }
+
       const link = target.closest<HTMLElement>('[data-lightbox]')
       if (link?.dataset['lightbox']) { e.preventDefault(); showLightbox(link.dataset['lightbox']); return }
       const nearby = target.closest<HTMLElement>('[data-nearby-idx]')
@@ -137,6 +158,7 @@ export class PoiDetailPanel {
 
   // ── Public render ───────────────────────────────────────────────────────────
   show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig, routing?: PanelRouting): void {
+    this.expand()
     this.panel.classList.remove('hidden')
     this.panel.innerHTML = ''
     const view = clone(panelHtml)
@@ -309,6 +331,7 @@ export class PoiDetailPanel {
   }
 
   hide(): void {
+    this.expand()
     this.panel.classList.add('hidden')
     this.panel.innerHTML = ''
     hideLightbox()

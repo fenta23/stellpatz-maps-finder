@@ -154,6 +154,7 @@ export class MapService {
   private readonly contextMenuListeners: Array<(lat: number, lng: number) => void> = []
   private readonly placementListeners: Array<(lat: number, lng: number) => void> = []
   private readonly locateListeners: Array<() => void> = []
+  private readonly dragStartListeners: Array<() => void> = []
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private _isPlacing = false
   private _routingContainer: HTMLElement | null = null
@@ -182,6 +183,10 @@ export class MapService {
     this.map.on('moveend', () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
       this.debounceTimer = setTimeout(() => this.emit(), 1200)
+    })
+
+    this.map.on('dragstart', () => {
+      for (const l of this.dragStartListeners) l()
     })
 
     this.map.on('contextmenu', (e: L.LeafletMouseEvent) => {
@@ -228,6 +233,15 @@ export class MapService {
     return () => {
       const idx = this.locateListeners.indexOf(listener)
       if (idx !== -1) this.locateListeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when the user starts a manual drag (not programmatic pans). */
+  onDragStart(listener: () => void): () => void {
+    this.dragStartListeners.push(listener)
+    return () => {
+      const idx = this.dragStartListeners.indexOf(listener)
+      if (idx !== -1) this.dragStartListeners.splice(idx, 1)
     }
   }
 

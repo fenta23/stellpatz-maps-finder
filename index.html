@@ -1967,7 +1967,7 @@
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
-                transition: transform 0.2s;
+                transition: transform 0.2s, height 0.25s ease;
                 pointer-events: auto;
             }
             .poi-detail-panel.hidden {
@@ -2754,6 +2754,27 @@
                 .poi-detail-panel .panel-actions-grid .btn-secondary {
                     padding: 7px 6px;
                     font-size: 0.78rem;
+                }
+
+                /* Collapsed bottom-sheet: only the header stripe is visible.
+                   Tapping anywhere on the strip (except ✕) re-expands the panel. */
+                .poi-detail-panel--collapsed {
+                    height: 3.5rem;
+                    cursor: pointer;
+                }
+
+                /* Drag-handle indicator shown when the panel is collapsed */
+                .poi-detail-panel--collapsed::before {
+                    content: '';
+                    position: absolute;
+                    top: 7px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 36px;
+                    height: 4px;
+                    background: var(--border);
+                    border-radius: 2px;
+                    pointer-events: none;
                 }
             }
         </style>

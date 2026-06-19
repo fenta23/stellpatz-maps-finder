@@ -258,6 +258,11 @@ async function init() {
     }
   })
 
+  // ── Mobile: collapse detail panel when user drags the map ──────────────────
+  mapService.onDragStart(() => {
+    if (window.matchMedia('(max-width: 600px)').matches) detailPanel.collapse()
+  })
+
   // ── Detail panel events ─────────────────────────────────────────────────────
   detailPanel.onNavigate(({ poi }) => void selection.navigate(poi))
   detailPanel.onSetStart(() => selection.setStart())
