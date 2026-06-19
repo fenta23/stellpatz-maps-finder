@@ -2788,6 +2788,9 @@
                 align-items: center;
                 justify-content: center;
                 padding: 16px;
+                padding-left: max(16px, env(safe-area-inset-left));
+                padding-right: max(16px, env(safe-area-inset-right));
+                padding-top: max(16px, env(safe-area-inset-top));
                 box-sizing: border-box;
             }
             .help-panel.open {
@@ -2803,15 +2806,23 @@
                 max-width: 480px;
                 max-height: calc(100dvh - 32px);
                 overflow-y: auto;
+                overflow-x: hidden;
                 overscroll-behavior: contain;
                 -webkit-overflow-scrolling: touch;
             }
 
-            .help-skip {
+            /* Sticky close button row — avoids float-induced horizontal overflow */
+            .help-skip-row {
                 position: sticky;
-                top: 12px;
-                float: right;
-                margin: 12px 12px 0 0;
+                top: 0;
+                z-index: 2;
+                display: flex;
+                justify-content: flex-end;
+                padding: 10px 12px 0;
+                pointer-events: none;
+            }
+            .help-skip {
+                pointer-events: auto;
                 background: var(--surface);
                 border: 1px solid var(--border);
                 border-radius: var(--radius-pill);
@@ -2820,7 +2831,6 @@
                 cursor: pointer;
                 padding: 4px 10px;
                 line-height: 1.5;
-                z-index: 1;
             }
             .help-skip:hover {
                 background: var(--surface-2);
