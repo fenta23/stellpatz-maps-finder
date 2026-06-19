@@ -188,4 +188,57 @@ describe('PoiDetailPanel', () => {
     expect(container.innerHTML).not.toContain('<script>')
     expect(container.innerHTML).toContain('&lt;script&gt;')
   })
+
+  describe('mobile collapse/expand', () => {
+    it('collapse() adds the --collapsed modifier class', () => {
+      const container = document.createElement('div')
+      const panel = new PoiDetailPanel(container)
+      panel.show(poi)
+      panel.collapse()
+      expect(container.querySelector('.poi-detail-panel')?.classList.contains('poi-detail-panel--collapsed')).toBe(true)
+    })
+
+    it('expand() removes the --collapsed modifier class', () => {
+      const container = document.createElement('div')
+      const panel = new PoiDetailPanel(container)
+      panel.show(poi)
+      panel.collapse()
+      panel.expand()
+      expect(container.querySelector('.poi-detail-panel')?.classList.contains('poi-detail-panel--collapsed')).toBe(false)
+    })
+
+    it('show() always clears the collapsed state', () => {
+      const container = document.createElement('div')
+      const panel = new PoiDetailPanel(container)
+      panel.show(poi)
+      panel.collapse()
+      panel.show(poi)
+      expect(container.querySelector('.poi-detail-panel')?.classList.contains('poi-detail-panel--collapsed')).toBe(false)
+    })
+
+    it('tapping the collapsed strip (not ✕) expands the panel', () => {
+      const container = document.createElement('div')
+      const panel = new PoiDetailPanel(container)
+      panel.show(poi)
+      panel.collapse()
+      container.querySelector('.poi-detail-panel')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(container.querySelector('.poi-detail-panel')?.classList.contains('poi-detail-panel--collapsed')).toBe(false)
+    })
+
+    it('clicking the close button while collapsed hides the panel instead of expanding', () => {
+      const container = document.createElement('div')
+      const panel = new PoiDetailPanel(container)
+      panel.show(poi)
+      panel.collapse()
+      container.querySelector<HTMLButtonElement>('.btn-close')?.click()
+      expect(container.querySelector('.poi-detail-panel')?.classList.contains('hidden')).toBe(true)
+    })
+
+    it('collapse() is a no-op when the panel is hidden', () => {
+      const container = document.createElement('div')
+      const panel = new PoiDetailPanel(container)
+      panel.collapse()
+      expect(container.querySelector('.poi-detail-panel')?.classList.contains('poi-detail-panel--collapsed')).toBe(false)
+    })
+  })
 })
