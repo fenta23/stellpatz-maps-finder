@@ -39,6 +39,8 @@ import { AuthPanel } from '@/features/auth/AuthPanel.js'
 import { InfoPanel } from '@/features/info/InfoPanel.js'
 import { DatenschutzPanel } from '@/features/info/DatenschutzPanel.js'
 import { ImpressumPanel } from '@/features/info/ImpressumPanel.js'
+import { HelpPanel } from '@/features/help/HelpPanel.js'
+import { HelpSeenStore } from '@/features/help/HelpSeenStore.js'
 import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
@@ -47,7 +49,7 @@ import { initCustomPois } from './customPoiWiring.js'
 import { initAuthSync } from './authWiring.js'
 import { API_BASE, apiUrl } from '@/core/config.js'
 import {
-  SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD, SVG_SHIELD, SVG_BUILDING,
+  SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD, SVG_SHIELD, SVG_BUILDING, SVG_HELP,
 } from './icons.js'
 
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447]
@@ -79,6 +81,7 @@ async function init() {
   // ── Early services (auth depends on favorites/notes refs) ───────────────────
   const favorites = new SyncedFavoritesStore(new LocalFavoritesStore())
   const notes = new SyncedNotesStore(new LocalNotesStore())
+  const helpSeenStore = new HelpSeenStore()
 
   const supabase = getSupabaseClient()
   let auth: Auth | null = null
@@ -226,6 +229,8 @@ async function init() {
       disconnectCustomPois: customPois.disconnect,
       onFavoritesSynced: () => markerManager.setFavorites(favorites.getAll()),
       onCustomPoisSynced: () => customPois.refreshMarkers(),
+      helpSeenStore,
+      onHelpSeenFromServer: () => helpPanel.close(),
     })
   }
 
@@ -382,10 +387,17 @@ async function init() {
   const infoPanel = new InfoPanel(document.body)
   const datenschutzPanel = new DatenschutzPanel(document.body)
   const impressumPanel = new ImpressumPanel(document.body)
+  const helpPanel = new HelpPanel(document.body, () => {
+    helpSeenStore.markSeen()
+    if (supabase) {
+      void supabase.auth.updateUser({ data: { helpSeen: true } })
+        .catch(err => console.warn('[help] metadata sync failed:', err))
+    }
+  })
 
   const closeAll = () => {
     infoPanel.close(); datenschutzPanel.close(); impressumPanel.close()
-    favoritesPanel.close(); notesPanel.close()
+    favoritesPanel.close(); notesPanel.close(); helpPanel.close()
   }
 
   const menuItems: MenuEntry[] = [
@@ -396,6 +408,7 @@ async function init() {
   if (authPanel) {
     menuItems.push({ icon: SVG_USER, label: 'Konto', onSelect: () => authPanel!.open() })
   }
+  menuItems.push({ icon: SVG_HELP, label: 'Hilfe', onSelect: () => { closeAll(); helpPanel.open() } })
   menuItems.push({ icon: SVG_INFO, label: 'Info', onSelect: () => { closeAll(); infoPanel.open() } })
   menuItems.push({ kind: 'divider' })
   menuItems.push({ kind: 'section', label: 'Rechtliches' })
@@ -413,6 +426,9 @@ async function init() {
   // ── Update banner ───────────────────────────────────────────────────────────
   const updateBanner = new UpdateBanner()
   watchServiceWorkerUpdates(updateBanner)
+
+  // ── Help overlay: show once on first visit ──────────────────────────────────
+  if (!helpSeenStore.isSeen()) helpPanel.open()
 }
 
 init().catch(err => {

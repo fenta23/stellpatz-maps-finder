@@ -7,6 +7,7 @@ import { createSupabaseFavoritesBackend } from '@/features/favorites/RemoteFavor
 import { createSupabaseNotesBackend } from '@/features/notes/RemoteNotesStore.js'
 import { createSupabaseFilterBackend } from '@/features/filters/RemoteFilterStore.js'
 import { createSupabaseCustomPoiBackend, type CustomPoiBackend } from '@/features/custom-pois/RemoteCustomPoiStore.js'
+import type { HelpSeenStore } from '@/features/help/HelpSeenStore.js'
 
 export interface AuthSyncDeps {
   readonly auth: Auth
@@ -18,10 +19,12 @@ export interface AuthSyncDeps {
   readonly disconnectCustomPois: () => void
   readonly onFavoritesSynced: () => void
   readonly onCustomPoisSynced: () => void
+  readonly helpSeenStore: HelpSeenStore
+  readonly onHelpSeenFromServer: () => void
 }
 
 export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
-  const { auth, supabase, favorites, notes, filterStore, connectCustomPois, disconnectCustomPois, onFavoritesSynced, onCustomPoisSynced } = deps
+  const { auth, supabase, favorites, notes, filterStore, connectCustomPois, disconnectCustomPois, onFavoritesSynced, onCustomPoisSynced, helpSeenStore, onHelpSeenFromServer } = deps
 
   auth.onChange(user => {
     if (user) {
@@ -32,6 +35,10 @@ export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
       void connectCustomPois(createSupabaseCustomPoiBackend(supabase, user.id))
         .then(() => onCustomPoisSynced())
       void filterStore.connect(createSupabaseFilterBackend(supabase, user.id))
+      if (user.user_metadata?.helpSeen) {
+        helpSeenStore.markSeen()
+        onHelpSeenFromServer()
+      }
     } else {
       favorites.disconnect()
       notes.disconnect()
