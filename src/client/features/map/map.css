@@ -3,9 +3,11 @@
 .map-actions {
     display: flex;
     align-items: center;
-    background: var(--surface);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-sm);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(44, 40, 34, 0.14);
     overflow: hidden;
 }
 .map-actions .locate-btn {
@@ -88,8 +90,9 @@ Zoom selectors are #map-scoped to outrank Leaflet's own (later-injected) CSS. â”
     height: 34px;
     border: none;
     cursor: pointer;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.92);
     color: var(--ink-muted);
+    box-shadow: 0 2px 10px rgba(44, 40, 34, 0.12);
     transition:
         background 0.15s,
         color 0.15s;
@@ -115,10 +118,10 @@ Zoom selectors are #map-scoped to outrank Leaflet's own (later-injected) CSS. â”
 }
 
 .layer-btn:first-child {
-    border-radius: 4px 4px 0 0;
+    border-radius: 8px 8px 0 0;
 }
 .layer-btn:last-child {
-    border-radius: 0 0 4px 4px;
+    border-radius: 0 0 8px 8px;
 }
 .layer-btn.active {
     background: var(--accent-soft);
@@ -128,12 +131,16 @@ Zoom selectors are #map-scoped to outrank Leaflet's own (later-injected) CSS. â”
 /* Hairline between + / âˆ’ (matches the layer switcher's 1px gap look). */
 #map .leaflet-bar a.leaflet-control-zoom-in {
     border-bottom: 1px solid var(--border-soft);
+    border-radius: 8px 8px 0 0;
+}
+#map .leaflet-bar a.leaflet-control-zoom-out {
+    border-radius: 0 0 8px 8px;
 }
 /* Disabled zoom (at min/max) stays neutral, no hover tint. */
 #map .leaflet-bar a.leaflet-disabled,
 #map .leaflet-bar a.leaflet-disabled:hover {
     color: var(--ink-faint);
-    background: #fff;
+    background: rgba(255, 255, 255, 0.92);
     cursor: default;
 }
 /* â”€â”€ Desktop: shift top-right controls when detail panel is open â”€â”€ */

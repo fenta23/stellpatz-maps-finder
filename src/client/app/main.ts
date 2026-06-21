@@ -278,10 +278,31 @@ async function init() {
     }
   })
 
-  // ── Mobile: collapse detail panel when user drags the map ──────────────────
-  mapService.onDragStart(() => {
-    if (window.matchMedia('(max-width: 600px)').matches) detailPanel.collapse()
+  // ── Mobile: collapse topbar/filter + detail panel on map interaction ───────
+  const isMobile = () => window.matchMedia('(max-width: 600px)').matches
+  const collapseUI = () => {
+    if (!isMobile()) return
+    document.body.classList.add('ui-collapsed')
+    detailPanel.collapse()
+  }
+  const expandUI = () => document.body.classList.remove('ui-collapsed')
+
+  mapService.onDragStart(collapseUI)
+  mapService.onZoomStart(collapseUI)
+
+  // Float control buttons restore the full UI
+  const floatMenu = document.getElementById('float-menu')
+  const floatSearch = document.getElementById('float-search')
+  const floatFilters = document.getElementById('float-filters')
+  const btnMenu = document.getElementById('btn-menu')
+
+  floatMenu?.addEventListener('click', () => { expandUI(); btnMenu?.click() })
+  floatSearch?.addEventListener('click', () => {
+    expandUI()
+    const input = document.querySelector<HTMLInputElement>('.search-input')
+    setTimeout(() => input?.focus(), 300) // after transition
   })
+  floatFilters?.addEventListener('click', () => expandUI())
 
   // ── Detail panel events ─────────────────────────────────────────────────────
   detailPanel.onNavigate(({ poi }) => void selection.navigate(poi))

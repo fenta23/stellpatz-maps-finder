@@ -156,6 +156,7 @@ export class MapService {
   private readonly placementListeners: Array<(lat: number, lng: number) => void> = []
   private readonly locateListeners: Array<() => void> = []
   private readonly dragStartListeners: Array<() => void> = []
+  private readonly zoomStartListeners: Array<() => void> = []
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private _isPlacing = false
   private _routingContainer: HTMLElement | null = null
@@ -188,6 +189,10 @@ export class MapService {
 
     this.map.on('dragstart', () => {
       for (const l of this.dragStartListeners) l()
+    })
+
+    this.map.on('zoomstart', () => {
+      for (const l of this.zoomStartListeners) l()
     })
 
     this.map.on('contextmenu', (e: L.LeafletMouseEvent) => {
@@ -243,6 +248,15 @@ export class MapService {
     return () => {
       const idx = this.dragStartListeners.indexOf(listener)
       if (idx !== -1) this.dragStartListeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when the user starts a zoom gesture (pinch or scroll). */
+  onZoomStart(listener: () => void): () => void {
+    this.zoomStartListeners.push(listener)
+    return () => {
+      const idx = this.zoomStartListeners.indexOf(listener)
+      if (idx !== -1) this.zoomStartListeners.splice(idx, 1)
     }
   }
 

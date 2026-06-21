@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Mobile: Topbar und Filter-Leiste kollabieren bei Karten-Interaktion.** Sobald der Nutzer die Karte per Drag oder Pinch-Zoom bewegt, werden `#topbar` und `#filter-panel` ausgeblendet und durch eine schmale, über der Karte schwebende Button-Leiste (`#float-controls`) mit Menü-, Such- und Filter-Icon ersetzt. Die Karte nutzt sofort die volle Höhe. Ein Tap auf einen der Float-Buttons stellt die komplette UI wieder her. Die Float-Controls teilen das vereinheitlichte Overlay-Styling (s. u.). Nur auf Mobile (≤600px).
+- **Desktop: Layer-Switcher weicht dem Detail-Panel aus.** Öffnet sich das POI-Detail-Panel (340px rechte Sidebar), bekommt der Leaflet-Layer-Switcher (Position `topright`) einen `margin-right: 340px` — er bleibt sichtbar, statt verdeckt zu werden. Gesteuert via `body.detail-open`-Klasse.
+- **`MapService.onZoomStart()`** — neuer Event für Zoom-Gesten (Pinch/Scroll), analog zum bestehenden `onDragStart()`. Wird für den Mobile-UI-Collapse genutzt.
+
+### Changed
+- **Map-Overlay-Controls: vereinheitlichtes Styling.** Zoom-Buttons, Layer-Switcher, Map-Actions und Float-Controls teilen jetzt eine konsistente Design-Sprache: `border-radius: 8–12px` (statt 4px eckig / 24px Pill), semi-transparenter Hintergrund (`rgba(255,255,255,0.88)`) mit `backdrop-filter: blur(10px)`, und weicher, einheitlicher Schatten (`0 2px 10px rgba(44,40,34,0.12)`). Kein Element sticht mehr optisch heraus.
+
 ### Fixed
 - **KI-Suche-Button („✨") blieb für ausgeloggte Nutzer sichtbar.** Das Login-Gating setzte das `hidden`-Attribut des Buttons, aber `.search-ai { display: flex }` (Klassen-Selektor) überstimmt das Attribut — derselbe Spezifitäts-Fehler wie beim 3-Punkte-Menü (s. u.). Jetzt wird die `.hidden`-Klasse getoggelt (wie beim Clear-Button); Button startet `search-ai hidden`. Backend-Gate (401) und die POI-Zusammenfassung waren korrekt — nur der Button war optisch nicht versteckt. Regressionstest in `SearchBar.test.ts` (prüft die `.hidden`-Klasse, nicht das Attribut).
 - **Funktionsloses 3-Punkte-Menü bei OSM-POIs entfernt.** Das Kebab-Menü (Bearbeiten/Löschen) ist nur für eigene/importierte POIs gedacht. Bei OSM-POIs erschien der Button trotzdem — ohne Funktion —, weil `.poi-menu-wrap { display: inline-flex }` das `hidden`-Attribut der Vorlage überstimmte. Der Wrapper wird für Nicht-Custom-POIs jetzt gar nicht mehr gerendert. Regressionstest in `PoiDetailPanel.test.ts`.
