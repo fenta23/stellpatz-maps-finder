@@ -1,7 +1,12 @@
 <div class="modal-backdrop"></div>
 <div class="custom-poi-editor" role="dialog" aria-label="POI bearbeiten">
   <div class="editor-scroll">
-    <h2 data-ref="editorTitle">POI hinzufügen</h2>
+    <div class="editor-header">
+      <span class="editor-title" data-ref="editorTitle">POI hinzufügen</span>
+      <button class="editor-close" type="button" aria-label="Schließen" data-ref="closeBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
     <div data-ref="positionDisplay" class="editor-position" style="display:none">
       <span class="editor-position-label">Position</span>
       <span class="editor-position-coords"><span data-ref="posLat"></span>, <span data-ref="posLon"></span></span>

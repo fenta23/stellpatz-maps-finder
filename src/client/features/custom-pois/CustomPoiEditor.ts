@@ -141,7 +141,7 @@ export class CustomPoiEditor {
       if (!el) {
         el = document.createElement('p')
         el.className = 'editor-error'
-        q<HTMLElement>('[data-ref="editorTitle"]')?.after(el)
+        q<HTMLElement>('.editor-header')?.after(el)
       }
       el.textContent = msg
     }
@@ -162,6 +162,9 @@ export class CustomPoiEditor {
       if (e.key === 'Escape') { cleanup(); onDone(null); document.removeEventListener('keydown', keyHandler) }
     }
     document.addEventListener('keydown', keyHandler)
+
+    // Close button
+    q<HTMLButtonElement>('[data-ref="closeBtn"]')?.addEventListener('click', () => { cleanup(); onDone(null) })
 
     // Close on backdrop click
     root.querySelector('.modal-backdrop')?.addEventListener('click', () => { cleanup(); onDone(null) })
