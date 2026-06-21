@@ -1,6 +1,8 @@
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
+// Shared shell + design tokens — must load before any feature CSS (cascade base).
+import '@/styles/shell.css'
 import { MapService, getUserLocation } from '@/features/map/MapService.js'
 import { createLeafletMarkerAdapter } from '@/features/map/leafletAdapter.js'
 import { createLocationMarker } from '@/features/map/locationMarker.js'
@@ -51,6 +53,9 @@ import { API_BASE, apiUrl } from '@/core/config.js'
 import {
   SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD, SVG_SHIELD, SVG_BUILDING, SVG_HELP,
 } from './icons.js'
+// Cross-cutting responsive overrides — must load AFTER all feature CSS so the
+// media-query rules win over feature base rules of equal specificity.
+import '@/styles/responsive.css'
 
 const DEFAULT_CENTER: [number, number] = [51.163, 10.447]
 

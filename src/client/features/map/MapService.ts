@@ -1,3 +1,4 @@
+import './map.css'
 import L from 'leaflet'
 import type { LatLngBounds } from '@/features/pois/OverpassClient.js'
 

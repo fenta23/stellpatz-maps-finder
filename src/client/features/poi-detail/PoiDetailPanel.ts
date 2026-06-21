@@ -1,3 +1,4 @@
+import './poi-detail.css'
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
 import { buildGoogleMapsPoiLink, buildNavLink } from '@/features/routing/DirectionsService.js'
 import type { RouteResult, RoutingMode, LatLon } from '@/features/routing/DirectionsService.js'

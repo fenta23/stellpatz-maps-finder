@@ -1,3 +1,4 @@
+import './search.css'
 import type { LatLngBounds } from '@/features/pois/OverpassClient.js'
 import { apiUrl } from '@/core/config.js'
 import { createEventScope, type EventScope } from '@/core/events.js'

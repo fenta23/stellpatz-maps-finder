@@ -1,3 +1,4 @@
+import './auth.css'
 import type { User } from '@supabase/supabase-js'
 import type { Auth } from './auth.js'
 import { isValidEmail } from './isValidEmail.js'

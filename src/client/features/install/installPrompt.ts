@@ -1,3 +1,4 @@
+import './install.css'
 // Add-to-home-screen UX.
 //
 // Chrome/Android fire `beforeinstallprompt` → we stash it and show an install
