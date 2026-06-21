@@ -9,6 +9,7 @@
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(44, 40, 34, 0.14);
     overflow: hidden;
+    margin-bottom: 20px!important
 }
 .map-actions .locate-btn {
     display: flex;
@@ -110,7 +111,7 @@ body.ui-collapsed .leaflet-top {
 
 /* More spacing between bottom-left controls and attribution */
 .leaflet-bottom .leaflet-control {
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 .layer-btn svg,
