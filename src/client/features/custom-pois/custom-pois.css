@@ -209,12 +209,30 @@ difference, so both columns bottom-align cleanly instead of leaving a hole. */
         width: 100%;
         min-height: 100%;
         margin: 0;
-        padding: calc(12px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));
+        padding: 0 16px calc(12px + env(safe-area-inset-bottom));
         box-shadow: none;
     }
     .editor-header {
-        padding-top: 4px;
-        padding-bottom: 14px;
+        margin: 0 -16px 14px;
+        padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+        background: var(--accent-strong);
+        color: #fff;
+        border-radius: 0;
+    }
+    .editor-title {
+        color: #fff;
+    }
+    .editor-close {
+        color: #fff;
+    }
+    .editor-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+    .custom-poi-editor input,
+    .custom-poi-editor textarea {
+        width: 100%;
+        box-sizing: border-box;
     }
 }
 
