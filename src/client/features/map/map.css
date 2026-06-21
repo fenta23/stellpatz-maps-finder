@@ -73,6 +73,10 @@
 
 /* ── Map controls: one consistent look for zoom, layer switcher & locate.
 Zoom selectors are #map-scoped to outrank Leaflet's own (later-injected) CSS. ── */
+/* When the topbar is collapsed, push controls below the notch. */
+body.ui-collapsed .leaflet-top {
+    margin-top: env(safe-area-inset-top);
+}
 .layer-switcher {
     display: flex;
     flex-direction: column;
