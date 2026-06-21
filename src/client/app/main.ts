@@ -299,8 +299,7 @@ async function init() {
   floatMenu?.addEventListener('click', () => { expandUI(); btnMenu?.click() })
   floatSearch?.addEventListener('click', () => {
     expandUI()
-    const input = document.querySelector<HTMLInputElement>('.search-input')
-    setTimeout(() => input?.focus(), 300) // after transition
+    document.querySelector<HTMLInputElement>('.search-input')?.focus()
   })
   floatFilters?.addEventListener('click', () => expandUI())
 

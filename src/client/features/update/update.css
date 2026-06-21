@@ -10,6 +10,11 @@
     font-weight: 500;
     flex-shrink: 0;
 }
+/* When the topbar is collapsed, the banner sits at the screen edge —
+   push it below the notch / Dynamic Island. */
+body.ui-collapsed .update-banner.visible {
+    padding-top: calc(10px + env(safe-area-inset-top));
+}
 .update-banner.visible {
     display: flex;
 }
