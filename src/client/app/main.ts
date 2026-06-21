@@ -100,16 +100,15 @@ async function init() {
   const flashStatus = (msg: string) => { setStatus(msg, true); setTimeout(() => setStatus(''), 3000) }
   const flashInfo = (msg: string) => { setStatus(msg); setTimeout(() => setStatus(''), 3500) }
 
-  // ── Location ────────────────────────────────────────────────────────────────
-  const userPos = await requestLocation(statusEl)
-  setStatus('')
-
   // ── Map + core services ─────────────────────────────────────────────────────
-  const mapService = new MapService(mapContainer, userPos ?? DEFAULT_CENTER, userPos ? 13 : 6)
+  // Karte sofort mit Default-Center rendern – die App wartet NICHT (mehr) auf die
+  // Geolocation. Der Standort wird unten asynchron ermittelt und zentriert die
+  // Karte erst, wenn er vorliegt. So bleiben Menü & Interaktionen sofort bedienbar.
+  const mapService = new MapService(mapContainer, DEFAULT_CENTER, 6)
   const map = mapService.getMap()
   const routingToggle = mapService.getRoutingContainer()!
   const directions = new DirectionsService(map)
-  const session = createSession(userPos ? { lat: userPos[0], lon: userPos[1] } : null)
+  const session = createSession(null)
 
   // ── Filters ─────────────────────────────────────────────────────────────────
   const filterStore = new SyncedFilterStore(new LocalFilterStore())
@@ -126,11 +125,22 @@ async function init() {
 
   // ── Location marker ─────────────────────────────────────────────────────────
   const locationMarker = createLocationMarker(map)
-  if (userPos) {
-    locationMarker.update(userPos)
-  } else {
-    flashStatus('Standort nicht verfügbar – Karte auf Deutschland zentriert')
-  }
+
+  // Erst-Standort nicht blockierend ermitteln und Karte zentrieren – aber nur,
+  // solange der Nutzer die Karte noch nicht selbst bewegt hat (kein Ruck/Sprung).
+  let userMovedMap = false
+  mapService.onDragStart(() => { userMovedMap = true })
+  void requestLocation(statusEl).then(userPos => {
+    setStatus('')
+    if (userPos) {
+      session.userPos = { lat: userPos[0], lon: userPos[1] }
+      locationMarker.update(userPos)
+      if (!userMovedMap) mapService.setCenter(userPos[0], userPos[1], 13)
+    } else {
+      flashStatus('Standort nicht verfügbar – Karte auf Deutschland zentriert')
+    }
+  })
+
   navigator.geolocation?.watchPosition(
     pos => {
       const next: [number, number] = [pos.coords.latitude, pos.coords.longitude]
