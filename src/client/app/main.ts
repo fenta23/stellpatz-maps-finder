@@ -280,8 +280,11 @@ async function init() {
 
   // ── Mobile: collapse topbar/filter + detail panel on map interaction ───────
   const isMobile = () => window.matchMedia('(max-width: 600px)').matches
+  let mapReady = false
+  setTimeout(() => { mapReady = true }, 800) // skip initial setView zoomstart
+
   const collapseUI = () => {
-    if (!isMobile()) return
+    if (!isMobile() || !mapReady) return
     document.body.classList.add('ui-collapsed')
     detailPanel.collapse()
   }
