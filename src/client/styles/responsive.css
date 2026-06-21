@@ -21,6 +21,9 @@ steal space from the absolutely-positioned map. */
     body.ui-collapsed #filter-panel {
         display: none;
     }
+    body.ui-collapsed #status{
+        top: 70px;
+    }
 
     /* ── Floating pill controls (shown when collapsed) ── */
     #float-controls {
