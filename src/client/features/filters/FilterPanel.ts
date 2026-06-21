@@ -1,3 +1,4 @@
+import './filters.css'
 import { filterIconSvg, type FilterDef } from './filterModel.js'
 import type { IFilterStore } from './FilterStore.js'
 import { createEventScope } from '@/core/events.js'

@@ -1,3 +1,4 @@
+import './ai.css'
 import { clone, ref } from '@/core/template.js'
 import { sendAiChat, type ChatTurn } from './AiClient.js'
 import type { AiIntent } from './intentSchema.js'

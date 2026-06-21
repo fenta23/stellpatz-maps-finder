@@ -1,3 +1,4 @@
+import '@/features/import/import.css'
 import { clone, ref } from '@/core/template.js'
 import { importGoogleMapsFile, type Geocoder } from '@/features/import/GoogleMapsImport.js'
 import type { ICustomPoiStore } from '@/features/custom-pois/CustomPoiStore.js'
