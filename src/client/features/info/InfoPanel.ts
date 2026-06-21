@@ -1,9 +1,10 @@
+import './info.css'
 import { clone, ref } from '@/core/template.js'
 import { createEventScope, type EventScope } from '@/core/events.js'
 import panelHtml from './infoPanel.html?raw'
 import changelogRaw from '../../../../CHANGELOG.md?raw'
 
-const VERSION = '0.9.0'
+const VERSION = '0.9.1'
 
 // DSGVO-Verantwortlicher: per Build-Env injiziert (GitHub Secret), damit der
 // Klarname nicht im öffentlichen Repo steht. Auf der Live-Seite ist er sichtbar

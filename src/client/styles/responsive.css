@@ -1,0 +1,84 @@
+@media (max-width: 600px) {
+    /* Hide the app title from the topbar on mobile — it's in the sidebar now. */
+    #topbar h1 {
+        display: none;
+    }
+
+    /* The detail panel child is fixed on mobile; reset parent so it doesn't
+steal space from the absolutely-positioned map. */
+    #detail-panel {
+        position: static;
+        width: auto;
+    }
+
+    /* Filter bar stays compact — routing is now on the map. */
+    #filter-panel {
+        padding: 8px;
+    }
+
+    /* fixed (not absolute): the #detail-panel host collapses to 0 width on
+mobile because its only child is out of flow — anchor to the viewport.
+z-index must beat Leaflet's panes/controls (root stacking context). */
+    .poi-detail-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 50dvh;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        border-radius: var(--radius) var(--radius) 0 0;
+        box-shadow: 0 -4px 16px rgba(44, 40, 34, 0.18);
+        z-index: 1100;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Compact header + action footer on mobile so the panel stays
+       short and more of the map remains visible. */
+    .poi-detail-panel .panel-header {
+        padding: 12px 16px 8px;
+    }
+    .poi-detail-panel .panel-actions {
+        padding: 8px 14px calc(-36px + env(safe-area-inset-bottom));
+        gap: 6px;
+    }
+    .poi-detail-panel .btn-primary {
+        padding: 9px;
+        font-size: 0.85rem;
+    }
+    /* On mobile the three secondary actions sit side by side; Google
+       Maps loses its full-width row to save vertical space. */
+    .poi-detail-panel .panel-actions-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+    }
+    .poi-detail-panel .btn-maps {
+        grid-column: auto;
+    }
+    .poi-detail-panel .panel-actions-grid .btn-secondary {
+        padding: 7px 6px;
+        font-size: 0.78rem;
+    }
+
+    /* Collapsed bottom-sheet: only the header stripe is visible.
+       Tapping anywhere on the strip (except ✕) re-expands the panel. */
+    .poi-detail-panel--collapsed {
+        height: 3.5rem;
+        cursor: pointer;
+    }
+
+    /* Drag-handle indicator shown when the panel is collapsed */
+    .poi-detail-panel--collapsed::before {
+        content: '';
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        pointer-events: none;
+    }
+}

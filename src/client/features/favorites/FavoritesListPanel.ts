@@ -1,3 +1,4 @@
+import './favorites.css'
 import type { FavoritePoi } from './FavoritesStore.js'
 import { favoriteLabel, typeIcon, typeLabel } from './poiLabel.js'
 import { paginate } from '@shared/paginate.js'

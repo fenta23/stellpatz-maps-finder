@@ -1,0 +1,630 @@
+/* ── Detail panel ── */
+#detail-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 340px;
+    z-index: 1;
+    /* Host spans the right strip even while empty — let clicks fall
+       through to the map controls (layer switcher) underneath it.
+       The visible panel re-enables pointer events for itself. */
+    pointer-events: none;
+}
+
+.poi-detail-panel {
+    width: 340px;
+    height: 100%;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, height 0.25s ease;
+    pointer-events: auto;
+}
+.poi-detail-panel.hidden {
+    display: none;
+}
+
+/* Panel = header (fixed) + scrollable middle + docked action footer. */
+.poi-detail-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.poi-detail-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.panel-header h2 {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.2px;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--ink-muted);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+.btn-close:hover {
+    background: var(--surface-2);
+}
+
+.btn-favorite {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-faint);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+    transition:
+        color 0.15s,
+        transform 0.1s;
+    display: inline-flex;
+}
+.btn-favorite svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+.btn-favorite:hover {
+    color: var(--terracotta);
+}
+.btn-favorite.active {
+    color: var(--terracotta);
+}
+.btn-favorite.active svg {
+    fill: currentColor;
+}
+.btn-favorite.active:active {
+    transform: scale(0.85);
+}
+
+/* ── Header overflow (⋮) menu: POI-specific actions (edit / delete) ── */
+.poi-menu-wrap {
+    position: relative;
+    display: inline-flex;
+}
+.btn-kebab {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-muted);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+    display: inline-flex;
+}
+.btn-kebab svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+.btn-kebab:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+}
+.poi-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 168px;
+    padding: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 20;
+}
+.poi-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 9px 10px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    color: var(--ink);
+    text-align: left;
+}
+.poi-menu-item svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+.poi-menu-item:hover {
+    background: var(--surface-2);
+}
+.poi-menu-item--danger {
+    color: #e53935;
+}
+.poi-menu-item--danger:hover {
+    background: #ffebee;
+}
+
+.route-summary {
+    padding: 11px 18px;
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: var(--ink);
+}
+.route-summary svg {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+}
+.detour {
+    color: var(--ink-muted);
+}
+
+.route-start {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 7px 18px;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface);
+}
+.route-start strong {
+    color: var(--ink);
+    font-weight: 600;
+}
+.route-start-reset {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    color: var(--terracotta);
+    font-size: 0.8rem;
+    text-decoration: underline;
+}
+.btn-go svg,
+.btn-set-start svg {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+}
+
+.poi-tags {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    flex: 1;
+}
+.poi-tags th,
+.poi-tags td {
+    padding: 8px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-soft);
+}
+.poi-tags th {
+    color: var(--ink-muted);
+    font-weight: 500;
+    width: 40%;
+}
+.poi-tags td {
+    color: var(--ink);
+}
+.poi-tags a {
+    color: var(--terracotta);
+}
+
+.panel-actions {
+    flex-shrink: 0;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--border-soft);
+    background: var(--surface);
+    box-shadow: 0 -3px 10px rgba(44, 40, 34, 0.06);
+}
+
+.btn-primary {
+    padding: 11px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+}
+.btn-primary:hover {
+    background: var(--accent-strong);
+}
+
+.btn-secondary {
+    padding: 10px;
+    background: var(--surface);
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+}
+.btn-secondary:hover {
+    background: var(--accent-soft);
+}
+
+/* Compact 2-column grid for the secondary actions (the panel grew a lot). */
+.panel-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.panel-actions-grid .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 9px 8px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    margin: 0;
+    min-width: 0;
+}
+.panel-actions-grid .btn-secondary svg {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    flex-shrink: 0;
+}
+.panel-actions-grid .btn-secondary[hidden] {
+    display: none;
+}
+/* Maps link spans the full width on its own row. */
+.btn-maps {
+    grid-column: 1 / -1;
+}
+
+.btn-delete {
+    border-color: #e53935;
+    color: #e53935;
+}
+.btn-delete:hover {
+    background: #ffebee;
+}
+
+/* ── Opening hours badge ── */
+.oh-badge {
+    padding: 6px 18px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-bottom: 1px solid transparent;
+}
+.oh-open {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-color: var(--border-soft);
+}
+.oh-closed {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: var(--danger-soft);
+}
+
+/* ── Nearby amenities ── */
+.nearby-heading {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 12px 18px 4px;
+}
+.nearby-hint {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink-faint);
+}
+.nearby-list {
+    list-style: none;
+    padding: 0 12px 10px;
+    border-bottom: 1px solid var(--border-soft);
+}
+.nearby-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding: 6px 6px;
+    font-size: 0.83rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    border-radius: var(--radius-sm);
+    color: inherit;
+}
+.nearby-item:hover {
+    background: var(--surface-2);
+}
+.nearby-item.active {
+    background: var(--accent-soft);
+}
+.nearby-item.active .nearby-name {
+    color: var(--accent-strong);
+    font-weight: 600;
+}
+.nearby-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+}
+.nearby-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+.nearby-name {
+    flex: 1;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nearby-dist {
+    flex-shrink: 0;
+    color: var(--ink-faint);
+    font-size: 0.78rem;
+}
+
+/* ── Image strip ── */
+.poi-img-strip {
+    display: flex;
+    gap: 7px;
+    padding: 12px 18px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border-soft);
+}
+.poi-img-item {
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    position: relative;
+    display: block;
+}
+.poi-img-thumb {
+    height: 110px;
+    width: auto;
+    display: block;
+    object-fit: cover;
+}
+.poi-img-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(44, 40, 34, 0.6);
+    color: #fff;
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── My personal note (editor) ── */
+.poi-mynote {
+    padding: 12px 18px 14px;
+    border-top: 1px solid var(--border-soft);
+}
+.mynote-heading {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0 0 8px;
+}
+.mynote-input {
+    width: 100%;
+    resize: vertical;
+    min-height: 56px;
+    padding: 9px 11px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+}
+.mynote-input:focus {
+    border-color: var(--accent);
+}
+.mynote-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+.mynote-save {
+    border: 1.5px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 7px 16px;
+    cursor: pointer;
+}
+.mynote-save:hover {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+}
+.mynote-status {
+    font-size: 0.78rem;
+    color: var(--accent-strong);
+}
+
+/* ── KI summary (Phase 1 sidecar) ── */
+.poi-ai-summary {
+    padding: 12px 18px 14px;
+    border-top: 1px solid var(--border-soft);
+}
+.ai-summary-heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0 0 6px;
+}
+.ai-summary-heading svg {
+    width: 14px;
+    height: 14px;
+    color: var(--accent);
+}
+.ai-summary-text {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--ink);
+}
+.ai-summary-loading {
+    margin: 0;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--ink-faint);
+}
+
+/* ── Notes section (community OSM notes) ── */
+.poi-notes {
+    padding: 0 18px 14px;
+    border-top: 1px solid var(--border-soft);
+}
+.notes-loading {
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    font-style: italic;
+    padding: 10px 0 0;
+}
+.notes-heading {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 12px 0 6px;
+}
+.note-item {
+    background: #fbf4e4;
+    border: 1px solid #e6d6b0;
+    border-radius: var(--radius-sm);
+    padding: 8px 11px;
+    margin-bottom: 6px;
+}
+.note-text {
+    font-size: 0.82rem;
+    color: var(--ink);
+    line-height: 1.45;
+}
+.note-meta {
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    margin-top: 3px;
+}
+.note-text a {
+    color: var(--terracotta);
+    word-break: break-all;
+}
+.note-img {
+    display: block;
+    max-height: 100px;
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+    margin-top: 5px;
+    object-fit: cover;
+}
+
+/* ── Lightbox ── */
+#poi-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#poi-lightbox.hidden {
+    display: none;
+}
+.lightbox-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(28, 25, 21, 0.9);
+}
+.lightbox-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 1;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+.lightbox-img {
+    position: relative;
+    z-index: 1;
+    max-width: 92vw;
+    max-height: 88vh;
+    border-radius: var(--radius);
+    object-fit: contain;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}

@@ -1,3 +1,4 @@
+import './help.css'
 import { clone, ref } from '@/core/template.js'
 import { createEventScope, type EventScope } from '@/core/events.js'
 import panelHtml from './helpPanel.html?raw'

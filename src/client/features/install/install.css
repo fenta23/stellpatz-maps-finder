@@ -1,0 +1,16 @@
+/* ── Install hint (iOS add-to-home; surfaced later via Help) ── */
+.install-hint {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 1200;
+    max-width: 90%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 0.82rem;
+    padding: 11px 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}

@@ -1,3 +1,4 @@
+import './custom-pois.css'
 import type { MapAdapter, MarkerHandle } from '@/features/pois/PoiMarkerManager.js'
 import { svgToDataUrl } from '@/features/pois/PoiMarkerManager.js'
 import type { CustomPoi } from './CustomPoi.js'
