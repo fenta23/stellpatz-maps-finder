@@ -161,6 +161,7 @@ export class PoiDetailPanel {
   show(poi: OsmPoi, route?: RouteResult, mode: RoutingMode = 'driving', isFavorite = false, noteText = '', config?: PanelConfig, routing?: PanelRouting): void {
     this.expand()
     this.panel.classList.remove('hidden')
+    document.body.classList.add('detail-open')
     this.panel.innerHTML = ''
     const view = clone(panelHtml)
     this.panel.appendChild(view)
@@ -334,6 +335,7 @@ export class PoiDetailPanel {
   hide(): void {
     this.expand()
     this.panel.classList.add('hidden')
+    document.body.classList.remove('detail-open')
     this.panel.innerHTML = ''
     hideLightbox()
     for (const l of this.closeListeners) l()

@@ -136,3 +136,9 @@ Zoom selectors are #map-scoped to outrank Leaflet's own (later-injected) CSS. �
     background: #fff;
     cursor: default;
 }
+/* ── Desktop: shift top-right controls when detail panel is open ── */
+@media (min-width: 601px) {
+    body.detail-open .leaflet-top.leaflet-right {
+        margin-right: 340px;
+    }
+}
