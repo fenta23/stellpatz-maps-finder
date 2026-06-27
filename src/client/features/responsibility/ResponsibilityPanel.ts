@@ -1,17 +1,21 @@
-import { clone, ref } from '@/core/template.js'
+import './responsibility.css'
+import { clone } from '@/core/template.js'
 import { createEventScope, type EventScope } from '@/core/events.js'
-import panelHtml from './impressumPanel.html?raw'
+import panelHtml from './responsibilityPanel.html?raw'
 
-const CONTROLLER = import.meta.env.VITE_DSGVO_VERANTWORTLICHER ?? 'der Betreiber dieser App'
-
-export class ImpressumPanel {
+/**
+ * Statische, gestaltete Inhaltsseite „Verantwortungsvoll unterwegs":
+ * Kodex für respektvollen Umgang mit Natur, Umwelt und Mitmenschen.
+ * Schließen über die Close-Pill, den CTA-Button (beide `[data-close]`) oder Escape.
+ */
+export class ResponsibilityPanel {
   private readonly panel: HTMLElement
   private readonly events: EventScope = createEventScope()
 
   constructor(container: HTMLElement) {
     this.panel = clone(panelHtml)
-    ref(this.panel, 'controller').textContent = CONTROLLER
-    this.panel.querySelector('.fav-close')?.addEventListener('click', () => this.close())
+    this.panel.querySelectorAll('[data-close]').forEach(el =>
+      el.addEventListener('click', () => this.close()))
     // Klick auf den Backdrop (nur im Desktop-Modal sichtbar) schließt ebenfalls.
     this.panel.addEventListener('click', e => { if (e.target === this.panel) this.close() })
     container.appendChild(this.panel)
