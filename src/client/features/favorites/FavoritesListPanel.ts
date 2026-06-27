@@ -33,6 +33,8 @@ export class FavoritesListPanel {
     this.listEl = ref(this.panel, 'list')
     this.footer = ref(this.panel, 'footer')
     this.panel.querySelector('.fav-close')?.addEventListener('click', () => this.close())
+    // Klick auf den Backdrop (nur im Desktop-Modal sichtbar) schließt ebenfalls.
+    this.panel.addEventListener('click', e => { if (e.target === this.panel) this.close() })
     container.appendChild(this.panel)
 
     this.events.on(document, 'keydown', e => { if (e.key === 'Escape' && this.isOpen()) this.close() })

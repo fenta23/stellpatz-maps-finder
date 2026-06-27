@@ -54,6 +54,8 @@ export function initImport(deps: ImportWiringDeps): ImportHandle {
     input.click()
   })
   panel.querySelector('.fav-close')?.addEventListener('click', () => panel.classList.remove('open'))
+  // Klick auf den Backdrop (nur im Desktop-Modal sichtbar) schließt ebenfalls.
+  panel.addEventListener('click', e => { if (e.target === panel) panel.classList.remove('open') })
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && panel.classList.contains('open')) panel.classList.remove('open') })
 
   input.addEventListener('change', () => {

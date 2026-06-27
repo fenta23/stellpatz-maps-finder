@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`MapService.onZoomStart()`** — neuer Event für Zoom-Gesten (Pinch/Scroll), analog zum bestehenden `onDragStart()`. Wird für den Mobile-UI-Collapse genutzt.
 
 ### Changed
+- **Panels: einheitliches Page/Modal-Muster.** Alle Overlay-Panels der `.fav-panel`-Familie (Favoriten, Notizen, Filter verwalten, Google-Maps-Import, Info, Datenschutz, Impressum) verhalten sich jetzt einheitlich responsiv: **mobil (≤600px) vollflächige Page, Desktop (≥601px) zentriertes Modal** (max. 560px, gerundete Ecken, abgedunkelter Backdrop). Klick auf den Backdrop schließt — wie auf der neuen Seite „Verantwortungsvoll unterwegs". Umsetzung rein zentral in `styles/shell.css` (Backdrop via `::before`-Pseudo, kein HTML-Umbau) plus ein einheitlicher Backdrop-Close-Handler je Panel. Mobile-Darstellung unverändert.
 - **Map-Overlay-Controls: vereinheitlichtes Styling.** Zoom-Buttons, Layer-Switcher, Map-Actions und Float-Controls teilen jetzt eine konsistente Design-Sprache: `border-radius: 8–12px` (statt 4px eckig / 24px Pill), semi-transparenter Hintergrund (`rgba(255,255,255,0.88)`) mit `backdrop-filter: blur(10px)`, und weicher, einheitlicher Schatten (`0 2px 10px rgba(44,40,34,0.12)`). Kein Element sticht mehr optisch heraus.
 
 ### Fixed

@@ -94,4 +94,13 @@ describe('FavoritesListPanel', () => {
     panel.open()
     expect(document.querySelectorAll('.fav-page-btn')).toHaveLength(0)
   })
+
+  it('closes when the backdrop (panel root) is clicked, not the content', () => {
+    const { panel } = mount([poi('1')])
+    panel.open()
+    document.querySelector<HTMLElement>('.fav-header')!.click()
+    expect(panel.isOpen()).toBe(true)
+    document.querySelector<HTMLElement>('.fav-panel')!.click()
+    expect(panel.isOpen()).toBe(false)
+  })
 })

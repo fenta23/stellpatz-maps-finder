@@ -151,6 +151,35 @@
     display: flex;
 }
 
+/* ── Desktop: vollflächige Page → zentriertes Modal ──────────────────────────
+   Einheitliches Muster (vgl. .resp-panel): mobil = Page, ab 601px = Modal.
+   Der Backdrop ist ein ::before-Pseudo (deckt den Viewport ab, blockt Klicks
+   auf die Karte). Zentrierung via margin:auto (kein transform — sonst würde
+   das fixe ::before relativ zum Panel statt zum Viewport positioniert). */
+@media (min-width: 601px) {
+    .fav-panel.open {
+        inset: 0;
+        margin: auto;
+        width: min(560px, calc(100vw - 48px));
+        height: fit-content;
+        max-height: calc(100dvh - 48px);
+        padding: 0;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+    }
+    .fav-panel.open::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background: rgba(28, 25, 21, 0.55);
+    }
+    .fav-panel .fav-header {
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+}
+
 .fav-header {
     display: flex;
     align-items: center;
