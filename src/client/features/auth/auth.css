@@ -2,7 +2,7 @@
 .auth-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(28, 25, 21, 0.45);
+    background: rgba(28, 25, 21, 0.28);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s;
@@ -19,7 +19,7 @@
     left: 50%;
     transform: translate(-50%, -48%) scale(0.98);
     width: min(360px, 92vw);
-    background: var(--surface);
+    background: var(--bg);
     border-radius: var(--radius);
     box-shadow: var(--shadow-lg);
     z-index: 1800;
