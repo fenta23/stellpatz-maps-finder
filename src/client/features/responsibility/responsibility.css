@@ -173,33 +173,34 @@
     color: var(--accent-strong);
     font-style: italic;
 }
-.resp-chips {
+.resp-rules {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
+    flex-direction: column;
+    gap: 10px;
 }
-.resp-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 5px 11px;
-    background: var(--surface);
-    border: 1px solid var(--border-soft);
-    border-radius: var(--radius-pill);
-    font-size: 0.78rem;
-    font-weight: 500;
+.resp-rules li {
+    position: relative;
+    padding-left: 22px;
+    font-size: 0.9rem;
+    line-height: 1.5;
     color: var(--ink);
 }
-.resp-dot {
-    width: 9px;
-    height: 9px;
+.resp-rules li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 0.5em;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    flex-shrink: 0;
+    background: var(--accent-strong);
 }
-.resp-chip--ok .resp-dot { background: #4b8a3d; }
-.resp-chip--warn .resp-dot { background: #c99a2e; }
-.resp-chip--no .resp-dot { background: var(--danger); }
+.resp-rules strong {
+    color: var(--accent-strong);
+}
 .resp-where-note {
     margin: 0 !important;
     font-size: 0.8rem !important;
