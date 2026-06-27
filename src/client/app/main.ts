@@ -43,6 +43,7 @@ import { DatenschutzPanel } from '@/features/info/DatenschutzPanel.js'
 import { ImpressumPanel } from '@/features/info/ImpressumPanel.js'
 import { HelpPanel } from '@/features/help/HelpPanel.js'
 import { HelpSeenStore } from '@/features/help/HelpSeenStore.js'
+import { ResponsibilityPanel } from '@/features/responsibility/ResponsibilityPanel.js'
 import { createSession } from './session.js'
 import { createSelection } from './selection.js'
 import { createPoiRefresher } from './poiRefresher.js'
@@ -51,7 +52,7 @@ import { initCustomPois } from './customPoiWiring.js'
 import { initAuthSync } from './authWiring.js'
 import { API_BASE, apiUrl } from '@/core/config.js'
 import {
-  SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD, SVG_SHIELD, SVG_BUILDING, SVG_HELP,
+  SVG_STAR, SVG_NOTE, SVG_USER, SVG_TRASH, SVG_INFO, SVG_UPLOAD, SVG_SHIELD, SVG_BUILDING, SVG_HELP, SVG_LEAF,
 } from './icons.js'
 // Cross-cutting responsive overrides — must load AFTER all feature CSS so the
 // media-query rules win over feature base rules of equal specificity.
@@ -425,6 +426,7 @@ async function init() {
   const infoPanel = new InfoPanel(document.body)
   const datenschutzPanel = new DatenschutzPanel(document.body)
   const impressumPanel = new ImpressumPanel(document.body)
+  const responsibilityPanel = new ResponsibilityPanel(document.body)
   const helpPanel = new HelpPanel(document.body, () => {
     helpSeenStore.markSeen()
     if (supabase) {
@@ -436,11 +438,13 @@ async function init() {
   const closeAll = () => {
     infoPanel.close(); datenschutzPanel.close(); impressumPanel.close()
     favoritesPanel.close(); notesPanel.close(); helpPanel.close()
+    responsibilityPanel.close()
   }
 
   const menuItems: MenuEntry[] = [
     { icon: SVG_STAR, label: 'Favoriten', onSelect: () => { closeAll(); favoritesPanel.open() } },
     { icon: SVG_NOTE, label: 'Notizen', onSelect: () => { closeAll(); notesPanel.open() } },
+    { icon: SVG_LEAF, label: 'Verantwortungsvoll unterwegs', onSelect: () => { closeAll(); responsibilityPanel.open() } },
     { icon: SVG_UPLOAD, label: 'Google Maps importieren', onSelect: () => importHandle.open() },
   ]
   if (authPanel) {

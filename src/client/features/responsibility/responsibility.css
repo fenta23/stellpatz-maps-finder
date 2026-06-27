@@ -1,0 +1,284 @@
+/* ── „Verantwortungsvoll unterwegs" ──────────────────────────────────────────
+   Ein Dialog, zwei Erscheinungsformen:
+   • Mobil (≤600px): vollflächige Page (Sheet füllt den Screen).
+   • Desktop (≥601px): zentriertes Modal mit Backdrop, max. 560px breit.
+   Gleicher Inhalt/Stil, nur die Hülle (.resp-dialog) wechselt per Breakpoint. */
+
+.resp-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 1650;
+    display: none;
+}
+.resp-panel.open {
+    display: flex;
+}
+
+/* Dialog = Scroll-Container. Mobile-first: füllt den Screen. */
+.resp-dialog {
+    position: relative;
+    background: var(--bg);
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Close-Pill: bleibt beim Scrollen oben gepinnt (wie Hilfe-Panel). */
+.resp-close {
+    position: sticky;
+    top: calc(12px + env(safe-area-inset-top));
+    float: right;
+    margin: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 0;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-pill);
+    color: var(--ink);
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 4px 11px;
+    line-height: 1.5;
+    box-shadow: 0 2px 10px rgba(44, 40, 34, 0.18);
+}
+.resp-close:hover {
+    background: #fff;
+}
+
+/* Hero */
+.resp-hero {
+    padding: calc(40px + env(safe-area-inset-top)) 28px 32px;
+    text-align: center;
+    color: #fff;
+    background: linear-gradient(160deg, var(--accent-strong) 0%, #2f3a28 100%);
+}
+.resp-hero-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 66px;
+    height: 66px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    margin-bottom: 16px;
+}
+.resp-hero-icon svg {
+    width: 38px;
+    height: 38px;
+    stroke: #fff;
+}
+.resp-title {
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    line-height: 1.2;
+    color: #fff;
+}
+.resp-tagline {
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    letter-spacing: 0.01em;
+}
+
+/* Content wrapper */
+.resp-content {
+    padding: 24px 22px 36px;
+}
+.resp-intro {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 0 0 28px;
+}
+
+.resp-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    margin: 0 0 14px;
+}
+
+/* Kodex list */
+.resp-kodex {
+    list-style: none;
+    margin: 0 0 28px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.resp-kodex-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 15px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+.resp-kodex-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+.resp-kodex-icon svg {
+    width: 22px;
+    height: 22px;
+}
+.resp-kodex-text strong {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+}
+.resp-kodex-text p {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--ink-muted);
+}
+
+/* Wo darf ich übernachten? */
+.resp-where {
+    background: var(--accent-soft);
+    border: 1px solid rgba(94, 107, 79, 0.2);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    margin-bottom: 28px;
+}
+.resp-where .resp-section-title {
+    color: var(--accent-strong);
+}
+.resp-where p {
+    margin: 0 0 14px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--ink);
+}
+.resp-where em {
+    color: var(--accent-strong);
+    font-style: italic;
+}
+.resp-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.resp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 11px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-pill);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ink);
+}
+.resp-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.resp-chip--ok .resp-dot { background: #4b8a3d; }
+.resp-chip--warn .resp-dot { background: #c99a2e; }
+.resp-chip--no .resp-dot { background: var(--danger); }
+.resp-where-note {
+    margin: 0 !important;
+    font-size: 0.8rem !important;
+    color: var(--ink-muted) !important;
+    font-style: italic;
+}
+
+/* Abschluss */
+.resp-outro {
+    text-align: center;
+    padding: 4px 8px 8px;
+}
+.resp-outro-motto {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--accent);
+    margin: 0 0 8px;
+}
+.resp-outro-text {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--ink-muted);
+    margin: 0;
+}
+.resp-outro-text a {
+    color: var(--terracotta);
+}
+.resp-outro-text a:hover {
+    text-decoration: underline;
+}
+
+/* CTA */
+.resp-cta {
+    text-align: center;
+    padding: 24px 0 8px;
+}
+.resp-cta-btn {
+    display: inline-block;
+    padding: 13px 30px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-pill);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(94, 107, 79, 0.35);
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    width: 100%;
+    max-width: 340px;
+}
+.resp-cta-btn:hover {
+    background: var(--accent-strong);
+    box-shadow: 0 4px 14px rgba(94, 107, 79, 0.45);
+}
+.resp-cta-btn:active {
+    transform: scale(0.98);
+}
+
+/* ── Desktop (≥601px): zentriertes Modal ── */
+@media (min-width: 601px) {
+    .resp-panel {
+        background: rgba(28, 25, 21, 0.55);
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+    }
+    .resp-dialog {
+        width: 100%;
+        max-width: 560px;
+        height: auto;
+        max-height: calc(100dvh - 48px);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        padding-bottom: 0;
+    }
+    .resp-hero {
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+}
