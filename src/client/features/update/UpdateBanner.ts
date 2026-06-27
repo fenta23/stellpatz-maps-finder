@@ -31,11 +31,16 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
   if (!('serviceWorker' in navigator)) return
   if (import.meta.env.DEV) return // no SW in dev mode
 
+  const suppressShow = sessionStorage.getItem('sw-update-in-progress') === '1'
+  sessionStorage.removeItem('sw-update-in-progress')
+
+  const show = () => { if (!suppressShow) banner.show() }
+
   const swUrl = `${import.meta.env.BASE_URL}sw.js`
   const reg = await navigator.serviceWorker.register(swUrl)
 
   if (reg.waiting) {
-    banner.show()
+    show()
   }
 
   reg.addEventListener('updatefound', () => {
@@ -43,7 +48,7 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
     if (!installing) return
     installing.addEventListener('statechange', () => {
       if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-        banner.show()
+        show()
       }
     })
   })
@@ -80,8 +85,10 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
   checkInterval = setInterval(poll, 3 * 60 * 1000)
 
   banner.setUpdateHandler(() => {
+    banner.hide()
     const waiting = reg.waiting
     if (!waiting) {
+      sessionStorage.setItem('sw-update-in-progress', '1')
       window.location.reload()
       return
     }
@@ -92,6 +99,7 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
       resolved = true
       clearTimeout(fallback)
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+      sessionStorage.setItem('sw-update-in-progress', '1')
       window.location.reload()
     }
 

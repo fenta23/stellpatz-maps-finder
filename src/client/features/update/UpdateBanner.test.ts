@@ -3,7 +3,10 @@ import { UpdateBanner, watchServiceWorkerUpdates } from './UpdateBanner.js'
 
 let reloadMock: ReturnType<typeof vi.fn>
 
+const SW_UPDATE_FLAG = 'sw-update-in-progress'
+
 beforeEach(() => {
+  sessionStorage.clear()
   document.body.innerHTML = '<header id="topbar"></header>'
   reloadMock = vi.fn()
   Object.defineProperty(window, 'location', {
@@ -70,10 +73,12 @@ describe('watchServiceWorkerUpdates', () => {
     vi.unstubAllEnvs()
   })
 
-  it('update handler sends SKIP_WAITING and waits for controllerchange then reloads', async () => {
+  it('update handler hides banner, sends SKIP_WAITING and waits for controllerchange then reloads', async () => {
     vi.stubEnv('DEV', false)
     vi.useFakeTimers()
     const banner = new UpdateBanner()
+    banner.show()
+    const hideSpy = vi.spyOn(banner, 'hide')
     const fakeReg = createFakeRegistration()
     const { controllerChangeListeners } = setupServiceWorkerMock({
       register: () => Promise.resolve(fakeReg),
@@ -90,6 +95,7 @@ describe('watchServiceWorkerUpdates', () => {
     reloadMock.mockClear()
     handler!()
 
+    expect(hideSpy).toHaveBeenCalled() // banner hides immediately on click
     expect(fakeWaiting.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' })
     // Reload should NOT have happened yet (waiting for controllerchange or timeout)
     expect(reloadMock).not.toHaveBeenCalled()
@@ -97,6 +103,7 @@ describe('watchServiceWorkerUpdates', () => {
     // Fire controllerchange
     controllerChangeListeners.forEach(fn => fn())
     expect(reloadMock).toHaveBeenCalledOnce()
+    expect(sessionStorage.getItem('sw-update-in-progress')).toBe('1')
     vi.useRealTimers()
     vi.unstubAllEnvs()
   })
@@ -124,13 +131,15 @@ describe('watchServiceWorkerUpdates', () => {
     // Advance 3 seconds
     vi.advanceTimersByTime(3000)
     expect(reloadMock).toHaveBeenCalledOnce()
+    expect(sessionStorage.getItem('sw-update-in-progress')).toBe('1')
     vi.useRealTimers()
     vi.unstubAllEnvs()
   })
 
-  it('update handler reloads immediately when no waiting SW', async () => {
+  it('update handler hides banner, sets sessionStorage flag and reloads immediately when no waiting SW', async () => {
     vi.stubEnv('DEV', false)
     const banner = new UpdateBanner()
+    const hideSpy = vi.spyOn(banner, 'hide')
     const fakeReg = createFakeRegistration()
     fakeReg.waiting = null
     setupServiceWorkerMock({ register: () => Promise.resolve(fakeReg) })
@@ -143,7 +152,33 @@ describe('watchServiceWorkerUpdates', () => {
 
     reloadMock.mockClear()
     handler!()
+    expect(hideSpy).toHaveBeenCalled()
+    expect(sessionStorage.getItem('sw-update-in-progress')).toBe('1')
     expect(reloadMock).toHaveBeenCalledOnce()
+    vi.unstubAllEnvs()
+  })
+
+  it('does not show banner on page load when sessionStorage flag is set (regression: banner appeared twice)', async () => {
+    vi.stubEnv('DEV', false)
+    sessionStorage.setItem(SW_UPDATE_FLAG, '1')
+    const banner = new UpdateBanner()
+    const showSpy = vi.spyOn(banner, 'show')
+    const fakeReg = createFakeRegistration({ hasWaiting: true })
+    setupServiceWorkerMock({ register: () => Promise.resolve(fakeReg) })
+    await watchServiceWorkerUpdates(banner)
+    expect(showSpy).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem(SW_UPDATE_FLAG)).toBeNull()
+    vi.unstubAllEnvs()
+  })
+
+  it('shows banner on page load when sessionStorage flag is not set', async () => {
+    vi.stubEnv('DEV', false)
+    const banner = new UpdateBanner()
+    const showSpy = vi.spyOn(banner, 'show')
+    const fakeReg = createFakeRegistration({ hasWaiting: true })
+    setupServiceWorkerMock({ register: () => Promise.resolve(fakeReg) })
+    await watchServiceWorkerUpdates(banner)
+    expect(showSpy).toHaveBeenCalledOnce()
     vi.unstubAllEnvs()
   })
 
@@ -169,9 +204,11 @@ describe('watchServiceWorkerUpdates', () => {
 
     controllerChangeListeners.forEach(fn => fn())
     expect(reloadMock).toHaveBeenCalledOnce()
+    expect(sessionStorage.getItem('sw-update-in-progress')).toBe('1')
     vi.advanceTimersByTime(3000)
     // Still only called once (not doubled by timeout)
     expect(reloadMock).toHaveBeenCalledOnce()
+    expect(sessionStorage.getItem('sw-update-in-progress')).toBe('1')
     vi.useRealTimers()
     vi.unstubAllEnvs()
   })
