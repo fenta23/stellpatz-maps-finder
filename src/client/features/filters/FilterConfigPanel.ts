@@ -181,9 +181,11 @@ export class FilterConfigPanel {
   }
 
   private buildAppearance(state: EditorState): HTMLElement {
+    const wrap = el('div')
+    const updatePreview = () => { preview.style.background = state.color; preview.innerHTML = filterIconSvg(state.iconId) }
+
     const appearance = el('div', 'fc-appearance')
     const preview = el('span', 'fc-preview fc-swatch')
-    const updatePreview = () => { preview.style.background = state.color; preview.innerHTML = filterIconSvg(state.iconId) }
     updatePreview()
     appearance.appendChild(preview)
 
@@ -204,6 +206,7 @@ export class FilterConfigPanel {
     }
     iconWrap.appendChild(grid)
     appearance.appendChild(iconWrap)
+    wrap.appendChild(appearance)
 
     const colorField = el('div', 'fc-field')
     colorField.innerHTML = '<label>Farbe</label>'
@@ -220,7 +223,8 @@ export class FilterConfigPanel {
       colorRow.appendChild(b)
     }
     colorField.appendChild(colorRow)
-    return appearance
+    wrap.appendChild(colorField)
+    return wrap
   }
 
   private buildTagsSection(state: EditorState): HTMLElement {

@@ -43,6 +43,11 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallbackDenylist: [/^\/api\//],
+        clientsClaim: true,
+        // clientsClaim makes the activated SW immediately take control of all
+        // clients. Combined with the controllerchange listener in the update
+        // handler this prevents race conditions where the page reloads before
+        // activation (incl. cleanupOutdatedCaches) has finished.
         // IMPORTANT: do NOT add map-tile hosts here. A runtime-caching route makes the
         // SW fetch tiles itself, which is then subject to the SW's CSP `connect-src`
         // (not `img-src`) and gets blocked → grey map. Tiles must stay plain <img>

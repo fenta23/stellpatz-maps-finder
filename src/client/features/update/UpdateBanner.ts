@@ -80,7 +80,31 @@ export async function watchServiceWorkerUpdates(banner: UpdateBanner): Promise<v
   checkInterval = setInterval(poll, 3 * 60 * 1000)
 
   banner.setUpdateHandler(() => {
-    reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
-    window.location.reload()
+    const waiting = reg.waiting
+    if (!waiting) {
+      window.location.reload()
+      return
+    }
+
+    let resolved = false
+    const reload = () => {
+      if (resolved) return
+      resolved = true
+      clearTimeout(fallback)
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+      window.location.reload()
+    }
+
+    const fallback = setTimeout(reload, 3000)
+
+    const onControllerChange = () => {
+      // The controllerchange event means the new SW activated and claimed
+      // this client (clientsClaim in the SW). Activation (incl.
+      // cleanupOutdatedCaches) has completed by now → safe to reload.
+      reload()
+    }
+
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
+    waiting.postMessage({ type: 'SKIP_WAITING' })
   })
 }

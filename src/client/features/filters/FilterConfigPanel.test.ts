@@ -86,6 +86,19 @@ describe('FilterConfigPanel — editor', () => {
       .toBe(JSON.stringify(DEFAULT_FILTERS.find(f => f.id === 'water')!.selectors))
   })
 
+  it('renders color picker buttons in editor', () => {
+    const { container } = setup()
+    q(container, '.fc-add-btn')!.click()
+    const colors = qa(container, '.fc-color')
+    expect(colors.length).toBeGreaterThan(0)
+    // first color should be pre-selected
+    expect(colors[0]!.classList.contains('selected')).toBe(true)
+    // clicking another color selects it
+    colors[1]!.dispatchEvent(new Event('click'))
+    expect(colors[1]!.classList.contains('selected')).toBe(true)
+    expect(colors[0]!.classList.contains('selected')).toBe(false)
+  })
+
   it('deletes a user filter after confirm', () => {
     const { container, store } = setup()
     // create one via template first
