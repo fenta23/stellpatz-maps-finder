@@ -151,6 +151,31 @@
     display: flex;
 }
 
+/* ── Desktop: vollflächige Page → zentriertes Modal ──────────────────────────
+   Einheitliches Muster (vgl. .resp-panel): mobil = Page, ab 601px = Modal.
+   Der Backdrop ist ein ::before-Pseudo (deckt den Viewport ab, blockt Klicks
+   auf die Karte). Zentrierung via margin:auto (kein transform — sonst würde
+   das fixe ::before relativ zum Panel statt zum Viewport positioniert). */
+@media (min-width: 601px) {
+    .fav-panel.open {
+        inset: 0;
+        margin: auto;
+        width: min(560px, calc(100vw - 48px));
+        height: fit-content;
+        max-height: calc(100dvh - 48px);
+        padding: 0;
+        border-radius: var(--radius);
+        overflow: hidden;
+        /* Scrim als box-shadow (liegt AUSSERHALB der Box) statt als ::before-
+           Layer — sonst blutet die Abdunkelung durch transparente Inhalts-
+           bereiche (z. B. Listenzeilen) in die Karte. Bewusst dezent. */
+        box-shadow: var(--shadow-lg), 0 0 0 100vmax rgba(28, 25, 21, 0.28);
+    }
+    .fav-panel .fav-header {
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+}
+
 .fav-header {
     display: flex;
     align-items: center;

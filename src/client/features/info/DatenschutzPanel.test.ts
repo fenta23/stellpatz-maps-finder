@@ -30,4 +30,16 @@ describe('DatenschutzPanel', () => {
     c.querySelector<HTMLButtonElement>('.fav-close')!.click()
     expect(panel.isOpen()).toBe(false)
   })
+
+  it('closes when the backdrop (panel root) is clicked, not the content', () => {
+    const c = document.createElement('div')
+    const panel = new DatenschutzPanel(c)
+    panel.open()
+    // Klick auf den Inhalt (Header) schließt NICHT
+    c.querySelector<HTMLElement>('.fav-header')!.click()
+    expect(panel.isOpen()).toBe(true)
+    // Klick auf den Panel-Root (Backdrop im Desktop-Modal) schließt
+    c.querySelector<HTMLElement>('.fav-panel')!.click()
+    expect(panel.isOpen()).toBe(false)
+  })
 })
