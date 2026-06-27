@@ -3,6 +3,11 @@
     align-items: stretch;
     border-bottom: 1px solid var(--border-soft);
 }
+/* Hover färbt die GANZE Zeile einheitlich ein (inkl. Papierkorb-Zelle),
+   nicht nur den Hauptbereich. */
+.fav-item:hover {
+    background: var(--surface-2);
+}
 .fav-item-main {
     flex: 1;
     display: flex;
@@ -16,9 +21,8 @@
     color: var(--ink);
     min-width: 0;
 }
-.fav-item-main:hover {
-    background: var(--surface-2);
-}
+/* Hover wird auf Zeilenebene (.fav-item:hover) gesetzt — Buttons bleiben
+   transparent, damit sie die Zeilenfarbe durchscheinen lassen. */
 .fav-item-icon {
     display: inline-flex;
     align-items: center;
@@ -58,7 +62,7 @@
     color: var(--ink-faint);
 }
 .fav-item-remove:hover {
-    background: var(--danger-soft);
+    color: var(--danger);
 }
 
 .fav-footer {
