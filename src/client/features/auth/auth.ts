@@ -57,7 +57,10 @@ export function createAuth(client: SupabaseClient): Auth {
     },
 
     onChange(cb) {
-      const { data } = client.auth.onAuthStateChange((_event, session) => cb(session?.user ?? null))
+      const { data } = client.auth.onAuthStateChange((event, session) => {
+        if (event === 'TOKEN_REFRESHED') return
+        cb(session?.user ?? null)
+      })
       return () => data.subscription.unsubscribe()
     },
 

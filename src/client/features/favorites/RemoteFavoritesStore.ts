@@ -53,6 +53,7 @@ export class SyncedFavoritesStore implements IFavoritesStore {
    * union — nothing is deleted.
    */
   async connect(backend: FavoritesBackend): Promise<void> {
+    if (this.backend) return
     this.backend = backend
     let remote: readonly FavoritePoi[]
     try {

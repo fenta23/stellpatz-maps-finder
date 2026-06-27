@@ -53,6 +53,7 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
    * user just created offline.
    */
   async connect(backend: CustomPoiBackend): Promise<void> {
+    if (this.backend) return
     this.backend = backend
     let remote: readonly CustomPoi[]
     try {

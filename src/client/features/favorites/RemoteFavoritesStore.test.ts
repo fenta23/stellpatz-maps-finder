@@ -76,6 +76,17 @@ describe('SyncedFavoritesStore.connect (login merge)', () => {
     await expect(store.connect(backend)).resolves.toBeUndefined()
     expect(store.toggle(poi('1'))).toBe(true)
   })
+
+  it('does not re-run the full merge when already connected', async () => {
+    const backend = fakeBackend([poi('server-1')])
+    const loadSpy = vi.spyOn(backend, 'load')
+    const store = new SyncedFavoritesStore(new LocalFavoritesStore())
+    await store.connect(backend)
+    expect(loadSpy).toHaveBeenCalledTimes(1)
+    await store.connect(backend)
+    await store.connect(backend)
+    expect(loadSpy).toHaveBeenCalledTimes(1) // guarded
+  })
 })
 
 describe('SyncedFavoritesStore (connected, write-through)', () => {

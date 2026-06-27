@@ -48,6 +48,7 @@ export class SyncedNotesStore implements INotesStore {
    * user just typed.
    */
   async connect(backend: NotesBackend): Promise<void> {
+    if (this.backend) return
     this.backend = backend
     let remote: readonly PoiNote[]
     try {

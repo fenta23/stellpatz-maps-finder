@@ -59,6 +59,7 @@ export class SyncedFilterStore implements IFilterStore {
   }
 
   async connect(backend: FilterBackend): Promise<void> {
+    if (this.backend) return
     this.backend = backend
     let remote: readonly FilterDef[]
     try {

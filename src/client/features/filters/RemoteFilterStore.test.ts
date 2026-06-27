@@ -82,4 +82,14 @@ describe('SyncedFilterStore', () => {
     expect(() => s.put(userFilter())).not.toThrow()
     expect(() => s.remove('u1')).not.toThrow()
   })
+
+  it('does not re-run the full merge when already connected', async () => {
+    const { backend } = fakeBackend()
+    const s = new SyncedFilterStore(new LocalFilterStore())
+    await s.connect(backend)
+    expect(backend.load).toHaveBeenCalledTimes(1)
+    await s.connect(backend)
+    await s.connect(backend)
+    expect(backend.load).toHaveBeenCalledTimes(1) // guarded
+  })
 })

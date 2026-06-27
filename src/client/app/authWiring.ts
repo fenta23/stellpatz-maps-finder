@@ -47,17 +47,19 @@ export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
     }
   })
 
-  // Session recovery: wenn der Magic-Link im Browser geöffnet wurde
+  // Session recovery: wenn der Magic-Link im Browser geöffnet wurde, während
+  // die PWA/App noch läuft. Nur nötig wenn noch kein User eingeloggt ist; ein
+  // bereits aktiver Auth-Change-Callback kümmert sich dann um die Stores.
   let lastUser: { id: string } | null = null
   try { lastUser = await auth.currentUser() } catch { /* ignore */ }
   const recover = async () => {
+    if (lastUser) return
     try {
       const user = await auth.recoverSession()
-      if (user?.id !== lastUser?.id) lastUser = user
+      if (user) lastUser = user
     } catch { /* ignore */ }
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void recover()
   })
-  window.addEventListener('focus', () => void recover())
 }
