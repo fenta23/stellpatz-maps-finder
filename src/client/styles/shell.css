@@ -165,15 +165,11 @@
         max-height: calc(100dvh - 48px);
         padding: 0;
         border-radius: var(--radius);
-        box-shadow: var(--shadow-lg);
         overflow: hidden;
-    }
-    .fav-panel.open::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-        background: rgba(28, 25, 21, 0.55);
+        /* Scrim als box-shadow (liegt AUSSERHALB der Box) statt als ::before-
+           Layer — sonst blutet die Abdunkelung durch transparente Inhalts-
+           bereiche (z. B. Listenzeilen) in die Karte. Bewusst dezent. */
+        box-shadow: var(--shadow-lg), 0 0 0 100vmax rgba(28, 25, 21, 0.28);
     }
     .fav-panel .fav-header {
         border-radius: var(--radius) var(--radius) 0 0;
