@@ -4,13 +4,13 @@ import { ResponsibilityPanel } from './ResponsibilityPanel.js'
 const flush = () => new Promise(r => setTimeout(r, 0))
 
 describe('ResponsibilityPanel', () => {
-  it('renders motto, kodex and the Jedermannsrecht section', async () => {
+  it('renders motto, kodex and the local rules section', async () => {
     const c = document.createElement('div')
     new ResponsibilityPanel(c)
     await flush()
     expect(c.textContent).toContain('Besser gehen')
     expect(c.textContent).toContain('Kodex')
-    expect(c.textContent).toContain('Jedermannsrecht')
+    expect(c.textContent).toContain('lokale Regeln haben immer Vorrang')
   })
 
   it('starts hidden and toggles via open()/close()', async () => {
