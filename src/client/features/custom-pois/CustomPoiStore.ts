@@ -63,6 +63,14 @@ export class LocalCustomPoiStore implements ICustomPoiStore {
     }
   }
 
+  /** Replace the entire set atomically; persists + notifies once. */
+  replaceAll(pois: Iterable<CustomPoi>): void {
+    this.items = new Map()
+    for (const poi of pois) this.items.set(poi.id, poi)
+    this.persist()
+    this.notify()
+  }
+
   onChange(cb: () => void): () => void {
     this.listeners.push(cb)
     return () => {

@@ -118,3 +118,40 @@ describe('SyncedFilterStore', () => {
     expect(backend.load).toHaveBeenCalledTimes(1) // guarded
   })
 })
+
+describe('SyncedFilterStore deletion reconciliation', () => {
+  it('removes locally-cached user filters that were deleted on another device', async () => {
+    const local = new LocalFilterStore()
+    local.put(userFilter('u-local', 'LocalFilter'))
+
+    const { backend: b1 } = fakeBackend([userFilter('u-local', 'LocalFilter')])
+    const s = new SyncedFilterStore(local)
+    await s.connect(b1)
+    expect(s.get('u-local')).toBeDefined()
+    s.disconnect()
+
+    // Server deleted by device A
+    const local2 = new LocalFilterStore()
+    expect(local2.get('u-local')).toBeDefined()
+    const { backend: b2 } = fakeBackend([])
+    const s2 = new SyncedFilterStore(local2)
+    await s2.connect(b2)
+    expect(s2.get('u-local')).toBeUndefined()
+    // Should not have been pushed back up
+    const upsertedIds = b2.upsert.mock.calls.map(c => (c[0] as FilterDef).id)
+    expect(upsertedIds).not.toContain('u-local')
+  })
+
+  it('keeps genuine guest-only filters (never synced) and pushes them up', async () => {
+    const local = new LocalFilterStore()
+    local.put(userFilter('guest', 'GuestFilter'))
+
+    const { backend } = fakeBackend([userFilter('srv', 'ServerFilter')])
+    const s = new SyncedFilterStore(local)
+    await s.connect(backend)
+    expect(s.get('guest')).toBeDefined()
+    expect(s.get('srv')).toBeDefined()
+    const upsertedIds = backend.upsert.mock.calls.map(c => (c[0] as FilterDef).id)
+    expect(upsertedIds).toContain('guest')
+  })
+})

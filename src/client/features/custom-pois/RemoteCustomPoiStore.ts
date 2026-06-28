@@ -13,15 +13,21 @@ export interface CustomPoiBackend {
 /**
  * Custom-POI store with the same synchronous interface as the local one, backed
  * by a local mirror that is authoritative for reads. When connected (on login),
- * writes go through to the backend in the background and the mirror is merged
- * with the server set. Sync failures never block the UI.
- *
- * Mirrors SyncedNotesStore / SyncedFavoritesStore.
+ * writes go through to the backend in the background. On connect, server state
+ * is reconciled with the local mirror using a persisted synced-IDs set so that
+ * deletions on another device are respected (even across page reloads). For
+ * shared IDs the local version wins.
+ * A 30 s polling interval keeps the store in sync. Sync failures never block the UI.
  */
 export class SyncedCustomPoiStore implements ICustomPoiStore {
   private backend: CustomPoiBackend | null = null
+  private pollTimer: ReturnType<typeof setInterval> | null = null
+  private static readonly SYNCED_IDS_KEY = 'stellplatz:custom-pois-synced-ids'
+  private syncedIds: Set<string> = new Set()
 
-  constructor(private readonly local: LocalCustomPoiStore = new LocalCustomPoiStore()) {}
+  constructor(private readonly local: LocalCustomPoiStore = new LocalCustomPoiStore()) {
+    this.loadSyncedIds()
+  }
 
   get(id: string): CustomPoi | undefined { return this.local.get(id) }
   getAll(): readonly CustomPoi[] { return this.local.getAll() }
@@ -29,7 +35,10 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
 
   put(poi: CustomPoi): void {
     this.local.put(poi)
-    void this.backend?.upsert(poi).catch(err => console.warn('[custom-pois] remote sync failed:', err))
+    void this.backend?.upsert(poi).then(() => {
+      this.syncedIds.add(poi.id)
+      this.saveSyncedIds()
+    }).catch(err => console.warn('[custom-pois] remote sync failed:', err))
   }
 
   addMany(pois: Iterable<CustomPoi>): void {
@@ -37,24 +46,38 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
     const copy = [...pois]
     if (this.backend) {
       void Promise.allSettled(copy.map(poi => this.backend!.upsert(poi)))
+        .then(() => {
+          for (const p of copy) this.syncedIds.add(p.id)
+          this.saveSyncedIds()
+        })
         .catch(err => console.warn('[custom-pois] remote sync failed:', err))
     }
   }
 
   remove(id: string): void {
     this.local.remove(id)
-    void this.backend?.remove(id).catch(err => console.warn('[custom-pois] remote sync failed:', err))
+    void this.backend?.remove(id).then(() => {
+      this.syncedIds.delete(id)
+      this.saveSyncedIds()
+    }).catch(err => console.warn('[custom-pois] remote sync failed:', err))
   }
 
-  /**
-   * Attach a backend on login: pull server POIs into the local mirror (server
-   * extras are added), then push back only POIs that are new or locally modified
-   * since the last sync. For ids present on both, the local copy wins — we never
-   * silently discard a POI the user just created offline.
-   */
   async connect(backend: CustomPoiBackend): Promise<void> {
     if (this.backend) return
     this.backend = backend
+    await this.reconcile()
+    this.startPolling()
+  }
+
+  /** Detach on logout; the local mirror stays as the guest set. */
+  disconnect(): void {
+    this.backend = null
+    this.stopPolling()
+  }
+
+  private async reconcile(): Promise<void> {
+    const backend = this.backend
+    if (!backend) return
     let remote: readonly CustomPoi[]
     try {
       remote = await backend.load()
@@ -63,19 +86,71 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
       return
     }
     const remoteById = new Map(remote.map(p => [p.id, p]))
-    this.local.addMany(remote) // additive: local edits win ties, server extras pulled in
-    const toPush = this.local.getAll().filter(poi => {
-      const r = remoteById.get(poi.id)
-      return !r || poi.updatedAt > r.updatedAt
+    const localAll = this.local.getAll()
+
+    // True guest-only: local items not on server and never synced.
+    const guestOnly = localAll.filter(
+      p => !remoteById.has(p.id) && !this.syncedIds.has(p.id),
+    )
+
+    // Build final set: server items (local wins ties) + guest-only items.
+    // Items that were previously synced but absent from the server are dropped.
+    const final = new Map<string, CustomPoi>()
+    for (const r of remote) {
+      const local = localAll.find(p => p.id === r.id)
+      final.set(r.id, local ?? r)
+    }
+    for (const g of guestOnly) final.set(g.id, g)
+
+    this.local.replaceAll(final.values())
+
+    // Push genuine guest items and locally modified shared items up.
+    const modified = localAll.filter(p => {
+      const r = remoteById.get(p.id)
+      return r && p.updatedAt > r.updatedAt
     })
+    const toPush = [...guestOnly, ...modified]
     if (toPush.length > 0) {
       await Promise.allSettled(toPush.map(poi => backend.upsert(poi)))
     }
+
+    // Update synced IDs.
+    for (const r of remote) this.syncedIds.add(r.id)
+    for (const p of toPush) this.syncedIds.add(p.id)
+    this.saveSyncedIds()
   }
 
-  /** Detach on logout; the local mirror stays as the guest set. */
-  disconnect(): void {
-    this.backend = null
+  private startPolling(): void {
+    this.stopPolling()
+    this.pollTimer = setInterval(() => { void this.reconcile() }, 30_000)
+  }
+
+  private stopPolling(): void {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
+  }
+
+  private loadSyncedIds(): void {
+    try {
+      const raw = localStorage.getItem(SyncedCustomPoiStore.SYNCED_IDS_KEY)
+      const parsed: unknown = raw ? JSON.parse(raw) : []
+      this.syncedIds = new Set(
+        Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [],
+      )
+    } catch {
+      this.syncedIds = new Set()
+    }
+  }
+
+  private saveSyncedIds(): void {
+    try {
+      localStorage.setItem(
+        SyncedCustomPoiStore.SYNCED_IDS_KEY,
+        JSON.stringify([...this.syncedIds]),
+      )
+    } catch { /* ignore quota */ }
   }
 }
 
@@ -141,7 +216,7 @@ export function createSupabaseCustomPoiBackend(client: SupabaseClient, userId: s
       if (error) throw new Error(error.message)
     },
     async remove(id) {
-      const { error } = await client.from('custom_pois').delete().eq('id', id)
+      const { error } = await client.from('custom_pois').delete().eq('user_id', userId).eq('id', id)
       if (error) throw new Error(error.message)
     },
   }

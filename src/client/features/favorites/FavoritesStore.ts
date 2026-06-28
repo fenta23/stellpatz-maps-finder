@@ -82,6 +82,14 @@ export class LocalFavoritesStore implements IFavoritesStore {
     }
   }
 
+  /** Replace the entire set atomically; persists + notifies once. */
+  replaceAll(pois: Iterable<FavoritePoi>): void {
+    this.items = new Map()
+    for (const poi of pois) this.items.set(poi.id, poi)
+    this.persist()
+    this.notify()
+  }
+
   getAll(): ReadonlySet<string> {
     return new Set(this.items.keys())
   }

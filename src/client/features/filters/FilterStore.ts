@@ -153,6 +153,17 @@ export class LocalFilterStore implements IFilterStore {
     }
   }
 
+  /** Replace the entire set atomically; persists + notifies once. */
+  replaceAll(records: Iterable<FilterDef>): void {
+    this.records = new Map()
+    for (const r of records) {
+      const norm = normalize(r)
+      if (norm) this.records.set(norm.id, norm)
+    }
+    this.persist()
+    this.notify()
+  }
+
   /** The persisted records (built-in overrides + user filters) — used for sync push. */
   records_(): readonly FilterDef[] {
     return [...this.records.values()]

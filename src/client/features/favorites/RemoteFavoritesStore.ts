@@ -13,13 +13,21 @@ export interface FavoritesBackend {
 /**
  * A favorites store with the same synchronous interface, backed by a local
  * mirror that is always authoritative for reads. When a remote backend is
- * connected (on login), toggles write through to it in the background and the
- * mirror is merged with the server set. Sync failures never block the UI.
+ * connected (on login), toggles write through to it in the background. On
+ * connect, server state is reconciled with the local mirror using a persisted
+ * synced-IDs set so that deletions on another device are respected (even
+ * across page reloads). A 30 s polling interval keeps the two in sync.
+ * Sync failures never block the UI.
  */
 export class SyncedFavoritesStore implements IFavoritesStore {
   private backend: FavoritesBackend | null = null
+  private pollTimer: ReturnType<typeof setInterval> | null = null
+  private static readonly SYNCED_IDS_KEY = 'stellplatz-favorites-synced-ids'
+  private syncedIds: Set<string> = new Set()
 
-  constructor(private readonly local: LocalFavoritesStore = new LocalFavoritesStore()) {}
+  constructor(private readonly local: LocalFavoritesStore = new LocalFavoritesStore()) {
+    this.loadSyncedIds()
+  }
 
   has(id: string): boolean {
     return this.local.has(id)
@@ -42,19 +50,35 @@ export class SyncedFavoritesStore implements IFavoritesStore {
     const backend = this.backend
     if (backend) {
       const op = isFavorite ? backend.add(poi) : backend.remove(poi.id)
-      void op.catch(err => console.warn('[favorites] remote sync failed:', err))
+      void op.then(() => {
+        if (isFavorite) { this.syncedIds.add(poi.id); this.saveSyncedIds() }
+        else { this.syncedIds.delete(poi.id); this.saveSyncedIds() }
+      }).catch(err => console.warn('[favorites] remote sync failed:', err))
     }
     return isFavorite
   }
 
   /**
-   * Attach a backend on login: pull the server favorites into the local mirror
-   * and push any guest-only (local) favorites up to the server. Merge is a
-   * union — nothing is deleted.
+   * Attach a backend on login: reconcile server state with the local mirror
+   * using persisted synced IDs so that deletions performed on another device
+   * are respected, then start polling.
    */
   async connect(backend: FavoritesBackend): Promise<void> {
     if (this.backend) return
     this.backend = backend
+    await this.reconcile()
+    this.startPolling()
+  }
+
+  /** Detach on logout; the local mirror stays as the guest set. */
+  disconnect(): void {
+    this.backend = null
+    this.stopPolling()
+  }
+
+  private async reconcile(): Promise<void> {
+    const backend = this.backend
+    if (!backend) return
     let remote: readonly FavoritePoi[]
     try {
       remote = await backend.load()
@@ -63,14 +87,57 @@ export class SyncedFavoritesStore implements IFavoritesStore {
       return
     }
     const remoteIds = new Set(remote.map(p => p.id))
-    const guestOnly = this.local.list().filter(p => !remoteIds.has(p.id))
-    this.local.addMany(remote)
-    await Promise.allSettled(guestOnly.map(poi => backend.add(poi)))
+
+    // True guest-only items: exist locally, not on server, and were never synced.
+    const guestOnly = this.local.list().filter(p => !remoteIds.has(p.id) && !this.syncedIds.has(p.id))
+
+    // Build the authoritative set: server items + genuine guest items.
+    // Items that were previously synced but absent from the server (deleted on
+    // another device) are implicitly dropped.
+    this.local.replaceAll([...remote, ...guestOnly])
+
+    // Push genuine guest items up to the server.
+    if (guestOnly.length > 0) {
+      await Promise.allSettled(guestOnly.map(poi => backend.add(poi)))
+    }
+
+    // Track which IDs are now confirmed synced.
+    for (const p of remote) this.syncedIds.add(p.id)
+    for (const p of guestOnly) this.syncedIds.add(p.id)
+    this.saveSyncedIds()
   }
 
-  /** Detach on logout; the local mirror stays as the guest set. */
-  disconnect(): void {
-    this.backend = null
+  private startPolling(): void {
+    this.stopPolling()
+    this.pollTimer = setInterval(() => { void this.reconcile() }, 30_000)
+  }
+
+  private stopPolling(): void {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
+  }
+
+  private loadSyncedIds(): void {
+    try {
+      const raw = localStorage.getItem(SyncedFavoritesStore.SYNCED_IDS_KEY)
+      const parsed: unknown = raw ? JSON.parse(raw) : []
+      this.syncedIds = new Set(
+        Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [],
+      )
+    } catch {
+      this.syncedIds = new Set()
+    }
+  }
+
+  private saveSyncedIds(): void {
+    try {
+      localStorage.setItem(
+        SyncedFavoritesStore.SYNCED_IDS_KEY,
+        JSON.stringify([...this.syncedIds]),
+      )
+    } catch { /* ignore quota errors */ }
   }
 }
 
@@ -111,7 +178,7 @@ export function createSupabaseFavoritesBackend(
       if (error) throw new Error(error.message)
     },
     async remove(id) {
-      const { error } = await client.from('favorites').delete().eq('poi_id', id)
+      const { error } = await client.from('favorites').delete().eq('user_id', userId).eq('poi_id', id)
       if (error) throw new Error(error.message)
     },
   }

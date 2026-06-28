@@ -107,6 +107,14 @@ export class LocalNotesStore implements INotesStore {
     }
   }
 
+  /** Replace the entire set atomically; persists + notifies once. */
+  replaceAll(notes: Iterable<PoiNote>): void {
+    this.notes = new Map()
+    for (const n of notes) this.notes.set(n.id, n)
+    this.persist()
+    this.notify()
+  }
+
   list(): readonly PoiNote[] {
     return [...this.notes.values()]
   }

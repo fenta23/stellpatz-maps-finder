@@ -126,3 +126,41 @@ describe('SyncedFavoritesStore (connected, write-through)', () => {
     expect(store.has('z')).toBe(true)
   })
 })
+
+describe('SyncedFavoritesStore deletion reconciliation', () => {
+  it('removes locally-cached favorites that were deleted on another device', async () => {
+    // Simulate: device A synced poi('10'), then deleted it on server.
+    // Device B reloads from localStorage → must drop the stale local item.
+    const local = new LocalFavoritesStore()
+    local.toggle(poi('10')) // was synced on previous session
+
+    const store = new SyncedFavoritesStore(local)
+    // First connect: syncs poi('10') — server has it
+    const backend1 = fakeBackend([poi('10')])
+    await store.connect(backend1)
+    expect(store.has('10')).toBe(true)
+    store.disconnect()
+
+    // Now device A deleted poi('10'), server is empty.
+    // Simulate reload (re-read from localStorage which still has poi('10')).
+    const local2 = new LocalFavoritesStore() // loads from localStorage with poi('10')
+    expect(local2.has('10')).toBe(true)
+    const store2 = new SyncedFavoritesStore(local2)
+    const backend2 = fakeBackend([])
+    await store2.connect(backend2)
+    expect(store2.has('10')).toBe(false) // must be removed
+    expect(backend2.store.has('10')).toBe(false) // must NOT have been pushed back up
+  })
+
+  it('keeps genuine guest-only favorites (never synced) and pushes them up', async () => {
+    const local = new LocalFavoritesStore()
+    local.toggle(poi('guest'))
+
+    const store = new SyncedFavoritesStore(local)
+    const backend = fakeBackend([poi('server-1')])
+    await store.connect(backend)
+    expect(store.has('guest')).toBe(true)
+    expect(store.has('server-1')).toBe(true)
+    expect(backend.store.has('guest')).toBe(true) // pushed up
+  })
+})

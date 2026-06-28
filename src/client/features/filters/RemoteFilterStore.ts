@@ -22,15 +22,21 @@ export interface FilterBackend {
 }
 
 /**
- * Filter store with the same synchronous interface as the local one, backed by a
- * local mirror that is authoritative for reads. On login, server records are merged
- * into the mirror (local customisations win) and the union is pushed back up.
- * Sync failures never block the UI. Mirrors SyncedCustomPoiStore.
+ * Filter store with the same synchronous interface as the local one, backed by
+ * a local mirror that is authoritative for reads. On connect, server records are
+ * reconciled with the local mirror using a persisted synced-IDs set so that
+ * deletions on another device are respected. For shared IDs the local version wins.
+ * A 30 s polling interval keeps the store in sync. Sync failures never block the UI.
  */
 export class SyncedFilterStore implements IFilterStore {
   private backend: FilterBackend | null = null
+  private pollTimer: ReturnType<typeof setInterval> | null = null
+  private static readonly SYNCED_IDS_KEY = 'stellplatz:filters-synced-ids'
+  private syncedIds: Set<string> = new Set()
 
-  constructor(private readonly local: LocalFilterStore = new LocalFilterStore()) {}
+  constructor(private readonly local: LocalFilterStore = new LocalFilterStore()) {
+    this.loadSyncedIds()
+  }
 
   list(): readonly FilterDef[] { return this.local.list() }
   get(id: string): FilterDef | undefined { return this.local.get(id) }
@@ -42,36 +48,70 @@ export class SyncedFilterStore implements IFilterStore {
   put(def: FilterDef): void {
     this.local.put(def)
     const stored = this.local.get(def.id)
-    if (stored) void this.backend?.upsert(stored).catch(err => console.warn('[filters] remote sync failed:', err))
+    if (stored) {
+      void this.backend?.upsert(stored).then(() => {
+        this.syncedIds.add(def.id)
+        this.saveSyncedIds()
+      }).catch(err => console.warn('[filters] remote sync failed:', err))
+    }
   }
 
   remove(id: string): void {
     const wasBuiltin = this.local.isBuiltin(id)
     this.local.remove(id)
-    // Built-ins are reset (their override row is dropped); user filters are deleted.
     if (wasBuiltin) {
       const reset = this.local.get(id)
-      if (reset) void this.backend?.upsert(reset).catch(err => console.warn('[filters] remote sync failed:', err))
+      if (reset) {
+        void this.backend?.upsert(reset).then(() => {
+          this.syncedIds.add(id)
+          this.saveSyncedIds()
+        }).catch(err => console.warn('[filters] remote sync failed:', err))
+      }
     } else {
-      void this.backend?.remove(id).catch(err => console.warn('[filters] remote sync failed:', err))
+      void this.backend?.remove(id).then(() => {
+        this.syncedIds.delete(id)
+        this.saveSyncedIds()
+      }).catch(err => console.warn('[filters] remote sync failed:', err))
     }
   }
 
   setEnabled(id: string, enabled: boolean): void {
     this.local.setEnabled(id, enabled)
     const stored = this.local.get(id)
-    if (stored) void this.backend?.upsert(stored).catch(err => console.warn('[filters] remote sync failed:', err))
+    if (stored) {
+      void this.backend?.upsert(stored).then(() => {
+        this.syncedIds.add(id)
+        this.saveSyncedIds()
+      }).catch(err => console.warn('[filters] remote sync failed:', err))
+    }
   }
 
   setHidden(id: string, hidden: boolean): void {
     this.local.setHidden(id, hidden)
     const stored = this.local.get(id)
-    if (stored) void this.backend?.upsert(stored).catch(err => console.warn('[filters] remote sync failed:', err))
+    if (stored) {
+      void this.backend?.upsert(stored).then(() => {
+        this.syncedIds.add(id)
+        this.saveSyncedIds()
+      }).catch(err => console.warn('[filters] remote sync failed:', err))
+    }
   }
 
   async connect(backend: FilterBackend): Promise<void> {
     if (this.backend) return
     this.backend = backend
+    await this.reconcile()
+    this.startPolling()
+  }
+
+  disconnect(): void {
+    this.backend = null
+    this.stopPolling()
+  }
+
+  private async reconcile(): Promise<void> {
+    const backend = this.backend
+    if (!backend) return
     let remote: readonly FilterDef[]
     try {
       remote = await backend.load()
@@ -80,18 +120,68 @@ export class SyncedFilterStore implements IFilterStore {
       return
     }
     const remoteById = new Map(remote.map(d => [d.id, d]))
-    this.local.applyRemote(remote) // additive: local customisations win ties
-    const toPush = this.local.records_().filter(def => {
-      const r = remoteById.get(def.id)
-      return !r || JSON.stringify(stableJson(def)) !== JSON.stringify(stableJson(r))
+    const localRecords = this.local.records_()
+
+    // True guest-only: local records not on server and never synced.
+    const guestOnly = localRecords.filter(
+      d => !remoteById.has(d.id) && !this.syncedIds.has(d.id),
+    )
+
+    // Build final set: server items (local wins ties) + guest-only items.
+    // Items that were previously synced but absent from the server are dropped.
+    const final = new Map<string, FilterDef>()
+    for (const r of remote) {
+      const local = localRecords.find(d => d.id === r.id)
+      final.set(r.id, local ?? r)
+    }
+    for (const g of guestOnly) final.set(g.id, g)
+
+    this.local.replaceAll(final.values())
+
+    // Push genuine guest items and locally modified shared items up.
+    const modified = localRecords.filter(d => {
+      const r = remoteById.get(d.id)
+      return r && JSON.stringify(stableJson(d)) !== JSON.stringify(stableJson(r))
     })
+    const toPush = [...guestOnly, ...modified]
     if (toPush.length > 0) {
       await Promise.allSettled(toPush.map(def => backend.upsert(def)))
     }
+
+    // Update synced IDs.
+    for (const r of remote) this.syncedIds.add(r.id)
+    for (const p of toPush) this.syncedIds.add(p.id)
+    this.saveSyncedIds()
   }
 
-  disconnect(): void {
-    this.backend = null
+  private startPolling(): void {
+    this.stopPolling()
+    this.pollTimer = setInterval(() => { void this.reconcile() }, 30_000)
+  }
+
+  private stopPolling(): void {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
+  }
+
+  private loadSyncedIds(): void {
+    try {
+      const raw = localStorage.getItem(SyncedFilterStore.SYNCED_IDS_KEY)
+      const parsed: unknown = raw ? JSON.parse(raw) : []
+      this.syncedIds = new Set(
+        Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [],
+      )
+    } catch {
+      this.syncedIds = new Set()
+    }
+  }
+
+  private saveSyncedIds(): void {
+    try {
+      localStorage.setItem(SyncedFilterStore.SYNCED_IDS_KEY, JSON.stringify([...this.syncedIds]))
+    } catch { /* ignore quota */ }
   }
 }
 
@@ -118,7 +208,7 @@ export function createSupabaseFilterBackend(client: SupabaseClient, userId: stri
       if (error) throw new Error(error.message)
     },
     async remove(id) {
-      const { error } = await client.from('poi_filters').delete().eq('id', id)
+      const { error } = await client.from('poi_filters').delete().eq('user_id', userId).eq('id', id)
       if (error) throw new Error(error.message)
     },
   }

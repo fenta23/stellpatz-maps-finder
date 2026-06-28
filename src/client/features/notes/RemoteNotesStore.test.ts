@@ -151,3 +151,39 @@ describe('SyncedNotesStore (connected, write-through)', () => {
     expect(s.get('z')).toBe('hi')
   })
 })
+
+describe('SyncedNotesStore deletion reconciliation', () => {
+  it('removes locally-cached notes that were deleted on another device', async () => {
+    // Simulate: device A synced note('10', 'text'), then deleted it.
+    // Device B reloads → must drop the stale local item.
+    const local = new LocalNotesStore()
+    local.set(target('10'), 'text')
+
+    const s = new SyncedNotesStore(local)
+    const b1 = fakeBackend([note('10', 'text')])
+    await s.connect(b1)
+    expect(s.has('10')).toBe(true)
+    s.disconnect()
+
+    // Server deleted by device A, local still has it from localStorage
+    const local2 = new LocalNotesStore() // loads from localStorage
+    expect(local2.has('10')).toBe(true)
+    const s2 = new SyncedNotesStore(local2)
+    const b2 = fakeBackend([])
+    await s2.connect(b2)
+    expect(s2.has('10')).toBe(false)
+    expect(b2.store.has('10')).toBe(false)
+  })
+
+  it('keeps genuine guest-only notes (never synced) and pushes them up', async () => {
+    const local = new LocalNotesStore()
+    local.set(target('guest'), 'offline note')
+
+    const s = new SyncedNotesStore(local)
+    const b = fakeBackend([note('srv', 'server')])
+    await s.connect(b)
+    expect(s.get('guest')).toBe('offline note')
+    expect(s.get('srv')).toBe('server')
+    expect(b.store.get('guest')?.text).toBe('offline note')
+  })
+})

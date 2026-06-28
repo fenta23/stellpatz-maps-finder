@@ -154,3 +154,36 @@ describe('SyncedCustomPoiStore (connected, write-through)', () => {
     expect(s.get('z')).toBeDefined()
   })
 })
+
+describe('SyncedCustomPoiStore deletion reconciliation', () => {
+  it('removes locally-cached POIs that were deleted on another device', async () => {
+    const local = new LocalCustomPoiStore()
+    local.put(poi('10'))
+
+    const s = new SyncedCustomPoiStore(local)
+    const b1 = fakeBackend([poi('10')])
+    await s.connect(b1)
+    expect(s.get('10')).toBeDefined()
+    s.disconnect()
+
+    const local2 = new LocalCustomPoiStore()
+    expect(local2.get('10')).toBeDefined()
+    const s2 = new SyncedCustomPoiStore(local2)
+    const b2 = fakeBackend([])
+    await s2.connect(b2)
+    expect(s2.get('10')).toBeUndefined()
+    expect(b2.store.has('10')).toBe(false)
+  })
+
+  it('keeps genuine guest-only POIs (never synced) and pushes them up', async () => {
+    const local = new LocalCustomPoiStore()
+    local.put(poi('guest'))
+
+    const s = new SyncedCustomPoiStore(local)
+    const b = fakeBackend([poi('srv')])
+    await s.connect(b)
+    expect(s.get('guest')).toBeDefined()
+    expect(s.get('srv')).toBeDefined()
+    expect(b.store.has('guest')).toBe(true)
+  })
+})
