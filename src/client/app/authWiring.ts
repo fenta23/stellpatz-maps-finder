@@ -62,4 +62,5 @@ export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void recover()
   })
+  void recover()
 }
