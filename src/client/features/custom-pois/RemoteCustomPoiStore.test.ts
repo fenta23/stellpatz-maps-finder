@@ -76,6 +76,17 @@ describe('SyncedCustomPoiStore.connect (login merge)', () => {
     s.put(poi('1'))
     expect(s.get('1')).toBeDefined()
   })
+
+  it('does not re-run the full merge when already connected', async () => {
+    const backend = fakeBackend([poi('server-1')])
+    const loadSpy = vi.spyOn(backend, 'load')
+    const s = new SyncedCustomPoiStore(new LocalCustomPoiStore())
+    await s.connect(backend)
+    expect(loadSpy).toHaveBeenCalledTimes(1)
+    await s.connect(backend)
+    await s.connect(backend)
+    expect(loadSpy).toHaveBeenCalledTimes(1) // guarded
+  })
 })
 
 describe('SyncedCustomPoiStore (connected, write-through)', () => {

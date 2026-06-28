@@ -47,17 +47,20 @@ export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
     }
   })
 
-  // Session recovery: wenn der Magic-Link im Browser geöffnet wurde
+  // Session recovery: wenn der Magic-Link im Browser geöffnet wurde, während
+  // die PWA/App noch läuft. recoverSession() triggert über setSession() den
+  // onAuthStateChange-Callback, der die Stores initial verbindet. Wiederholte
+  // Aufrufe sind harmlos – connect() in den Stores ist idempotent (Guard).
   let lastUser: { id: string } | null = null
   try { lastUser = await auth.currentUser() } catch { /* ignore */ }
   const recover = async () => {
     try {
       const user = await auth.recoverSession()
-      if (user?.id !== lastUser?.id) lastUser = user
+      if (user) lastUser = user
     } catch { /* ignore */ }
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void recover()
   })
-  window.addEventListener('focus', () => void recover())
+  void recover()
 }

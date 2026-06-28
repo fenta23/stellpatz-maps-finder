@@ -98,4 +98,20 @@ describe('createAuth.onChange', () => {
     captured!('SIGNED_OUT', null)
     expect(seen).toEqual(['a@b.c', null])
   })
+
+  it('does not fire the callback on TOKEN_REFRESHED events', () => {
+    let captured: ((event: string, session: unknown) => void) | undefined
+    const { client } = fakeClient({
+      onAuthStateChange: vi.fn().mockImplementation((cb) => {
+        captured = cb
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      }),
+    })
+    const seen: Array<string | null> = []
+    createAuth(client).onChange(u => seen.push(u?.email ?? null))
+    captured!('TOKEN_REFRESHED', { user: { email: 'a@b.c' } })
+    captured!('SIGNED_IN', { user: { email: 'x@y.z' } })
+    // TOKEN_REFRESHED must be ignored; only SIGNED_IN fires
+    expect(seen).toEqual(['x@y.z'])
+  })
 })

@@ -73,6 +73,17 @@ describe('SyncedNotesStore.connect (login merge)', () => {
     await expect(s.connect(backend)).resolves.toBeUndefined()
     expect(s.set(target('1'), 'hi')).toBe('hi')
   })
+
+  it('does not re-run the full merge when already connected', async () => {
+    const backend = fakeBackend([note('server-1', 'a')])
+    const loadSpy = vi.spyOn(backend, 'load')
+    const s = new SyncedNotesStore(new LocalNotesStore())
+    await s.connect(backend)
+    expect(loadSpy).toHaveBeenCalledTimes(1)
+    await s.connect(backend)
+    await s.connect(backend)
+    expect(loadSpy).toHaveBeenCalledTimes(1) // guarded
+  })
 })
 
 describe('SyncedNotesStore (connected, write-through)', () => {
