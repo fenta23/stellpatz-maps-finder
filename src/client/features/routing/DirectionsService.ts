@@ -138,11 +138,29 @@ export function buildRouteResult(
   }
 }
 
+export function routeErrorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.message.includes('503') || err.message.includes('unreachable'))
+      return 'Routingserver ist derzeit nicht erreichbar'
+    if (err.message.includes('504') || err.message.includes('time'))
+      return 'Routingserver antwortet zu langsam'
+    if (err.message.includes('502') || err.message.includes('No route'))
+      return 'Keine Route gefunden'
+    if (err.message.includes('500'))
+      return 'Routingserver-Fehler'
+  }
+  return 'Unbekannter Routing-Fehler'
+}
+
 async function fetchOsrmRoute(from: LatLon, to: LatLon, mode: RoutingMode): Promise<OsrmRoute> {
   const res = await fetch(
     apiUrl(`/api/route?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}&mode=${mode}`),
   )
-  if (!res.ok) throw new Error(`Route API error: ${res.status}`)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    const serverMsg = (body as { error?: string }).error ?? ''
+    throw new Error(serverMsg || `Route API error: ${res.status}`)
+  }
   const data = await res.json() as OsrmResponse
   if (data.code !== 'Ok' || !data.routes[0]) throw new Error('No route found')
   return data.routes[0]

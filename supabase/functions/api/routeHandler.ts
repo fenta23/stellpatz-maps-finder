@@ -1,20 +1,13 @@
-import { jsonResponse, errorResponse, parseLatLon, decodeValhallaPolyline, USER_AGENT } from '../_shared/utils.ts'
+import { jsonResponse, errorResponse, parseLatLon, USER_AGENT } from '../_shared/utils.ts'
 
-const VALHALLA_URL = 'https://valhalla1.openstreetmap.de/route'
+const OSRM_BASE = 'https://routing.openstreetmap.de'
 
-const COSTING: Record<string, string> = {
-  driving: 'auto',
-  cycling: 'bicycle',
-  foot: 'pedestrian',
-}
-
-interface ValhallaShape { type: string; coordinates: Array<[number, number]> }
-interface ValhallaLeg { shape: string | ValhallaShape }
-interface ValhallaResponse {
-  trip: {
-    legs: ValhallaLeg[]
-    summary: { length: number; time: number }
-  }
+// routing.openstreetmap.de runs separate OSRM instances per transport mode,
+// each loaded with mode-specific map data (car, bike, foot graphs).
+const MODE_PREFIX: Record<string, string> = {
+  driving: 'routed-car',
+  cycling: 'routed-bike',
+  foot: 'routed-foot',
 }
 
 function parseCoordPair(raw: string): [number, number] | null {
@@ -32,40 +25,37 @@ export async function handleRoute(req: Request, origin: string | null): Promise<
     return errorResponse('from and to coordinates required (lat,lon)', 400, origin)
   }
 
-  const costing = COSTING[url.searchParams.get('mode') ?? 'driving'] ?? 'auto'
-  const jsonParam = encodeURIComponent(JSON.stringify({
-    locations: [
-      { lat: fromCoords[0], lon: fromCoords[1] },
-      { lat: toCoords[0], lon: toCoords[1] },
-    ],
-    costing,
-    units: 'km',
-  }))
+  const mode = url.searchParams.get('mode') ?? 'driving'
+  const prefix = MODE_PREFIX[mode] ?? 'routed-car'
+
+  // OSRM expects lon,lat order
+  const coords = `${fromCoords[1]},${fromCoords[0]};${toCoords[1]},${toCoords[0]}`
+  const osrmUrl = `${OSRM_BASE}/${prefix}/route/v1/driving/${coords}?overview=full&geometries=geojson`
 
   try {
-    const upstream = await fetch(`${VALHALLA_URL}?json=${jsonParam}`, {
+    const upstream = await fetch(osrmUrl, {
       headers: { 'User-Agent': USER_AGENT },
       signal: AbortSignal.timeout(10_000),
     })
-    if (!upstream.ok) return errorResponse('Routing error', upstream.status, origin)
 
-    const data = await upstream.json() as ValhallaResponse
-    const leg = data.trip?.legs?.[0]
-    if (!leg) return errorResponse('No route found', 502, origin)
+    if (!upstream.ok) {
+      console.error(`OSRM upstream error: ${upstream.status} ${upstream.statusText}`)
+      return errorResponse('Routing error', upstream.status, origin)
+    }
 
-    const coordinates = typeof leg.shape === 'string'
-      ? decodeValhallaPolyline(leg.shape)
-      : (leg.shape as ValhallaShape).coordinates
+    const data = await upstream.json()
 
-    return jsonResponse({
-      code: 'Ok',
-      routes: [{
-        distance: data.trip.summary.length * 1000,
-        duration: data.trip.summary.time,
-        geometry: { coordinates },
-      }],
-    }, 200, origin)
-  } catch {
+    if (data.code !== 'Ok' || !data.routes?.[0]) {
+      console.error('OSRM returned no route:', JSON.stringify(data))
+      return errorResponse('No route found', 502, origin)
+    }
+
+    return jsonResponse(data, 200, origin)
+  } catch (err) {
+    console.error('Route handler error:', err)
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      return errorResponse('Routing service timed out', 504, origin)
+    }
     return errorResponse('Routing service unreachable', 503, origin)
   }
 }

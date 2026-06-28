@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   haversineMeters, buildGoogleMapsPoiLink, buildRouteResult,
   detectNavPlatform, buildGoogleDirectionsLink, buildAppleDirectionsLink, buildNavLink,
+  routeErrorMessage,
 } from './DirectionsService.js'
 
 describe('haversineMeters', () => {
@@ -119,5 +120,43 @@ describe('buildRouteResult', () => {
   it('uses detourFactor 1 when distanceMeters is 0', () => {
     const r = buildRouteResult(0, 0, from, to)
     expect(r.detourFactor).toBe(1)
+  })
+})
+
+describe('routeErrorMessage', () => {
+  it('returns unreachable for 503', () => {
+    expect(routeErrorMessage(new Error('Route API error: 503'))).toContain('nicht erreichbar')
+  })
+
+  it('returns unreachable for "unreachable" text', () => {
+    expect(routeErrorMessage(new Error('Routing service unreachable'))).toContain('nicht erreichbar')
+  })
+
+  it('returns timeout message for 504', () => {
+    expect(routeErrorMessage(new Error('Route API error: 504'))).toContain('zu langsam')
+  })
+
+  it('returns timeout message for "timeout" text', () => {
+    expect(routeErrorMessage(new Error('Routing service timed out'))).toContain('zu langsam')
+  })
+
+  it('returns no route for 502', () => {
+    expect(routeErrorMessage(new Error('Route API error: 502'))).toContain('Keine Route')
+  })
+
+  it('returns no route for "No route" text', () => {
+    expect(routeErrorMessage(new Error('No route found'))).toContain('Keine Route')
+  })
+
+  it('returns server error for 500', () => {
+    expect(routeErrorMessage(new Error('Route API error: 500'))).toContain('server-Fehler')
+  })
+
+  it('returns generic message for unknown errors', () => {
+    expect(routeErrorMessage(new Error('Something else'))).toContain('Unbekannter')
+  })
+
+  it('returns generic message for non-Error values', () => {
+    expect(routeErrorMessage('just a string')).toContain('Unbekannter')
   })
 })
