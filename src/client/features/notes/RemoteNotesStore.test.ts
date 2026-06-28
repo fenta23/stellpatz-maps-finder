@@ -186,4 +186,52 @@ describe('SyncedNotesStore deletion reconciliation', () => {
     expect(s.get('srv')).toBe('server')
     expect(b.store.get('guest')?.text).toBe('offline note')
   })
+
+  it('device B picks up notes added by device A via write-through', async () => {
+    // Device A: connect, add a note (persisted to shared backend)
+    const backend = fakeBackend()
+    const storeA = new SyncedNotesStore(new LocalNotesStore())
+    await storeA.connect(backend)
+    storeA.set(target('shared'), 'hello from A')
+    await Promise.resolve() // let write-through settle
+
+    // Device B: fresh store connects to same backend — should see the note
+    const storeB = new SyncedNotesStore(new LocalNotesStore())
+    await storeB.connect(backend)
+    expect(storeB.get('shared')).toBe('hello from A')
+    expect(storeB.has('shared')).toBe(true)
+  })
+
+  it('device B sees note deletion performed by device A', async () => {
+    // A and B both connect, A adds note, B sees it, A deletes it, B polls
+    const backend = fakeBackend()
+    const storeA = new SyncedNotesStore(new LocalNotesStore())
+    const storeB = new SyncedNotesStore(new LocalNotesStore())
+    await storeA.connect(backend)
+    await storeB.connect(backend)
+
+    storeA.set(target('x'), 'original')
+    storeA.set(target('y'), 'stay')
+    await Promise.resolve()
+
+    // B should see both via its next reconcile (we'll simulate poll manually)
+    // B.disconnect + reconnect is the same as a poll cycle for test purposes
+    storeB.disconnect()
+    await storeB.connect(backend)
+    expect(storeB.get('x')).toBe('original')
+    expect(storeB.get('y')).toBe('stay')
+
+    // A deletes 'x'
+    storeA.set(target('x'), '') // empty = delete
+    await Promise.resolve()
+    expect(storeA.has('x')).toBe(false)
+    expect(backend.store.has('x')).toBe(false)
+
+    // B polls — should drop 'x' but keep 'y'
+    storeB.disconnect()
+    await storeB.connect(backend)
+    expect(storeB.has('x')).toBe(false)
+    expect(storeB.has('y')).toBe(true)
+    expect(backend.store.has('x')).toBe(false) // NOT pushed back up
+  })
 })

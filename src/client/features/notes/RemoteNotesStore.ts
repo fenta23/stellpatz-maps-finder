@@ -91,23 +91,29 @@ export class SyncedNotesStore implements INotesStore {
       n => !remoteById.has(n.id) && !this.syncedIds.has(n.id),
     )
 
-    // Build final set: server items (local wins ties) + guest-only items.
+    // Build final set: for items previously synced, server is authoritative;
+    // for items never synced, local wins (preserves offline creations/edits).
     // Items that were previously synced but absent from the server are dropped.
     const final = new Map<string, PoiNote>()
     for (const r of remote) {
       const local = localList.find(n => n.id === r.id)
-      final.set(r.id, local ?? r)
+      if (local && this.syncedIds.has(r.id)) {
+        final.set(r.id, r)
+      } else {
+        final.set(r.id, local ?? r)
+      }
     }
     for (const g of guestOnly) final.set(g.id, g)
 
     this.local.replaceAll(final.values())
 
-    // Push genuine guest items and locally modified shared items up.
-    const modified = localList.filter(n => {
+    // Push guest-only items and locally-modified-but-unsynced shared items up.
+    // Items already in syncedIds are NOT pushed — the server is authoritative.
+    const modifiedUnsynced = localList.filter(n => {
       const r = remoteById.get(n.id)
-      return r && n.text !== r.text
+      return r && !this.syncedIds.has(n.id) && n.text !== r.text
     })
-    const toPush = [...guestOnly, ...modified]
+    const toPush = [...guestOnly, ...modifiedUnsynced]
     if (toPush.length > 0) {
       await Promise.allSettled(toPush.map(n => backend.upsert(n)))
     }

@@ -93,23 +93,29 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
       p => !remoteById.has(p.id) && !this.syncedIds.has(p.id),
     )
 
-    // Build final set: server items (local wins ties) + guest-only items.
+    // Build final set: for items previously synced, server is authoritative;
+    // for items never synced, local wins (preserves offline creations/edits).
     // Items that were previously synced but absent from the server are dropped.
     const final = new Map<string, CustomPoi>()
     for (const r of remote) {
       const local = localAll.find(p => p.id === r.id)
-      final.set(r.id, local ?? r)
+      if (local && this.syncedIds.has(r.id)) {
+        final.set(r.id, r)
+      } else {
+        final.set(r.id, local ?? r)
+      }
     }
     for (const g of guestOnly) final.set(g.id, g)
 
     this.local.replaceAll(final.values())
 
-    // Push genuine guest items and locally modified shared items up.
-    const modified = localAll.filter(p => {
+    // Push guest-only items and locally-modified-but-unsynced shared items up.
+    // Items already in syncedIds are NOT pushed — the server is authoritative.
+    const modifiedUnsynced = localAll.filter(p => {
       const r = remoteById.get(p.id)
-      return r && p.updatedAt > r.updatedAt
+      return r && !this.syncedIds.has(p.id) && p.updatedAt > r.updatedAt
     })
-    const toPush = [...guestOnly, ...modified]
+    const toPush = [...guestOnly, ...modifiedUnsynced]
     if (toPush.length > 0) {
       await Promise.allSettled(toPush.map(poi => backend.upsert(poi)))
     }

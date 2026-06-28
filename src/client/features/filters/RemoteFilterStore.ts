@@ -127,23 +127,29 @@ export class SyncedFilterStore implements IFilterStore {
       d => !remoteById.has(d.id) && !this.syncedIds.has(d.id),
     )
 
-    // Build final set: server items (local wins ties) + guest-only items.
+    // Build final set: for items previously synced, server is authoritative;
+    // for items never synced, local wins (preserves offline creations/edits).
     // Items that were previously synced but absent from the server are dropped.
     const final = new Map<string, FilterDef>()
     for (const r of remote) {
       const local = localRecords.find(d => d.id === r.id)
-      final.set(r.id, local ?? r)
+      if (local && this.syncedIds.has(r.id)) {
+        final.set(r.id, r)
+      } else {
+        final.set(r.id, local ?? r)
+      }
     }
     for (const g of guestOnly) final.set(g.id, g)
 
     this.local.replaceAll(final.values())
 
-    // Push genuine guest items and locally modified shared items up.
-    const modified = localRecords.filter(d => {
+    // Push guest-only items and locally-modified-but-unsynced shared items up.
+    // Items already in syncedIds are NOT pushed — the server is authoritative.
+    const modifiedUnsynced = localRecords.filter(d => {
       const r = remoteById.get(d.id)
-      return r && JSON.stringify(stableJson(d)) !== JSON.stringify(stableJson(r))
+      return r && !this.syncedIds.has(d.id) && JSON.stringify(stableJson(d)) !== JSON.stringify(stableJson(r))
     })
-    const toPush = [...guestOnly, ...modified]
+    const toPush = [...guestOnly, ...modifiedUnsynced]
     if (toPush.length > 0) {
       await Promise.allSettled(toPush.map(def => backend.upsert(def)))
     }
