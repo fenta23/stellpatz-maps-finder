@@ -1,18 +1,17 @@
 import { describe, it, expect, vi } from 'vitest'
-import type { User } from '@supabase/supabase-js'
 import { AuthPanel } from './AuthPanel.js'
-import type { Auth, MagicLinkResult } from './auth.js'
+import type { Auth, AuthUser, MagicLinkResult } from './auth.js'
 
-function fakeAuth(initialUser: User | null = null) {
-  let changeCb: ((u: User | null) => void) | undefined
+function fakeAuth(initialUser: AuthUser | null = null) {
+  let changeCb: ((u: AuthUser | null) => void) | undefined
   const auth: Auth = {
     sendMagicLink: vi.fn<(e: string) => Promise<MagicLinkResult>>().mockResolvedValue({ ok: true }),
     verifyOtp: vi.fn<(e: string, t: string) => Promise<MagicLinkResult>>().mockResolvedValue({ ok: true }),
     signOut: vi.fn().mockResolvedValue(undefined),
     currentUser: vi.fn().mockResolvedValue(initialUser),
-    onChange: vi.fn((cb: (u: User | null) => void) => { changeCb = cb; return () => {} }),
+    onChange: vi.fn((cb: (u: AuthUser | null) => void) => { changeCb = cb; return () => {} }),
   }
-  return { auth, emitChange: (u: User | null) => changeCb?.(u) }
+  return { auth, emitChange: (u: AuthUser | null) => changeCb?.(u) }
 }
 
 const flush = () => new Promise(r => setTimeout(r, 0))
@@ -81,11 +80,12 @@ describe('AuthPanel — logged out', () => {
 })
 
 describe('AuthPanel — profile (logged in)', () => {
-  const user = {
+  const user: AuthUser = {
+    id: 'u1',
     email: 'max@example.com',
-    app_metadata: { provider: 'email' },
+    provider: 'email',
     created_at: '2026-01-15T10:00:00Z',
-  } as unknown as User
+  }
 
   it('shows email, provider, member-since and a logout button', async () => {
     const c = document.createElement('div')

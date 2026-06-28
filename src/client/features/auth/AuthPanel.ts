@@ -1,6 +1,5 @@
 import './auth.css'
-import type { User } from '@supabase/supabase-js'
-import type { Auth } from './auth.js'
+import type { Auth, AuthUser } from './auth.js'
 import { isValidEmail } from './isValidEmail.js'
 import { clone, ref } from '@/core/template.js'
 import { createEventScope, type EventScope } from '@/core/events.js'
@@ -28,7 +27,7 @@ export class AuthPanel {
   private readonly panel: HTMLElement
   private readonly body: HTMLElement
   private readonly events: EventScope = createEventScope()
-  private user: User | null = null
+  private user: AuthUser | null = null
 
   constructor(container: HTMLElement, private readonly auth: Auth, private readonly opts: AuthPanelOptions = {}) {
     this.backdrop = clone('<div class="auth-backdrop"></div>')
@@ -56,7 +55,7 @@ export class AuthPanel {
     this.body.appendChild(this.user ? this.renderProfile(this.user) : this.renderLoggedOut())
   }
 
-  private renderProfile(user: User): HTMLElement {
+  private renderProfile(user: AuthUser): HTMLElement {
     const view = clone(loggedInHtml)
     ref(view, 'info').textContent = `Angemeldet als ${user.email ?? 'unbekannt'}`
     ref(view, 'method').textContent = providerLabel(user)
@@ -135,8 +134,8 @@ export class AuthPanel {
   }
 }
 
-function providerLabel(user: User): string {
-  const p = (user.app_metadata?.['provider'] as string | undefined) ?? ''
+function providerLabel(user: AuthUser): string {
+  const p = user.provider ?? ''
   return PROVIDER_LABELS[p] ?? (p || 'unbekannt')
 }
 

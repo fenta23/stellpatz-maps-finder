@@ -56,6 +56,43 @@ describe('createAuth.currentUser', () => {
     const none = fakeClient()
     expect(await createAuth(none.client).currentUser()).toBeNull()
   })
+
+  it('deduplicates concurrent calls to getUser', async () => {
+    const getUser = vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } })
+    const { client } = fakeClient({ getUser })
+    const auth = createAuth(client)
+    const [a, b, c] = await Promise.all([
+      auth.currentUser(),
+      auth.currentUser(),
+      auth.currentUser(),
+    ])
+    expect(a).toEqual({ id: 'u1' })
+    expect(b).toEqual({ id: 'u1' })
+    expect(c).toEqual({ id: 'u1' })
+    expect(getUser).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not invalidate cache on auth state change (startup dedup)', async () => {
+    let capturedOnAuthCb: ((event: string, session: unknown) => void) | undefined
+    const onAuthStateChange = vi.fn((cb) => {
+      capturedOnAuthCb = cb
+      return { data: { subscription: { unsubscribe: vi.fn() } } }
+    })
+    const getUser = vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } })
+    const { client } = fakeClient({ getUser, onAuthStateChange })
+    const auth = createAuth(client)
+    auth.onChange(() => {}) // subscribe so onAuthStateChange captures the callback
+
+    const first = await auth.currentUser()
+    expect(first).toEqual({ id: 'u1' })
+
+    // Simulate INITIAL_SESSION replay – must not invalidate the cache
+    capturedOnAuthCb!('INITIAL_SESSION', { user: { id: 'u1' } })
+
+    const second = await auth.currentUser()
+    expect(second).toEqual({ id: 'u1' })
+    expect(getUser).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('createAuth.recoverSession', () => {

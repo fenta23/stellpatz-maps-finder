@@ -35,7 +35,7 @@ export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
       void connectCustomPois(createSupabaseCustomPoiBackend(supabase, user.id))
         .then(() => onCustomPoisSynced())
       void filterStore.connect(createSupabaseFilterBackend(supabase, user.id))
-      if (user.user_metadata?.helpSeen) {
+      if (user.helpSeen) {
         helpSeenStore.markSeen()
         onHelpSeenFromServer()
       }
@@ -51,16 +51,12 @@ export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
   // die PWA/App noch läuft. recoverSession() triggert über setSession() den
   // onAuthStateChange-Callback, der die Stores initial verbindet. Wiederholte
   // Aufrufe sind harmlos – connect() in den Stores ist idempotent (Guard).
-  let lastUser: { id: string } | null = null
-  try { lastUser = await auth.currentUser() } catch { /* ignore */ }
   const recover = async () => {
     try {
-      const user = await auth.recoverSession()
-      if (user) lastUser = user
+      await auth.recoverSession()
     } catch { /* ignore */ }
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void recover()
   })
-  void recover()
 }
