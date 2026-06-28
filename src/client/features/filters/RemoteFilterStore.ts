@@ -3,6 +3,17 @@ import type { FilterDef } from './filterModel.js'
 import type { IFilterStore } from './FilterStore.js'
 import { LocalFilterStore } from './FilterStore.js'
 
+function stableJson(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(stableJson)
+  if (v && typeof v === 'object') {
+    const entries = Object.entries(v as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, val]) => [k, stableJson(val)] as const)
+    return Object.fromEntries(entries)
+  }
+  return v
+}
+
 /** Remote persistence for filter definitions. All ops are async and may reject. */
 export interface FilterBackend {
   load(): Promise<readonly FilterDef[]>
@@ -68,8 +79,15 @@ export class SyncedFilterStore implements IFilterStore {
       console.warn('[filters] remote load failed:', err)
       return
     }
+    const remoteById = new Map(remote.map(d => [d.id, d]))
     this.local.applyRemote(remote) // additive: local customisations win ties
-    await Promise.allSettled(this.local.records_().map(def => backend.upsert(def)))
+    const toPush = this.local.records_().filter(def => {
+      const r = remoteById.get(def.id)
+      return !r || JSON.stringify(stableJson(def)) !== JSON.stringify(stableJson(r))
+    })
+    if (toPush.length > 0) {
+      await Promise.allSettled(toPush.map(def => backend.upsert(def)))
+    }
   }
 
   disconnect(): void {

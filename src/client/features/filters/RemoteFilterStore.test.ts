@@ -83,6 +83,31 @@ describe('SyncedFilterStore', () => {
     expect(() => s.remove('u1')).not.toThrow()
   })
 
+  it('skips push for unchanged filters where local def matches remote', async () => {
+    const local = new LocalFilterStore()
+    local.put(userFilter('same', 'Unchanged'))
+    const { backend } = fakeBackend([userFilter('same', 'Unchanged')])
+    const s = new SyncedFilterStore(local)
+    await s.connect(backend)
+    const upsertedForSame = backend.upsert.mock.calls.filter(c => (c[0] as FilterDef).id === 'same')
+    expect(upsertedForSame).toHaveLength(0)
+  })
+
+  it('pushes only new and locally modified filters', async () => {
+    const local = new LocalFilterStore()
+    local.put(userFilter('new', 'NewName'))
+    local.put(userFilter('changed', 'ChangedName'))
+    local.put(userFilter('identical', 'IdenticalName'))
+    const { backend } = fakeBackend([
+      userFilter('changed', 'OldName'),
+      userFilter('identical', 'IdenticalName'),
+    ])
+    const s = new SyncedFilterStore(local)
+    await s.connect(backend)
+    const upsertedIds = backend.upsert.mock.calls.map(c => (c[0] as FilterDef).id).sort()
+    expect(upsertedIds).toEqual(['changed', 'new'])
+  })
+
   it('does not re-run the full merge when already connected', async () => {
     const { backend } = fakeBackend()
     const s = new SyncedFilterStore(new LocalFilterStore())

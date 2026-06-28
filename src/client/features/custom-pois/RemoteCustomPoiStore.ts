@@ -48,9 +48,9 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
 
   /**
    * Attach a backend on login: pull server POIs into the local mirror (server
-   * extras are added), then push the merged set up so both sides match. For ids
-   * present on both, the local copy wins — we never silently discard a POI the
-   * user just created offline.
+   * extras are added), then push back only POIs that are new or locally modified
+   * since the last sync. For ids present on both, the local copy wins — we never
+   * silently discard a POI the user just created offline.
    */
   async connect(backend: CustomPoiBackend): Promise<void> {
     if (this.backend) return
@@ -62,8 +62,15 @@ export class SyncedCustomPoiStore implements ICustomPoiStore {
       console.warn('[custom-pois] remote load failed:', err)
       return
     }
+    const remoteById = new Map(remote.map(p => [p.id, p]))
     this.local.addMany(remote) // additive: local edits win ties, server extras pulled in
-    await Promise.allSettled(this.local.getAll().map(poi => backend.upsert(poi)))
+    const toPush = this.local.getAll().filter(poi => {
+      const r = remoteById.get(poi.id)
+      return !r || poi.updatedAt > r.updatedAt
+    })
+    if (toPush.length > 0) {
+      await Promise.allSettled(toPush.map(poi => backend.upsert(poi)))
+    }
   }
 
   /** Detach on logout; the local mirror stays as the guest set. */

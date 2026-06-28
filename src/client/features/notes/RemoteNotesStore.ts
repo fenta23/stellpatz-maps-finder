@@ -43,9 +43,9 @@ export class SyncedNotesStore implements INotesStore {
 
   /**
    * Attach a backend on login: pull server notes into the local mirror (server
-   * extras are added), then push the merged set up so both sides match. For ids
-   * present on both, the local edit wins — we never silently discard a note the
-   * user just typed.
+   * extras are added), then push back only notes that are new or locally modified.
+   * For ids present on both, the local edit wins — we never silently discard a
+   * note the user just typed.
    */
   async connect(backend: NotesBackend): Promise<void> {
     if (this.backend) return
@@ -57,8 +57,15 @@ export class SyncedNotesStore implements INotesStore {
       console.warn('[notes] remote load failed:', err)
       return
     }
+    const remoteById = new Map(remote.map(n => [n.id, n]))
     this.local.addMany(remote) // additive: local edits win ties, server extras pulled in
-    await Promise.allSettled(this.local.list().map(note => backend.upsert(note)))
+    const toPush = this.local.list().filter(note => {
+      const r = remoteById.get(note.id)
+      return !r || note.text !== r.text
+    })
+    if (toPush.length > 0) {
+      await Promise.allSettled(toPush.map(note => backend.upsert(note)))
+    }
   }
 
   /** Detach on logout; the local mirror stays as the guest set. */

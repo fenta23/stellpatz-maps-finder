@@ -74,6 +74,34 @@ describe('SyncedNotesStore.connect (login merge)', () => {
     expect(s.set(target('1'), 'hi')).toBe('hi')
   })
 
+  it('skips push for unchanged notes where local text matches remote', async () => {
+    const local = new LocalNotesStore()
+    local.set(target('same'), 'hello')
+    const backend = fakeBackend([note('same', 'hello')])
+    const upsertSpy = vi.spyOn(backend, 'upsert')
+    const s = new SyncedNotesStore(local)
+    await s.connect(backend)
+    expect(upsertSpy).not.toHaveBeenCalled()
+    expect(s.get('same')).toBe('hello')
+  })
+
+  it('pushes only new notes and locally modified notes', async () => {
+    const local = new LocalNotesStore()
+    local.set(target('new'), 'fresh')
+    local.set(target('changed'), 'v2')
+    local.set(target('identical'), 'v1')
+    const backend = fakeBackend([
+      note('changed', 'v1'),
+      note('identical', 'v1'),
+    ])
+    const upsertSpy = vi.spyOn(backend, 'upsert')
+    const s = new SyncedNotesStore(local)
+    await s.connect(backend)
+    expect(upsertSpy).toHaveBeenCalledTimes(2)
+    const upsertedIds = upsertSpy.mock.calls.map(c => (c[0] as PoiNote).id).sort()
+    expect(upsertedIds).toEqual(['changed', 'new'])
+  })
+
   it('does not re-run the full merge when already connected', async () => {
     const backend = fakeBackend([note('server-1', 'a')])
     const loadSpy = vi.spyOn(backend, 'load')

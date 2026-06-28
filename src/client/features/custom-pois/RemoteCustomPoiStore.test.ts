@@ -52,9 +52,9 @@ describe('SyncedCustomPoiStore.connect (login merge)', () => {
 
   it('merges union; local copy wins ties and both sides end consistent', async () => {
     const local = new LocalCustomPoiStore()
-    local.put(poi('shared', { name: 'LOCAL' }))
+    local.put(poi('shared', { name: 'LOCAL', updatedAt: 2 }))
     local.put(poi('local-only'))
-    const backend = fakeBackend([poi('shared', { name: 'SERVER' }), poi('server-only')])
+    const backend = fakeBackend([poi('shared', { name: 'SERVER', updatedAt: 1 }), poi('server-only')])
     const s = new SyncedCustomPoiStore(local)
     await s.connect(backend)
     expect(s.get('shared')?.name).toBe('LOCAL') // local wins conflict
@@ -75,6 +75,34 @@ describe('SyncedCustomPoiStore.connect (login merge)', () => {
     await expect(s.connect(backend)).resolves.toBeUndefined()
     s.put(poi('1'))
     expect(s.get('1')).toBeDefined()
+  })
+
+  it('skips push for unchanged POIs where local updatedAt is not newer', async () => {
+    const local = new LocalCustomPoiStore()
+    local.put(poi('same', { name: 'X', updatedAt: 10 }))
+    const backend = fakeBackend([poi('same', { name: 'X', updatedAt: 10 })])
+    const upsertSpy = vi.spyOn(backend, 'upsert')
+    const s = new SyncedCustomPoiStore(local)
+    await s.connect(backend)
+    expect(upsertSpy).not.toHaveBeenCalled()
+    expect(s.get('same')?.name).toBe('X')
+  })
+
+  it('pushes only new POIs and locally modified POIs', async () => {
+    const local = new LocalCustomPoiStore()
+    local.put(poi('new', { updatedAt: 1 }))
+    local.put(poi('changed', { name: 'v2', updatedAt: 5 }))
+    local.put(poi('identical', { name: 'v1', updatedAt: 1 }))
+    const backend = fakeBackend([
+      poi('changed', { name: 'v1', updatedAt: 1 }),
+      poi('identical', { name: 'v1', updatedAt: 1 }),
+    ])
+    const upsertSpy = vi.spyOn(backend, 'upsert')
+    const s = new SyncedCustomPoiStore(local)
+    await s.connect(backend)
+    expect(upsertSpy).toHaveBeenCalledTimes(2)
+    const upsertedIds = upsertSpy.mock.calls.map(c => (c[0] as CustomPoi).id).sort()
+    expect(upsertedIds).toEqual(['changed', 'new'])
   })
 
   it('does not re-run the full merge when already connected', async () => {
