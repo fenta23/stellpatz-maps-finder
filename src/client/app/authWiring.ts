@@ -48,12 +48,12 @@ export async function initAuthSync(deps: AuthSyncDeps): Promise<void> {
   })
 
   // Session recovery: wenn der Magic-Link im Browser geöffnet wurde, während
-  // die PWA/App noch läuft. Nur nötig wenn noch kein User eingeloggt ist; ein
-  // bereits aktiver Auth-Change-Callback kümmert sich dann um die Stores.
+  // die PWA/App noch läuft. recoverSession() triggert über setSession() den
+  // onAuthStateChange-Callback, der die Stores initial verbindet. Wiederholte
+  // Aufrufe sind harmlos – connect() in den Stores ist idempotent (Guard).
   let lastUser: { id: string } | null = null
   try { lastUser = await auth.currentUser() } catch { /* ignore */ }
   const recover = async () => {
-    if (lastUser) return
     try {
       const user = await auth.recoverSession()
       if (user) lastUser = user
