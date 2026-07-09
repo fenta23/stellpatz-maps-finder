@@ -427,12 +427,16 @@ async function init() {
   const datenschutzPanel = new DatenschutzPanel(document.body)
   const impressumPanel = new ImpressumPanel(document.body)
   const responsibilityPanel = new ResponsibilityPanel(document.body)
-  const helpPanel = new HelpPanel(document.body, () => {
-    helpSeenStore.markSeen()
-    if (supabase) {
-      void supabase.auth.updateUser({ data: { helpSeen: true } })
-        .catch(err => console.warn('[help] metadata sync failed:', err))
-    }
+  const helpPanel = new HelpPanel(document.body, {
+    filterStore,
+    onDismiss: () => {
+      helpSeenStore.markSeen()
+      if (supabase) {
+        void supabase.auth.updateUser({ data: { helpSeen: true } })
+          .catch(err => console.warn('[help] metadata sync failed:', err))
+      }
+    },
+    onOpenAuth: authPanel ? () => authPanel!.open() : undefined,
   })
 
   const closeAll = () => {

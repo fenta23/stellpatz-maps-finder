@@ -1,19 +1,54 @@
-import { describe, it, expect, vi } from 'vitest'
-import { HelpPanel } from './HelpPanel.js'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { HelpPanel, type HelpPanelDeps } from './HelpPanel.js'
+import type { IFilterStore } from '@/features/filters/FilterStore.js'
+import { DEFAULT_FILTERS } from '@/features/filters/filterModel.js'
 
 const flush = () => new Promise(r => setTimeout(r, 0))
 
+function makeFilterStore(overrides: Partial<IFilterStore> = {}): IFilterStore {
+  return {
+    list: () => DEFAULT_FILTERS,
+    get: (id) => DEFAULT_FILTERS.find(f => f.id === id),
+    osmFilters: () => DEFAULT_FILTERS.filter(f => f.kind === 'osm'),
+    osmSignature: () => '',
+    put: vi.fn(),
+    remove: vi.fn(),
+    setEnabled: vi.fn(),
+    setHidden: vi.fn(),
+    isBuiltin: () => true,
+    onChange: () => () => {},
+    ...overrides,
+  }
+}
+
+function makeDeps(overrides: Partial<HelpPanelDeps> = {}): HelpPanelDeps {
+  return {
+    filterStore: makeFilterStore(),
+    onDismiss: vi.fn(),
+    onOpenAuth: vi.fn(),
+    ...overrides,
+  }
+}
+
+function makePanel(deps?: Partial<HelpPanelDeps>) {
+  const c = document.createElement('div')
+  const panel = new HelpPanel(c, makeDeps(deps))
+  return { c, panel }
+}
+
+function clickNext(c: HTMLElement) {
+  c.querySelector<HTMLButtonElement>('[data-ref="next"]')!.click()
+}
+
 describe('HelpPanel', () => {
   it('starts hidden', async () => {
-    const c = document.createElement('div')
-    new HelpPanel(c, vi.fn())
+    const { c } = makePanel()
     await flush()
     expect(c.querySelector('.help-panel')!.classList.contains('open')).toBe(false)
   })
 
   it('open() and close() toggle visibility', async () => {
-    const c = document.createElement('div')
-    const panel = new HelpPanel(c, vi.fn())
+    const { panel } = makePanel()
     await flush()
     expect(panel.isOpen()).toBe(false)
     panel.open()
@@ -23,30 +58,17 @@ describe('HelpPanel', () => {
   })
 
   it('programmatic close() does NOT call onDismiss', async () => {
-    const c = document.createElement('div')
     const onDismiss = vi.fn()
-    const panel = new HelpPanel(c, onDismiss)
+    const { panel } = makePanel({ onDismiss })
     await flush()
     panel.open()
     panel.close()
     expect(onDismiss).not.toHaveBeenCalled()
   })
 
-  it('CTA button calls onDismiss and closes the panel', async () => {
-    const c = document.createElement('div')
+  it('skip button calls onDismiss and closes the panel', async () => {
     const onDismiss = vi.fn()
-    const panel = new HelpPanel(c, onDismiss)
-    await flush()
-    panel.open()
-    c.querySelector<HTMLButtonElement>('[data-ref="start"]')!.click()
-    expect(onDismiss).toHaveBeenCalledOnce()
-    expect(panel.isOpen()).toBe(false)
-  })
-
-  it('X button calls onDismiss and closes the panel', async () => {
-    const c = document.createElement('div')
-    const onDismiss = vi.fn()
-    const panel = new HelpPanel(c, onDismiss)
+    const { c, panel } = makePanel({ onDismiss })
     await flush()
     panel.open()
     c.querySelector<HTMLButtonElement>('.help-skip')!.click()
@@ -55,9 +77,8 @@ describe('HelpPanel', () => {
   })
 
   it('Escape key calls onDismiss and closes the panel', async () => {
-    const c = document.createElement('div')
     const onDismiss = vi.fn()
-    const panel = new HelpPanel(c, onDismiss)
+    const { panel } = makePanel({ onDismiss })
     await flush()
     panel.open()
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
@@ -66,11 +87,145 @@ describe('HelpPanel', () => {
   })
 
   it('Escape does nothing when panel is closed', async () => {
-    const c = document.createElement('div')
     const onDismiss = vi.fn()
-    new HelpPanel(c, onDismiss)
+    makePanel({ onDismiss })
     await flush()
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     expect(onDismiss).not.toHaveBeenCalled()
+  })
+
+  it('open() resets to step 1 and shows progress dots', async () => {
+    const { c, panel } = makePanel()
+    await flush()
+    panel.open()
+    const dots = c.querySelectorAll('.help-progress-dot')
+    expect(dots).toHaveLength(4)
+    expect(dots[0]!.classList.contains('active')).toBe(true)
+    expect(dots[1]!.classList.contains('active')).toBe(false)
+  })
+
+  it('next button advances to step 2', async () => {
+    const { c, panel } = makePanel()
+    await flush()
+    panel.open()
+    clickNext(c)
+    const dots = c.querySelectorAll('.help-progress-dot')
+    expect(dots[1]!.classList.contains('active')).toBe(true)
+    expect(c.querySelector('.help-filter-grid')).not.toBeNull()
+  })
+
+  it('back button returns to step 1', async () => {
+    const { c, panel } = makePanel()
+    await flush()
+    panel.open()
+    clickNext(c)
+    c.querySelector<HTMLButtonElement>('.help-nav-btn--back')!.click()
+    const dots = c.querySelectorAll('.help-progress-dot')
+    expect(dots[0]!.classList.contains('active')).toBe(true)
+  })
+
+  it('filter cards toggle aria-pressed', async () => {
+    const { c, panel } = makePanel()
+    await flush()
+    panel.open()
+    clickNext(c) // go to step 2
+    const card = c.querySelector<HTMLButtonElement>('.help-filter-card')!
+    const initialState = card.getAttribute('aria-pressed')
+    card.click()
+    expect(card.getAttribute('aria-pressed')).toBe(initialState === 'true' ? 'false' : 'true')
+  })
+
+  it('advancing from step 2 hides deselected filters', async () => {
+    const setHidden = vi.fn()
+    const filterStore = makeFilterStore({ setHidden })
+    const { c, panel } = makePanel({ filterStore })
+    await flush()
+    panel.open()
+    clickNext(c) // to step 2
+
+    // Deselect parking (visible by default → should become hidden)
+    const card = c.querySelector<HTMLButtonElement>('.help-filter-card[data-filter-id="parking"]')!
+    card.click()
+
+    clickNext(c) // to step 3 — commits filter state
+    expect(setHidden).toHaveBeenCalledWith('parking', true)
+  })
+
+  it('advancing from step 2 unhides re-selected filters', async () => {
+    const setHidden = vi.fn()
+    // Simulate parking being already hidden
+    const filterStore = makeFilterStore({
+      setHidden,
+      get: (id) => {
+        const f = DEFAULT_FILTERS.find(d => d.id === id)
+        if (!f) return undefined
+        return id === 'parking' ? { ...f, hidden: true } : f
+      },
+    })
+    const { c, panel } = makePanel({ filterStore })
+    await flush()
+    panel.open()
+    clickNext(c) // to step 2
+
+    // Parking should be shown as deselected; select it again
+    const card = c.querySelector<HTMLButtonElement>('.help-filter-card[data-filter-id="parking"]')!
+    expect(card.classList.contains('selected')).toBe(false)
+    card.click() // select → unhide
+
+    clickNext(c)
+    expect(setHidden).toHaveBeenCalledWith('parking', false)
+  })
+
+  it('skip on step 2 does NOT apply filter changes', async () => {
+    const setHidden = vi.fn()
+    const filterStore = makeFilterStore({ setHidden })
+    const { c, panel } = makePanel({ filterStore })
+    await flush()
+    panel.open()
+    clickNext(c) // to step 2
+
+    // Toggle a filter then skip
+    c.querySelector<HTMLButtonElement>('.help-filter-card')!.click()
+    c.querySelector<HTMLButtonElement>('.help-skip')!.click()
+
+    expect(setHidden).not.toHaveBeenCalled()
+  })
+
+  it('"Lieber später" on step 4 calls onDismiss', async () => {
+    const onDismiss = vi.fn()
+    const { c, panel } = makePanel({ onDismiss })
+    await flush()
+    panel.open()
+    clickNext(c) // step 2
+    clickNext(c) // step 3
+    clickNext(c) // step 4
+    c.querySelector<HTMLButtonElement>('[data-ref="start"]')!.click()
+    expect(onDismiss).toHaveBeenCalledOnce()
+    expect(panel.isOpen()).toBe(false)
+  })
+
+  it('"Jetzt anmelden" on step 4 calls onDismiss and onOpenAuth', async () => {
+    const onDismiss = vi.fn()
+    const onOpenAuth = vi.fn()
+    const { c, panel } = makePanel({ onDismiss, onOpenAuth })
+    await flush()
+    panel.open()
+    clickNext(c)
+    clickNext(c)
+    clickNext(c)
+    c.querySelector<HTMLButtonElement>('[data-ref="signin"]')!.click()
+    expect(onDismiss).toHaveBeenCalledOnce()
+    expect(onOpenAuth).toHaveBeenCalledOnce()
+    expect(panel.isOpen()).toBe(false)
+  })
+
+  it('sign-in button is hidden when onOpenAuth is not provided', async () => {
+    const { c, panel } = makePanel({ onOpenAuth: undefined })
+    await flush()
+    panel.open()
+    clickNext(c)
+    clickNext(c)
+    clickNext(c)
+    expect(c.querySelector('[data-ref="signin"]')).toBeNull()
   })
 })
