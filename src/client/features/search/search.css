@@ -60,7 +60,7 @@
     color: var(--ink-muted);
 }
 
-/* "✨ KI-Suche" trigger — always visible at the right edge. */
+/* "✨ KI-Suche" trigger — appended to DOM for logged-in users only. */
 .search-ai {
     position: absolute;
     right: 4px;

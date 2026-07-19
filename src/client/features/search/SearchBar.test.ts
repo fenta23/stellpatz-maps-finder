@@ -29,17 +29,13 @@ describe('SearchBar', () => {
     expect(input?.placeholder).toBe('Ort suchen…')
   })
 
-  it('hides the KI-Suche button until setAiEnabled(true) — login only', () => {
+  it('KI-Suche button is absent from DOM until setAiEnabled(true) — login gate', () => {
     const sb = new SearchBar(container)
-    const aiBtn = container.querySelector<HTMLButtonElement>('.search-ai')!
-    expect(aiBtn).toBeTruthy()
-    // Regression: muss die `.hidden`-Klasse nutzen, NICHT das hidden-Attribut —
-    // `.search-ai { display:flex }` (Klassen-Selektor) überstimmt das Attribut.
-    expect(aiBtn.classList.contains('hidden')).toBe(true) // ausgeloggt: versteckt
+    expect(container.querySelector('.search-ai')).toBeNull()
     sb.setAiEnabled(true)
-    expect(aiBtn.classList.contains('hidden')).toBe(false) // eingeloggt: sichtbar
+    expect(container.querySelector('.search-ai')).toBeTruthy()
     sb.setAiEnabled(false)
-    expect(aiBtn.classList.contains('hidden')).toBe(true)
+    expect(container.querySelector('.search-ai')).toBeNull()
   })
 
   it('dropdown is hidden initially', () => {

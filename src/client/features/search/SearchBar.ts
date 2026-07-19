@@ -54,11 +54,10 @@ export class SearchBar {
     clearBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
 
     // "✨ KI-Suche" — opens the chat modal with the current text as the seed query.
+    // Only appended to DOM for logged-in users (setAiEnabled).
     const aiBtn = document.createElement('button')
     aiBtn.type = 'button'
-    // Start versteckt via `.hidden`-Klasse, NICHT das hidden-Attribut: `.search-ai`
-    // setzt `display:flex` (Klassen-Selektor) und würde das Attribut überstimmen.
-    aiBtn.className = 'search-ai hidden'
+    aiBtn.className = 'search-ai'
     aiBtn.setAttribute('aria-label', 'Mit KI suchen')
     aiBtn.title = 'Mit KI suchen'
     aiBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>'
@@ -66,11 +65,10 @@ export class SearchBar {
       const q = this.input.value.trim()
       for (const l of this.aiListeners) l(q)
     })
-    this.aiBtn = aiBtn // KI-Suche nur für eingeloggte Nutzer — via setAiEnabled freigeschaltet
+    this.aiBtn = aiBtn
 
     form.appendChild(this.input)
     form.appendChild(clearBtn)
-    form.appendChild(aiBtn)
     wrapper.appendChild(form)
     wrapper.appendChild(this.dropdown)
     this.container.appendChild(wrapper)
@@ -193,9 +191,14 @@ export class SearchBar {
     }
   }
 
-  /** Show/hide the "✨ KI-Suche" button — only logged-in users may use the AI. */
+  /** Show/hide the "✨ KI-Suche" button — only logged-in users may use the AI.
+   *  Removes the button from DOM entirely when disabled — no fragile CSS hiding. */
   setAiEnabled(enabled: boolean): void {
-    this.aiBtn.classList.toggle('hidden', !enabled)
+    if (enabled && !this.aiBtn.parentElement) {
+      this.input.parentElement?.appendChild(this.aiBtn)
+    } else if (!enabled && this.aiBtn.parentElement) {
+      this.aiBtn.remove()
+    }
   }
 
   destroy(): void { this.events.dispose() }
