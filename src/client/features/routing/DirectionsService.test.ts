@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  haversineMeters, buildGoogleMapsPoiLink, buildRouteResult,
+  haversineMeters, buildGoogleMapsPoiLink, buildPark4nightPoiLink, buildRouteResult,
   detectNavPlatform, buildGoogleDirectionsLink, buildAppleDirectionsLink, buildNavLink,
   routeErrorMessage,
 } from './DirectionsService.js'
@@ -40,6 +40,38 @@ describe('buildGoogleMapsPoiLink', () => {
     const url = buildGoogleMapsPoiLink({ lat: 48.1, lon: 11.5 }, '   ')
     expect(url).toContain(encodeURIComponent('48.1,11.5'))
     expect(url).not.toContain('+')
+  })
+})
+
+describe('buildPark4nightPoiLink', () => {
+  it('deep-links to the place detail page when ref:park4night is present', () => {
+    const url = buildPark4nightPoiLink({ lat: 48.1, lon: 11.5 }, 'Stellplatz am See', '12345')
+    expect(url).toBe('https://park4night.com/lieu/12345/')
+  })
+
+  it('falls back to a search link with lat/lng, z=15, and name', () => {
+    const url = buildPark4nightPoiLink({ lat: 48.123, lon: 11.456 }, 'Stellplatz am See')
+    expect(url).toContain('park4night.com/en/search')
+    expect(url).toContain('lat=48.123')
+    expect(url).toContain('lng=11.456')
+    expect(url).toContain('z=15')
+    expect(url).toContain('q=Stellplatz+am+See')
+  })
+
+  it('omits q param when name is empty', () => {
+    const url = buildPark4nightPoiLink({ lat: 48.1, lon: 11.5 }, '   ')
+    expect(url).toContain('park4night.com/en/search')
+    expect(url).toContain('lat=48.1')
+    expect(url).toContain('lng=11.5')
+    expect(url).toContain('z=15')
+    expect(url).not.toContain('q=')
+  })
+
+  it('omits q param when name is undefined', () => {
+    const url = buildPark4nightPoiLink({ lat: 48.1, lon: 11.5 })
+    expect(url).toContain('lat=48.1')
+    expect(url).toContain('lng=11.5')
+    expect(url).not.toContain('q=')
   })
 })
 

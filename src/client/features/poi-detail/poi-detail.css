@@ -310,9 +310,12 @@
 .panel-actions-grid .btn-secondary[hidden] {
     display: none;
 }
-/* Maps link spans the full width on its own row. */
+/* Google Maps spans full width; when park4night is also visible they sit side by side. */
 .btn-maps {
     grid-column: 1 / -1;
+}
+.panel-actions-grid.has-p4n .btn-maps {
+    grid-column: auto;
 }
 
 .btn-delete {

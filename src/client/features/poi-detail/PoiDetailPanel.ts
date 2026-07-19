@@ -1,6 +1,6 @@
 import './poi-detail.css'
 import type { OsmPoi } from '@/features/pois/OverpassClient.js'
-import { buildGoogleMapsPoiLink, buildNavLink } from '@/features/routing/DirectionsService.js'
+import { buildGoogleMapsPoiLink, buildPark4nightPoiLink, buildNavLink } from '@/features/routing/DirectionsService.js'
 import type { RouteResult, RoutingMode, LatLon } from '@/features/routing/DirectionsService.js'
 import type { CustomPoi } from '@/features/custom-pois/CustomPoi.js'
 import { customIdToNumber } from '@/features/custom-pois/CustomPoi.js'
@@ -50,6 +50,7 @@ const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 export interface PanelConfig {
   readonly isCustom?: boolean
+  readonly isLoggedIn?: boolean
   readonly onEdit?: () => void
   readonly onDelete?: () => void
 }
@@ -199,6 +200,16 @@ export class PoiDetailPanel {
 
     // Google Maps link (name + coords → lands on the matching place card)
     ref<HTMLAnchorElement>(view, 'maps').href = buildGoogleMapsPoiLink({ lat: poi.lat, lon: poi.lon }, poi.tags.name)
+
+    // park4night link (only for logged-in users; ref:park4night → detail, else search)
+    const grid = ref(view, 'actionGrid')
+    if (config?.isLoggedIn) {
+      ref<HTMLAnchorElement>(view, 'p4n').href = buildPark4nightPoiLink({ lat: poi.lat, lon: poi.lon }, poi.tags.name, poi.tags['ref:park4night'])
+      ref<HTMLElement>(view, 'p4n').hidden = false
+      grid.classList.add('has-p4n')
+    } else {
+      grid.classList.remove('has-p4n')
+    }
 
     // Detail sections visibility
     if (isCustom) {

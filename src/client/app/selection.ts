@@ -21,6 +21,8 @@ export interface SelectionDeps {
   readonly onStartSet?: (label: string) => void
   /** Notify that the start was reset to the current location. */
   readonly onStartReset?: () => void
+  /** Whether the user is logged in (gates premium features like park4night). */
+  readonly isLoggedIn?: () => boolean
 }
 
 export interface Selection {
@@ -42,9 +44,12 @@ export function createSelection(deps: SelectionDeps): Selection {
   const isCustom = (poi: OsmPoi) => poi.id < 0
 
   function buildConfig(poi: OsmPoi): PanelConfig | undefined {
-    return isCustom(poi)
-      ? { isCustom: true, onEdit: () => deps.onEditCustomPoi?.(), onDelete: () => deps.onDeleteCustomPoi?.() }
-      : undefined
+    return {
+      isCustom: isCustom(poi) || undefined,
+      isLoggedIn: deps.isLoggedIn?.(),
+      onEdit: isCustom(poi) ? () => deps.onEditCustomPoi?.() : undefined,
+      onDelete: isCustom(poi) ? () => deps.onDeleteCustomPoi?.() : undefined,
+    }
   }
 
   /** Start info for the panel: effective origin label, whether it's custom, and

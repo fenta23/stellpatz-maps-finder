@@ -77,6 +77,24 @@ export function buildGoogleMapsPoiLink(destination: LatLon, name?: string): stri
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
 }
 
+/**
+ * park4night link to the POI. When the OSM element carries a `ref:park4night`
+ * tag we deep-link straight to the place detail page; otherwise we build a
+ * search link centred on the coordinates so the user lands on the right area.
+ */
+export function buildPark4nightPoiLink(destination: LatLon, name?: string, park4nightRef?: string): string {
+  if (park4nightRef) {
+    return `https://park4night.com/lieu/${encodeURIComponent(park4nightRef)}/`
+  }
+  const params = new URLSearchParams({
+    lat: String(destination.lat),
+    lng: String(destination.lon),
+    z: '15',
+  })
+  if (name && name.trim()) params.set('q', name.trim())
+  return `https://park4night.com/en/search?${params.toString()}`
+}
+
 // ── Turn-by-turn hand-off (deeplink to the phone's nav app) ────────────────────
 // The app only *shows* the route; real navigation happens in Google/Apple Maps.
 

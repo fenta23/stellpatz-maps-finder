@@ -119,14 +119,10 @@ z-index must beat Leaflet's panes/controls (root stacking context). */
         padding: 9px;
         font-size: 0.85rem;
     }
-    /* On mobile the three secondary actions sit side by side; Google
-       Maps loses its full-width row to save vertical space. */
+    /* On mobile the secondary actions sit in a 2-column grid to save vertical space. */
     .poi-detail-panel .panel-actions-grid {
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 6px;
-    }
-    .poi-detail-panel .btn-maps {
-        grid-column: auto;
     }
     .poi-detail-panel .panel-actions-grid .btn-secondary {
         padding: 7px 6px;

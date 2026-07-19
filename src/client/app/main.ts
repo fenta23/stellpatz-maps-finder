@@ -92,8 +92,11 @@ async function init() {
   const supabase = getSupabaseClient()
   let auth: Auth | null = null
   let authPanel: AuthPanel | null = null
+  let loggedIn = false
   if (supabase) {
     auth = createAuth(supabase)
+    void auth.currentUser().then(u => { loggedIn = !!u }).catch(() => {})
+    auth.onChange(u => { loggedIn = !!u })
     authPanel = new AuthPanel(document.body, auth, {
       getStats: () => ({ favorites: favorites.list().length, notes: notes.list().length }),
     })
@@ -241,6 +244,7 @@ async function init() {
     onDeleteCustomPoi: customPois.deleteCurrent,
     onStartSet: label => flashInfo(`Startpunkt: ${label} – jetzt Ziel wählen`),
     onStartReset: () => flashInfo('Start: mein Standort'),
+    isLoggedIn: () => loggedIn,
   })
 
   // ── Auth sync ───────────────────────────────────────────────────────────────
