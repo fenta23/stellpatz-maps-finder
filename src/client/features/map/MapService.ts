@@ -116,7 +116,11 @@ export function buildBaseLayers(): Record<string, L.TileLayer> {
   return layers
 }
 
-function createLayerSwitcher(baseLayers: Record<string, L.TileLayer>, map: L.Map): L.Control {
+function createLayerSwitcher(
+  baseLayers: Record<string, L.TileLayer>,
+  map: L.Map,
+  onLayerSwitch?: (key: string) => void,
+): L.Control {
   const control = L.control({ position: 'topright' })
 
   control.onAdd = () => {
@@ -139,6 +143,7 @@ function createLayerSwitcher(baseLayers: Record<string, L.TileLayer>, map: L.Map
         activeKey = key
         container.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'))
         btn.classList.add('active')
+        onLayerSwitch?.(key)
       })
     }
 
@@ -157,6 +162,7 @@ export class MapService {
   private readonly locateListeners: Array<() => void> = []
   private readonly dragStartListeners: Array<() => void> = []
   private readonly zoomStartListeners: Array<() => void> = []
+  private readonly baseLayerChangeListeners: Array<(key: string) => void> = []
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private _isPlacing = false
   private _routingContainer: HTMLElement | null = null
@@ -170,7 +176,9 @@ export class MapService {
 
     const baseLayers = buildBaseLayers()
     baseLayers[BASE_LAYER_CONFIGS[0]!.label]!.addTo(this.map)
-    createLayerSwitcher(baseLayers, this.map).addTo(this.map)
+    createLayerSwitcher(baseLayers, this.map, key => {
+      for (const l of this.baseLayerChangeListeners) l(key)
+    }).addTo(this.map)
     const actions = createMapActions(() => { for (const l of this.locateListeners) l() })
     actions.control.addTo(this.map)
     this._routingContainer = actions.getRoutingContainer()
@@ -257,6 +265,15 @@ export class MapService {
     return () => {
       const idx = this.zoomStartListeners.indexOf(listener)
       if (idx !== -1) this.zoomStartListeners.splice(idx, 1)
+    }
+  }
+
+  /** Fires when the user switches the base layer (Karte / Satellit). */
+  onBaseLayerChange(listener: (key: string) => void): () => void {
+    this.baseLayerChangeListeners.push(listener)
+    return () => {
+      const idx = this.baseLayerChangeListeners.indexOf(listener)
+      if (idx !== -1) this.baseLayerChangeListeners.splice(idx, 1)
     }
   }
 

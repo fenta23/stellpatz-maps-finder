@@ -29,8 +29,17 @@ const MODE_COLORS: Record<RoutingMode, string> = {
   foot: '#B5562F',    // terracotta
 }
 
+// Neon palette for satellite/aerial layers — bright pink/magenta cuts through
+// green/brown terrain much better than olive tones.
+const SATELLITE_COLORS: Record<RoutingMode, string> = {
+  driving: '#FF1493', // deep pink
+  cycling: '#FF1493', // deep pink
+  foot: '#FF1493',    // deep pink
+}
+
 // Distinct, dashed line for the secondary "POI → nearby" track
 const SECONDARY_COLOR = '#2F6FB5' // blue — clearly different from the travel route
+const SECONDARY_SATELLITE_COLOR = '#FF1493'
 
 interface OsrmRoute {
   readonly distance: number
@@ -174,15 +183,33 @@ function toLeafletCoords(route: OsrmRoute): L.LatLngTuple[] {
 export class DirectionsService {
   private routeLine: L.Polyline | null = null
   private secondaryLine: L.Polyline | null = null
+  private _satellite = false
+  private _lastMode: RoutingMode | null = null
 
   constructor(private readonly map: L.Map) {}
+
+  /** Toggle satellite-optimized route colors. Call whenever the basemap changes. */
+  setSatelliteMode(on: boolean): void {
+    if (this._satellite === on) return
+    this._satellite = on
+    const colors = on ? SATELLITE_COLORS : MODE_COLORS
+    const secColor = on ? SECONDARY_SATELLITE_COLOR : SECONDARY_COLOR
+    if (this.routeLine && this._lastMode) {
+      this.routeLine.setStyle({ color: colors[this._lastMode] })
+    }
+    if (this.secondaryLine) {
+      this.secondaryLine.setStyle({ color: secColor })
+    }
+  }
 
   /** Main travel route (current location → selected POI). */
   async route(from: LatLon, to: LatLon, mode: RoutingMode = 'driving'): Promise<RouteResult> {
     const osrmRoute = await fetchOsrmRoute(from, to, mode)
     this.clearRoute() // also drops any secondary track from a previous selection
+    this._lastMode = mode
+    const colors = this._satellite ? SATELLITE_COLORS : MODE_COLORS
     this.routeLine = L.polyline(toLeafletCoords(osrmRoute), {
-      color: MODE_COLORS[mode], weight: 5, opacity: 0.75,
+      color: colors[mode], weight: 5, opacity: 0.75,
     }).addTo(this.map)
     return buildRouteResult(osrmRoute.distance, osrmRoute.duration, from, to)
   }
@@ -191,8 +218,9 @@ export class DirectionsService {
   async routeSecondary(from: LatLon, to: LatLon, mode: RoutingMode = 'foot'): Promise<RouteResult> {
     const osrmRoute = await fetchOsrmRoute(from, to, mode)
     this.clearSecondaryRoute()
+    const secColor = this._satellite ? SECONDARY_SATELLITE_COLOR : SECONDARY_COLOR
     this.secondaryLine = L.polyline(toLeafletCoords(osrmRoute), {
-      color: SECONDARY_COLOR, weight: 4, opacity: 0.9, dashArray: '6 8',
+      color: secColor, weight: 4, opacity: 0.9, dashArray: '6 8',
     }).addTo(this.map)
     return buildRouteResult(osrmRoute.distance, osrmRoute.duration, from, to)
   }

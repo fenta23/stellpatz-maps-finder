@@ -114,6 +114,7 @@ async function init() {
   const map = mapService.getMap()
   const routingToggle = mapService.getRoutingContainer()!
   const directions = new DirectionsService(map)
+  mapService.onBaseLayerChange(key => directions.setSatelliteMode(key === 'Satellit'))
   const session = createSession(null)
 
   // ── Filters ─────────────────────────────────────────────────────────────────
