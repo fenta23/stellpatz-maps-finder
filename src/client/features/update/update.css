@@ -17,6 +17,8 @@ body.ui-collapsed .update-banner.visible {
 }
 .update-banner.visible {
     display: flex;
+    position: relative;
+    z-index: 15;
 }
 .update-banner-text {
     flex: 1;
