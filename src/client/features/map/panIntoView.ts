@@ -33,18 +33,22 @@ export function computePan(i: PanInput): { dx: number; dy: number } {
   return { dx: dx > 0 ? dx : 0, dy: 0 }
 }
 
-/** Thin DOM/Leaflet wrapper around computePan. */
+/** Thin DOM/Leaflet wrapper around computePan.
+ *  @param effectiveMapTop  Viewport-y where the map is actually visible
+ *                          (0 when ui-collapsed, otherwise bottom of header). */
 export function panPoiIntoView(
   map: L.Map,
   container: HTMLElement,
   poi: { lat: number; lon: number },
+  effectiveMapTop?: number,
 ): void {
+  const mapTop = effectiveMapTop ?? container.getBoundingClientRect().top
   const point = map.latLngToContainerPoint([poi.lat, poi.lon])
   const { dx, dy } = computePan({
     poi: { x: point.x, y: point.y },
     isMobile: window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches,
     mapWidth: container.clientWidth,
-    mapTop: container.getBoundingClientRect().top,
+    mapTop,
     viewportHeight: window.innerHeight,
   })
   if (dx !== 0 || dy !== 0) map.panBy([dx, dy], { animate: true })

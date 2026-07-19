@@ -74,8 +74,13 @@
 
 /* ── Map controls: one consistent look for zoom, layer switcher & locate.
 Zoom selectors are #map-scoped to outrank Leaflet's own (later-injected) CSS. ── */
+/* Top controls sit below the header/filter overlay. */
+.leaflet-top {
+    top: 110px;
+}
 /* When the topbar is collapsed, push controls below the notch. */
 body.ui-collapsed .leaflet-top {
+    top: 0;
     margin-top: env(safe-area-inset-top);
 }
 .layer-switcher {

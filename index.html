@@ -141,12 +141,11 @@
                 flex: 1;
                 min-height: 0;
                 position: relative;
-                overflow: hidden;
             }
-            /* Own stacking context below the topbar (z-index 10) so Leaflet's marker/
-        control panes can't render above the topbar's search dropdown. */
+            /* The map always fills the viewport. Topbar and filter-panel overlay
+               on top — hiding them never resizes the map container, so no jump. */
             #map {
-                position: absolute;
+                position: fixed;
                 inset: 0;
                 background: var(--surface-2);
                 z-index: 0;

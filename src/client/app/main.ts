@@ -227,7 +227,12 @@ async function init() {
   // ── Selection (now wired after customPois is ready) ──────────────────────────
   selection = createSelection({
     session, directions, panel: detailPanel, favorites,
-    panIntoView: poi => panPoiIntoView(map, mapContainer, poi),
+    panIntoView: poi => {
+      const effectiveTop = document.body.classList.contains('ui-collapsed')
+        ? 0
+        : document.getElementById('filter-panel')?.getBoundingClientRect().bottom ?? 0
+      panPoiIntoView(map, mapContainer, poi, effectiveTop)
+    },
     loadDetails,
     onNoLocation: () => flashStatus('Kein Startpunkt – Standort freigeben oder „Von hier starten" wählen'),
     getNote: poi => notes.get(String(poi.id)),
