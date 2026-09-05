@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { BASE_LAYER_CONFIGS, buildBaseLayers, createLocateControl } from './MapService.js'
+import { BASE_LAYER_CONFIGS, buildBaseLayers, buildMapLayerConfig, createLocateControl } from './MapService.js'
 
 type OnAdd = { onAdd: () => HTMLElement }
 
@@ -25,16 +25,9 @@ describe('BASE_LAYER_CONFIGS', () => {
     expect(labels).toEqual(['Karte', 'Satellit'])
   })
 
-  it('uses CARTO Voyager tiles for the map layer', () => {
-    const map = BASE_LAYER_CONFIGS.find(c => c.label === 'Karte')
-    expect(map?.url).toContain('basemaps.cartocdn.com')
-    expect(map?.url).toContain('voyager')
-  })
-
-  it('credits OpenStreetMap and CARTO on the map layer', () => {
+  it('credits OpenStreetMap on the map layer', () => {
     const map = BASE_LAYER_CONFIGS.find(c => c.label === 'Karte')
     expect(map?.attribution).toContain('OpenStreetMap')
-    expect(map?.attribution).toContain('CARTO')
   })
 
   it('uses Esri World Imagery for the satellite layer', () => {
@@ -62,9 +55,53 @@ describe('buildBaseLayers', () => {
   })
 
   it('wires the configured url into each tile layer', () => {
-    const layers = buildBaseLayers()
+    const layers = buildBaseLayers([
+      { label: 'Karte', url: 'https://example.test/{z}/{x}/{y}.png', attribution: 'x', maxZoom: 20 },
+      { label: 'Satellit', url: 'https://sat.test/{z}/{y}/{x}', attribution: 'y', maxZoom: 19 },
+    ])
     // Leaflet stores the template URL on the layer instance as _url
-    expect((layers['Karte'] as unknown as { _url: string })._url).toContain('cartocdn.com')
+    expect((layers['Karte'] as unknown as { _url: string })._url).toBe('https://example.test/{z}/{x}/{y}.png')
+    expect((layers['Satellit'] as unknown as { _url: string })._url).toBe('https://sat.test/{z}/{y}/{x}')
+  })
+
+  it('defaults to BASE_LAYER_CONFIGS', () => {
+    const layers = buildBaseLayers()
     expect((layers['Satellit'] as unknown as { _url: string })._url).toContain('arcgisonline.com')
+  })
+})
+
+// Regression: CARTO brennt seit 2026 ein "API KEY REQUIRED"-Wasserzeichen in
+// keylose Voyager-Tiles — ohne Key darf die Karte kein CARTO mehr anfragen.
+describe('buildMapLayerConfig', () => {
+  it('uses CARTO Voyager with the key appended when a key is configured', () => {
+    const cfg = buildMapLayerConfig('abc123')
+    expect(cfg.url).toContain('basemaps.cartocdn.com')
+    expect(cfg.url).toContain('voyager')
+    expect(cfg.url).toContain('?key=abc123')
+    expect(cfg.attribution).toContain('CARTO')
+    expect(cfg.attribution).toContain('OpenStreetMap')
+  })
+
+  it('url-encodes the key', () => {
+    expect(buildMapLayerConfig('a b&c').url).toContain('?key=a%20b%26c')
+  })
+
+  it('never requests CARTO tiles without a key', () => {
+    const cfg = buildMapLayerConfig('')
+    expect(cfg.url).not.toContain('cartocdn.com')
+    expect(cfg.url).toContain('server.arcgisonline.com')
+    expect(cfg.url).toContain('World_Street_Map')
+  })
+
+  it('drops the CARTO credit on the keyless fallback and credits Esri instead', () => {
+    const cfg = buildMapLayerConfig('')
+    expect(cfg.attribution).not.toContain('CARTO')
+    expect(cfg.attribution).toContain('Esri')
+    expect(cfg.attribution).toContain('OpenStreetMap')
+  })
+
+  it('keeps the "Karte" label either way', () => {
+    expect(buildMapLayerConfig('key').label).toBe('Karte')
+    expect(buildMapLayerConfig('').label).toBe('Karte')
   })
 })

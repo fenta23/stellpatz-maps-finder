@@ -90,27 +90,65 @@ export interface BaseLayerConfig {
   readonly maxZoom: number
 }
 
+/** Satellite layer — Esri World Imagery, keyless and free. */
+const SATELLITE_LAYER: BaseLayerConfig = {
+  label: 'Satellit',
+  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  attribution: 'Luftbilder © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics',
+  maxZoom: 19,
+}
+
+const CARTO_VOYAGER_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+
+/** Reads the build-time CARTO key (Vite replaces `import.meta.env.VITE_*` statically). */
+function readCartoKey(): string {
+  try {
+    return (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.['VITE_CARTO_API_KEY'] || ''
+  } catch {
+    return ''
+  }
+}
+
+/** The CARTO key baked into this build — empty string when none was configured. */
+export const CARTO_API_KEY = readCartoKey()
+
+/**
+ * Base ("Karte") layer config.
+ *
+ * CARTO brennt seit 2026 ein "API KEY REQUIRED"-Wasserzeichen in keylose
+ * Voyager-Tiles. Mit Key (`VITE_CARTO_API_KEY`) bleibt der gewohnte Voyager-Look,
+ * ohne Key fällt die Karte auf Esri World Street Map zurück — keyless und auf
+ * demselben Host wie der Satellit-Layer, statt eine Karte voller Wasserzeichen
+ * auszuliefern.
+ */
+export function buildMapLayerConfig(cartoKey: string = CARTO_API_KEY): BaseLayerConfig {
+  if (cartoKey) {
+    return {
+      // CARTO Voyager — clean, muted earthy tones (free tier, API key required)
+      label: 'Karte',
+      url: `${CARTO_VOYAGER_URL}?key=${encodeURIComponent(cartoKey)}`,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende © <a href="https://carto.com/attributions">CARTO</a>',
+      maxZoom: 20,
+    }
+  }
+  return {
+    label: 'Karte',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Kartendarstellung © <a href="https://www.esri.com">Esri</a> — Quellen: Esri, HERE, Garmin, USGS, <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+    maxZoom: 19,
+  }
+}
+
 /** Base map layers offered in the layer switcher (top-right control). */
 export const BASE_LAYER_CONFIGS: readonly BaseLayerConfig[] = [
-  {
-    // CARTO Voyager — clean, muted earthy tones (free, no API key)
-    label: 'Karte',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende © <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 20,
-  },
-  {
-    label: 'Satellit',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Luftbilder © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics',
-    maxZoom: 19,
-  },
-] as const
+  buildMapLayerConfig(),
+  SATELLITE_LAYER,
+]
 
 /** Builds a `{ label → TileLayer }` map from the configs — first entry is the default. */
-export function buildBaseLayers(): Record<string, L.TileLayer> {
+export function buildBaseLayers(configs: readonly BaseLayerConfig[] = BASE_LAYER_CONFIGS): Record<string, L.TileLayer> {
   const layers: Record<string, L.TileLayer> = {}
-  for (const cfg of BASE_LAYER_CONFIGS) {
+  for (const cfg of configs) {
     layers[cfg.label] = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: cfg.maxZoom })
   }
   return layers
