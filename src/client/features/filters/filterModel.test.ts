@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_FILTERS, PERSONAL_FILTER_ID, FILTER_ICONS, FILTER_TEMPLATES, FILTER_COLORS,
   buildOverpassQuery, classifyElement, filterIconPath,
-  isValidTagToken, isValidCondition, isValidSelector,
+  isValidTagToken, isValidCondition, isValidSelector, MAX_SELECTOR_CONDITIONS,
   type FilterDef, type OsmSelector,
 } from './filterModel.js'
 import type { LatLngBounds } from '@/features/pois/OverpassClient.js'
@@ -185,16 +185,17 @@ describe('shelter filter (Bushaltestellen-Ausschluss)', () => {
   })
 
   // Regression: ~90 % aller amenity=shelter in DE sind Bushaltestellen-Wartehäuschen.
-  it('rejects bus-stop shelters and the other decorative types', () => {
-    for (const t of ['public_transport', 'gazebo', 'picnic_shelter', 'sun_shelter', 'pergola']) {
+  it('rejects bus-stop shelters and the other loud types', () => {
+    for (const t of ['public_transport', 'gazebo', 'picnic_shelter']) {
       expect(classifyElement({ amenity: 'shelter', shelter_type: t }, 'way', all)).toBeNull()
     }
   })
 
-  it('stays inside the 6-condition selector limit', () => {
-    expect(shelter.selectors).toHaveLength(1)
-    expect(shelter.selectors[0]!.tags).toHaveLength(6)
-    expect(isValidSelector(shelter.selectors[0]!)).toBe(true)
+  it('excludes the three loudest types, not the rare ones', () => {
+    const excluded = shelter.selectors[0]!.tags.filter(t => t.negate).map(t => t.value)
+    expect(excluded).toEqual(['public_transport', 'picnic_shelter', 'gazebo'])
+    // sun_shelter/pergola/field_shelter passen nicht mehr rein (Backend-Limit)
+    expect(classifyElement({ amenity: 'shelter', shelter_type: 'sun_shelter' }, 'way', all)).toBe('shelter')
   })
 
   it('emits the exclusions as Overpass != conditions', () => {
@@ -250,5 +251,49 @@ describe('new filter icons', () => {
     expect(others).not.toContain(byId('hut').color)
     expect(others).not.toContain(byId('shelter').color)
     expect(byId('hut').color).not.toBe(byId('shelter').color)
+  })
+})
+
+// Regression: das Backend akzeptiert pro Statement nur {1,4} Tag-Filter
+// (supabase/functions/_shared/utils.ts, STATEMENT). Ein Selector mit 5+
+// Bedingungen gibt 400 "Unsupported query shape" — und weil alle aktiven Filter
+// in EINER Overpass-Query landen, bricht damit der komplette POI-Abruf.
+// Die Schutzhütte hatte genau diesen Fehler und liess die Karte leer.
+describe('backend condition limit', () => {
+  const conds = (n: number): OsmSelector => ({
+    elements: ['node'],
+    tags: Array.from({ length: n }, (_, i) => ({ key: `k${i}`, value: `v${i}` })),
+  })
+
+  it('caps selectors at the shape the backend allowlist accepts', () => {
+    expect(MAX_SELECTOR_CONDITIONS).toBe(4)
+    expect(isValidSelector(conds(MAX_SELECTOR_CONDITIONS))).toBe(true)
+    expect(isValidSelector(conds(MAX_SELECTOR_CONDITIONS + 1))).toBe(false)
+  })
+
+  it('keeps every built-in selector within the limit', () => {
+    for (const f of DEFAULT_FILTERS) {
+      for (const sel of f.selectors) {
+        expect(sel.tags.length, `${f.id} hat ${sel.tags.length} Bedingungen`)
+          .toBeLessThanOrEqual(MAX_SELECTOR_CONDITIONS)
+      }
+    }
+  })
+
+  it('keeps every curated template within the limit', () => {
+    for (const t of FILTER_TEMPLATES) {
+      for (const sel of t.selectors) {
+        expect(sel.tags.length, `Template ${t.name}`).toBeLessThanOrEqual(MAX_SELECTOR_CONDITIONS)
+      }
+    }
+  })
+
+  it('never emits a statement with more tag filters than the backend allows', () => {
+    const q = buildOverpassQuery(BOUNDS, DEFAULT_FILTERS)
+    for (const stmt of q.split('\n').filter(l => /^\s*(node|way|relation)\[/.test(l))) {
+      const n = (stmt.match(/\["[\w:-]+"!?="[\w:-]+"\]/g) ?? []).length
+      expect(n, stmt.trim()).toBeLessThanOrEqual(MAX_SELECTOR_CONDITIONS)
+      expect(n).toBeGreaterThan(0)
+    }
   })
 })

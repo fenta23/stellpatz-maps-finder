@@ -148,10 +148,16 @@ export const DEFAULT_FILTERS: readonly FilterDef[] = [
   {
     // amenity=shelter ist zu ~90 % (DE) mit shelter_type=public_transport getaggt,
     // also Bushaltestellen-Wartehäuschen. Ohne die Ausschlüsse ist die Karte
-    // unbrauchbar. Overpass' != matcht auch Objekte OHNE den Key — Shelter ohne
-    // shelter_type bleiben also drin (das sind oft die interessanten Waldhütten).
-    // Bewusst nicht ausgeschlossen: field_shelter (global 0,5 %, Slot nicht wert —
-    // isValidSelector erlaubt max. 6 Bedingungen).
+    // unbrauchbar (Raum München: 2733 -> 242 Treffer). Overpass' != matcht auch
+    // Objekte OHNE den Key — Shelter ohne shelter_type bleiben also drin, das
+    // sind oft die interessanten Waldhütten.
+    //
+    // Genau MAX_SELECTOR_CONDITIONS (4) Bedingungen: das Backend akzeptiert pro
+    // Statement nur {1,4} Tag-Filter (_shared/utils.ts, STATEMENT), alles darüber
+    // gibt 400 "Unsupported query shape" — und weil alle Filter in einer Query
+    // landen, killt das den kompletten POI-Abruf. Deshalb nur die drei häufigsten
+    // Störtypen (public_transport 49 %, picnic_shelter 21 %, gazebo 11 %);
+    // sun_shelter/pergola/field_shelter bleiben als Restrauschen drin.
     id: 'shelter', name: 'Schutzhütte', iconId: 'shelter', color: '#455A64',
     enabled: false, kind: 'osm', builtin: true, order: 8,
     selectors: [{
@@ -159,10 +165,8 @@ export const DEFAULT_FILTERS: readonly FilterDef[] = [
       tags: [
         { key: 'amenity', value: 'shelter' },
         { key: 'shelter_type', value: 'public_transport', negate: true },
-        { key: 'shelter_type', value: 'gazebo', negate: true },
         { key: 'shelter_type', value: 'picnic_shelter', negate: true },
-        { key: 'shelter_type', value: 'sun_shelter', negate: true },
-        { key: 'shelter_type', value: 'pergola', negate: true },
+        { key: 'shelter_type', value: 'gazebo', negate: true },
       ],
     }],
   },
@@ -226,9 +230,18 @@ export function isValidCondition(c: TagCondition): boolean {
   return isValidTagToken(c.value)
 }
 
+/**
+ * Max. Tag-Bedingungen pro Selector. Muss zum Backend passen: die Query-Allowlist
+ * in `supabase/functions/_shared/utils.ts` erlaubt pro Statement `{1,4}` Tag-Filter
+ * (`STATEMENT`). Mehr gibt 400 "Unsupported query shape" — und da alle aktiven
+ * Filter in EINER Overpass-Query landen, bricht damit der komplette POI-Abruf,
+ * nicht nur der eine Filter. Wer hier hochgeht, muss das Backend mit-deployen.
+ */
+export const MAX_SELECTOR_CONDITIONS = 4
+
 export function isValidSelector(sel: OsmSelector): boolean {
   if (sel.elements.length === 0) return false
-  if (sel.tags.length === 0 || sel.tags.length > 6) return false
+  if (sel.tags.length === 0 || sel.tags.length > MAX_SELECTOR_CONDITIONS) return false
   return sel.tags.every(isValidCondition)
 }
 

@@ -3,7 +3,7 @@ import { createEventScope, type EventScope } from '@/core/events.js'
 import { generateCustomId } from '@/features/custom-pois/CustomPoi.js'
 import {
   FILTER_ICONS, FILTER_COLORS, FILTER_TEMPLATES, ALL_ELEMENT_KINDS,
-  filterIconSvg, isValidSelector,
+  filterIconSvg, isValidSelector, MAX_SELECTOR_CONDITIONS,
   type FilterDef, type OsmElementKind, type TagCondition,
 } from './filterModel.js'
 import type { IFilterStore } from './FilterStore.js'
@@ -273,7 +273,7 @@ export class FilterConfigPanel {
     renderRows()
 
     const addRow = el('button', 'fc-add-row', `${PLUS} <span>Bedingung</span>`)
-    addRow.addEventListener('click', () => { if (state.tags.length < 6) { state.tags.push({ key: '', value: '' }); renderRows() } })
+    addRow.addEventListener('click', () => { if (state.tags.length < MAX_SELECTOR_CONDITIONS) { state.tags.push({ key: '', value: '' }); renderRows() } })
     field.appendChild(addRow)
     return field
   }
