@@ -33,6 +33,8 @@ export const CUSTOM_POI_ICONS: readonly CustomPoiIcon[] = [
   { id: 'parking', label: 'Parkplatz', path: '<path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>' },
   { id: 'camper', label: 'Camper-Stellplatz', path: '<path d="M13 6v5a1 1 0 0 0 1 1h6.102a1 1 0 0 1 .712.298l.898.91a1 1 0 0 1 .288.702V17a1 1 0 0 1-1 1h-3"/><path d="M5 18H3a1 1 0 0 1-1-1V8a2 2 0 0 1 2-2h12c1.1 0 2.1.8 2.4 1.8l1.176 4.2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2" fill="#fff"/><circle cx="7" cy="18" r="2" fill="#fff"/>' },
   { id: 'campsite', label: 'Campingplatz', path: '<path d="M3.5 21 14 3"/><path d="M20.5 21 10 3"/><path d="M15.5 21 12 15l-3.5 6"/><path d="M2 21h20"/>' },
+  { id: 'hut', label: 'Hütte', path: '<path d="M3 11 12 4l9 7"/><path d="M5 11v9h14v-9"/><path d="M10 20v-5h4v5"/><path d="M16 6.2V3.5h2V8.8"/>' },
+  { id: 'shelter', label: 'Schutzhütte/Unterstand', path: '<path d="M2 11 12 4l10 7"/><path d="M5 11v9"/><path d="M19 11v9"/><path d="M3 20h18"/>' },
   { id: 'dump', label: 'Entsorgung', path: '<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' },
   { id: 'water', label: 'Wasser', path: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>' },
   { id: 'swimming', label: 'Badestelle/Strand', path: '<path d="M2 12q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0"/>' },

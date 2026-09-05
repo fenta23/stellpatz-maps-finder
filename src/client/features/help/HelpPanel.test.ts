@@ -176,6 +176,68 @@ describe('HelpPanel', () => {
     expect(setHidden).toHaveBeenCalledWith('parking', false)
   })
 
+  // Regression: der Wizard rechnete "ausgewaehlt" nur aus !hidden. Opt-in-Filter
+  // (enabled:false, nicht hidden) erschienen damit als ausgewaehlt, obwohl die
+  // Karte nichts zeigte — und ein Klick darauf schaltete sie nie ein.
+  it('shows opt-in filters (enabled:false) as deselected', async () => {
+    const { c, panel } = makePanel()
+    await flush()
+    panel.open()
+    clickNext(c) // to step 2
+
+    for (const id of ['hut', 'shelter']) {
+      const card = c.querySelector<HTMLButtonElement>(`.help-filter-card[data-filter-id="${id}"]`)!
+      expect(card, `card for ${id} missing`).toBeTruthy()
+      expect(card.classList.contains('selected'), `${id} should start deselected`).toBe(false)
+      expect(card.getAttribute('aria-pressed')).toBe('false')
+    }
+  })
+
+  it('enables an opt-in filter when it gets selected in the wizard', async () => {
+    const setEnabled = vi.fn()
+    const setHidden = vi.fn()
+    const filterStore = makeFilterStore({ setEnabled, setHidden })
+    const { c, panel } = makePanel({ filterStore })
+    await flush()
+    panel.open()
+    clickNext(c) // to step 2
+
+    c.querySelector<HTMLButtonElement>('.help-filter-card[data-filter-id="shelter"]')!.click()
+    clickNext(c) // commits
+
+    expect(setEnabled).toHaveBeenCalledWith('shelter', true)
+    // war nie hidden — es gibt keinen Grund, hidden anzufassen
+    expect(setHidden).not.toHaveBeenCalledWith('shelter', false)
+  })
+
+  // Der Wizard hebt `enabled` nur an, senkt es nie: Abwaehlen blendet via
+  // `hidden` aus und laesst den Chip-Zustand unberuehrt.
+  it('never disables a filter — deselecting only hides it', async () => {
+    const setEnabled = vi.fn()
+    const setHidden = vi.fn()
+    const { c, panel } = makePanel({ filterStore: makeFilterStore({ setEnabled, setHidden }) })
+    await flush()
+    panel.open()
+    clickNext(c) // to step 2
+
+    c.querySelector<HTMLButtonElement>('.help-filter-card[data-filter-id="parking"]')!.click() // abwaehlen
+    clickNext(c) // commits
+
+    expect(setHidden).toHaveBeenCalledWith('parking', true)
+    expect(setEnabled).not.toHaveBeenCalled()
+  })
+
+  it('does not re-enable already-enabled filters', async () => {
+    const setEnabled = vi.fn()
+    const { c, panel } = makePanel({ filterStore: makeFilterStore({ setEnabled }) })
+    await flush()
+    panel.open()
+    clickNext(c) // to step 2 — parking is selected by default, touch nothing
+    clickNext(c) // commits
+
+    expect(setEnabled).not.toHaveBeenCalledWith('parking', true)
+  })
+
   it('skip on step 2 does NOT apply filter changes', async () => {
     const setHidden = vi.fn()
     const filterStore = makeFilterStore({ setHidden })

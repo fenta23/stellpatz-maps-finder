@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { FilterPanel, computeVisibleCount } from './FilterPanel.js'
 import { LocalFilterStore } from './FilterStore.js'
-import type { FilterDef } from './filterModel.js'
+import { DEFAULT_FILTERS, type FilterDef } from './filterModel.js'
 
 const noop = () => {}
 const makeContainer = (): HTMLElement => document.createElement('div')
@@ -18,7 +18,7 @@ describe('FilterPanel', () => {
   it('renders a chip per configured filter plus add + config buttons', () => {
     const el = makeContainer()
     new FilterPanel(el, new LocalFilterStore(), { onAdd: noop, onOpenConfig: noop })
-    expect(el.querySelectorAll('[data-filter-id]')).toHaveLength(7) // 6 OSM + personal
+    expect(el.querySelectorAll('[data-filter-id]')).toHaveLength(DEFAULT_FILTERS.length)
     expect(el.querySelector('[data-filter-id="climbing"]')).toBeTruthy()
     expect(el.querySelector('[data-filter-id="personal"]')).toBeTruthy()
     expect(el.querySelector('.filter-add')).toBeTruthy()
@@ -51,7 +51,7 @@ describe('FilterPanel', () => {
     new FilterPanel(el, store, { onAdd: noop, onOpenConfig: noop })
     store.put(userFilter())
     expect(el.querySelector('[data-filter-id="u1"]')).toBeTruthy()
-    expect(el.querySelectorAll('[data-filter-id]')).toHaveLength(8)
+    expect(el.querySelectorAll('[data-filter-id]')).toHaveLength(DEFAULT_FILTERS.length + 1)
   })
 
   it('fires onAdd and onOpenConfig', () => {

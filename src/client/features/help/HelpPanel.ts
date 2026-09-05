@@ -1,7 +1,7 @@
 import './help.css'
 import { clone, ref } from '@/core/template.js'
 import { createEventScope, type EventScope } from '@/core/events.js'
-import { DEFAULT_FILTERS, filterIconSvg, PERSONAL_FILTER_ID } from '@/features/filters/filterModel.js'
+import { DEFAULT_FILTERS, filterIconSvg, isFilterActive, PERSONAL_FILTER_ID } from '@/features/filters/filterModel.js'
 import type { IFilterStore } from '@/features/filters/FilterStore.js'
 import panelHtml from './helpPanel.html?raw'
 
@@ -54,8 +54,10 @@ export class HelpPanel {
     this.filterEnabled.clear()
     for (const f of WIZARD_FILTERS) {
       const stored = this.deps.filterStore.get(f.id)
-      // A filter is "selected" (shown) if it isn't explicitly hidden; default = visible
-      this.filterEnabled.set(f.id, stored ? !stored.hidden : true)
+      // "Selected" = tatsaechlich sichtbar auf der Karte, also !hidden && enabled.
+      // Nur auf hidden zu schauen wuerde opt-in-Filter (enabled:false, nicht
+      // hidden) als ausgewaehlt anzeigen, obwohl die Karte nichts zeigt.
+      this.filterEnabled.set(f.id, stored ? isFilterActive(stored) : f.enabled)
     }
   }
 
@@ -91,6 +93,12 @@ export class HelpPanel {
       } else if (!visible && !isHidden) {
         this.deps.filterStore.setHidden(id, true)
       }
+      // Sichtbarkeit heisst !hidden && enabled — ein opt-in-Filter muss beim
+      // Auswaehlen auch eingeschaltet werden, sonst bleibt die Karte leer.
+      // Bewusst asymmetrisch: der Wizard hebt `enabled` nur an, senkt es nie.
+      // `hidden` ist die Achse des Wizards, `enabled` die des Chips — Abwaehlen
+      // blendet aus und laesst den Chip-Zustand in Ruhe.
+      if (visible && !cur.enabled) this.deps.filterStore.setEnabled(id, true)
     }
   }
 

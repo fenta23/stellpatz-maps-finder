@@ -131,6 +131,41 @@ export const DEFAULT_FILTERS: readonly FilterDef[] = [
     enabled: true, kind: 'personal', builtin: true, order: 6,
     selectors: [],
   },
+  {
+    // Bewirtschaftete + unbewirtschaftete Hütten. Steht VOR 'shelter', damit eine
+    // Hütte, die zusätzlich amenity=shelter trägt, hier landet (classifyElement
+    // nimmt den ersten Treffer in Store-Reihenfolge).
+    // enabled: false — die Chips sind sichtbar (nur !hidden zaehlt fuer die
+    // Leiste), aber inaktiv: bestehende Nutzer bekommen nicht ungefragt zwei
+    // neue POI-Typen auf die Karte, ein Tap auf den Chip schaltet sie an.
+    id: 'hut', name: 'Hütte', iconId: 'hut', color: '#00838F',
+    enabled: false, kind: 'osm', builtin: true, order: 7,
+    selectors: [
+      { elements: NW, tags: [{ key: 'tourism', value: 'wilderness_hut' }] },
+      { elements: NW, tags: [{ key: 'tourism', value: 'alpine_hut' }] },
+    ],
+  },
+  {
+    // amenity=shelter ist zu ~90 % (DE) mit shelter_type=public_transport getaggt,
+    // also Bushaltestellen-Wartehäuschen. Ohne die Ausschlüsse ist die Karte
+    // unbrauchbar. Overpass' != matcht auch Objekte OHNE den Key — Shelter ohne
+    // shelter_type bleiben also drin (das sind oft die interessanten Waldhütten).
+    // Bewusst nicht ausgeschlossen: field_shelter (global 0,5 %, Slot nicht wert —
+    // isValidSelector erlaubt max. 6 Bedingungen).
+    id: 'shelter', name: 'Schutzhütte', iconId: 'shelter', color: '#455A64',
+    enabled: false, kind: 'osm', builtin: true, order: 8,
+    selectors: [{
+      elements: NW,
+      tags: [
+        { key: 'amenity', value: 'shelter' },
+        { key: 'shelter_type', value: 'public_transport', negate: true },
+        { key: 'shelter_type', value: 'gazebo', negate: true },
+        { key: 'shelter_type', value: 'picnic_shelter', negate: true },
+        { key: 'shelter_type', value: 'sun_shelter', negate: true },
+        { key: 'shelter_type', value: 'pergola', negate: true },
+      ],
+    }],
+  },
 ]
 
 /** The set of built-in ids whose OSM tags must not be edited/deleted. */

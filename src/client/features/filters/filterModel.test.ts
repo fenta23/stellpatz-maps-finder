@@ -11,9 +11,9 @@ const BOUNDS: LatLngBounds = { south: 48.0, west: 11.0, north: 48.5, east: 11.5 
 const byId = (id: string): FilterDef => DEFAULT_FILTERS.find(f => f.id === id)!
 
 describe('DEFAULT_FILTERS', () => {
-  it('has the 6 OSM types plus a personal group', () => {
+  it('has the 8 OSM types plus a personal group', () => {
     expect(DEFAULT_FILTERS.map(f => f.id)).toEqual(
-      ['parking', 'camper', 'campsite', 'dump', 'water', 'climbing', PERSONAL_FILTER_ID],
+      ['parking', 'camper', 'campsite', 'dump', 'water', 'climbing', PERSONAL_FILTER_ID, 'hut', 'shelter'],
     )
   })
 
@@ -27,8 +27,21 @@ describe('DEFAULT_FILTERS', () => {
     expect(osmColors).not.toContain(p.color)
   })
 
-  it('all defaults are builtin and enabled', () => {
-    expect(DEFAULT_FILTERS.every(f => f.builtin && f.enabled)).toBe(true)
+  it('all defaults are builtin', () => {
+    expect(DEFAULT_FILTERS.every(f => f.builtin)).toBe(true)
+  })
+
+  it('enables everything except the two opt-in newcomers', () => {
+    const off = DEFAULT_FILTERS.filter(f => !f.enabled).map(f => f.id)
+    expect(off).toEqual(['hut', 'shelter'])
+  })
+
+  // Regression: enabled:false darf nicht hidden:true bedeuten — sonst
+  // verschwinden die Chips ganz statt nur inaktiv zu sein.
+  it('leaves the opt-in filters visible in the chip row (not hidden)', () => {
+    for (const id of ['hut', 'shelter']) {
+      expect(byId(id).hidden).toBeUndefined()
+    }
   })
 })
 
@@ -154,5 +167,88 @@ describe('icons & templates', () => {
       expect(t.selectors.every(isValidSelector)).toBe(true)
       expect(FILTER_ICONS.some(i => i.id === t.iconId)).toBe(true)
     }
+  })
+})
+
+describe('shelter filter (Bushaltestellen-Ausschluss)', () => {
+  const all = DEFAULT_FILTERS
+  const shelter = byId('shelter')
+
+  it('claims a plain shelter without shelter_type', () => {
+    expect(classifyElement({ amenity: 'shelter' }, 'way', all)).toBe('shelter')
+  })
+
+  it('claims the shelter types that matter for hikers', () => {
+    for (const t of ['basic_hut', 'lean_to', 'weather_shelter', 'rock_shelter']) {
+      expect(classifyElement({ amenity: 'shelter', shelter_type: t }, 'way', all)).toBe('shelter')
+    }
+  })
+
+  // Regression: ~90 % aller amenity=shelter in DE sind Bushaltestellen-Wartehäuschen.
+  it('rejects bus-stop shelters and the other decorative types', () => {
+    for (const t of ['public_transport', 'gazebo', 'picnic_shelter', 'sun_shelter', 'pergola']) {
+      expect(classifyElement({ amenity: 'shelter', shelter_type: t }, 'way', all)).toBeNull()
+    }
+  })
+
+  it('stays inside the 6-condition selector limit', () => {
+    expect(shelter.selectors).toHaveLength(1)
+    expect(shelter.selectors[0]!.tags).toHaveLength(6)
+    expect(isValidSelector(shelter.selectors[0]!)).toBe(true)
+  })
+
+  it('emits the exclusions as Overpass != conditions', () => {
+    const q = buildOverpassQuery(BOUNDS, [shelter])
+    expect(q).toContain('["amenity"="shelter"]')
+    expect(q).toContain('["shelter_type"!="public_transport"]')
+    expect(q).toContain('["shelter_type"!="gazebo"]')
+    expect(q).not.toContain('["shelter_type"="public_transport"]')
+  })
+})
+
+describe('hut filter', () => {
+  const all = DEFAULT_FILTERS
+
+  it('claims both unstaffed and staffed huts', () => {
+    expect(classifyElement({ tourism: 'wilderness_hut' }, 'way', all)).toBe('hut')
+    expect(classifyElement({ tourism: 'alpine_hut' }, 'node', all)).toBe('hut')
+  })
+
+  it('does not claim a campsite or a caravan site', () => {
+    expect(classifyElement({ tourism: 'camp_site' }, 'way', all)).toBe('campsite')
+    expect(classifyElement({ tourism: 'caravan_site' }, 'way', all)).toBe('camper')
+  })
+
+  // Ordering: 'hut' (order 7) muss vor 'shelter' (order 8) greifen, sonst
+  // landet eine Hütte mit zusätzlichem amenity=shelter im Schutzhütten-Filter.
+  it('wins over shelter when an element carries both tags', () => {
+    expect(classifyElement({ tourism: 'wilderness_hut', amenity: 'shelter' }, 'way', all)).toBe('hut')
+    expect(byId('hut').order).toBeLessThan(byId('shelter').order)
+  })
+
+  it('ORs its two selectors instead of ANDing them', () => {
+    const q = buildOverpassQuery(BOUNDS, [byId('hut')])
+    expect(q).toContain('["tourism"="wilderness_hut"]')
+    expect(q).toContain('["tourism"="alpine_hut"]')
+    expect(q).not.toContain('["tourism"="wilderness_hut"]["tourism"="alpine_hut"]')
+  })
+})
+
+describe('new filter icons', () => {
+  it('registers a distinct icon for hut and shelter — not the campsite tent', () => {
+    for (const id of ['hut', 'shelter']) {
+      const f = byId(id)
+      expect(f.iconId).toBe(id)
+      expect(FILTER_ICONS.some(i => i.id === id)).toBe(true)
+      expect(filterIconPath(id)).not.toBe(filterIconPath('campsite'))
+      expect(filterIconPath(id).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('gives them colours no other built-in uses', () => {
+    const others = DEFAULT_FILTERS.filter(f => f.id !== 'hut' && f.id !== 'shelter').map(f => f.color)
+    expect(others).not.toContain(byId('hut').color)
+    expect(others).not.toContain(byId('shelter').color)
+    expect(byId('hut').color).not.toBe(byId('shelter').color)
   })
 })
